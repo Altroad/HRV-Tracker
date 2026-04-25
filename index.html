@@ -448,7 +448,10 @@ function renderChart() {
 
 // ---------- History list ----------
 function renderHistory() {
-  const sorted = sortByDate(readings, -1);
+  const sorted = [...readings].sort((a, b) => {
+    const d = new Date(b.date) - new Date(a.date);
+    return d !== 0 ? d : b.id - a.id;
+  });
   const el = $('historyList');
   if (!sorted.length) {
     el.innerHTML = '<div class="empty-state">No readings yet</div>';
