@@ -728,9 +728,19 @@ async function ghRequest(method, body) {
   const token = getGHToken();
   if (!token) return null;
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${getGHPath()}`;
-  const opts = { method, headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' } };
+  const opts = {
+    method,
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json'
+    }
+  };
   if (body) opts.body = JSON.stringify(body);
-  try { return await fetch(url, opts); } catch { return null; }
+  try { return await fetch(url, opts); } catch(e) { console.error('ghRequest:', e); return null; }
 }
 
 async function loadFromGitHub() {
@@ -782,10 +792,35 @@ function showSyncModal() {
     <input id="patInput" type="password" placeholder="ghp_..." value="${currentToken}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:13px;width:100%;outline:none;box-sizing:border-box;">
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn cancel" data-test>TEST</button>
       <button class="modal-btn" data-save>SAVE & SYNC</button>
     </div>
+    <div id="testResult" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:4px;text-align:center;min-height:16px;"></div>
   `);
   overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-test]').addEventListener('click', async () => {
+    const token = overlay.querySelector('#patInput').value.trim();
+    const resultEl = overlay.querySelector('#testResult');
+    if (!token) { resultEl.textContent = 'Enter a token first'; return; }
+    resultEl.textContent = 'Testing...';
+    try {
+      const res = await fetch('https://api.github.com/user', {
+        mode: 'cors', credentials: 'omit',
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+      });
+      if (res.ok) {
+        const u = await res.json();
+        resultEl.style.color = 'var(--green)';
+        resultEl.textContent = `✓ Token valid — logged in as ${u.login}`;
+      } else {
+        resultEl.style.color = 'var(--red)';
+        resultEl.textContent = `✗ Token rejected (HTTP ${res.status})`;
+      }
+    } catch(e) {
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = `✗ Network error — ${e.message}`;
+    }
+  });
   overlay.querySelector('[data-save]').addEventListener('click', async () => {
     const user  = overlay.querySelector('#userInput').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const token = overlay.querySelector('#patInput').value.trim();
