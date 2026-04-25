@@ -215,8 +215,8 @@ const CHART = { minV: 20, maxV: 160, height: 260, range: 14 };
 const COLORS = { accent:'#00e5ff', green:'#4caf50', orange:'#ff9800', red:'#f44336', muted:'#4a6070', surface:'#0e1419' };
 const GH_OWNER = 'Altroad';
 const GH_REPO  = 'HRV-Tracker';
-const GH_PATH  = 'data/readings.json';
-const GH_PAT_KEY = 'hrv_github_pat';
+const GH_PAT_KEY  = 'hrv_github_pat';
+const GH_USER_KEY = 'hrv_github_user';
 
 // ---------- State ----------
 let readings = [];
@@ -719,11 +719,13 @@ function render() {
 let ghFileSha = null;
 
 function getGHToken() { return localStorage.getItem(GH_PAT_KEY); }
+function getGHUser()  { return localStorage.getItem(GH_USER_KEY); }
+function getGHPath()  { const u = getGHUser(); return u ? `data/${u}.json` : 'data/readings.json'; }
 
 async function ghRequest(method, body) {
   const token = getGHToken();
   if (!token) return null;
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${getGHPath()}`;
   const opts = { method, headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   try { return await fetch(url, opts); } catch { return null; }
@@ -759,16 +761,19 @@ async function saveToGitHub() {
 function updateSyncStatus() {
   const btn = $('syncBtn');
   if (!btn) return;
-  if (getGHToken()) { btn.classList.add('active'); btn.title = 'GitHub sync active — tap to reconfigure'; }
+  const user = getGHUser();
+  if (getGHToken()) { btn.classList.add('active'); btn.title = `GitHub sync active (${user || 'default'}) — tap to reconfigure`; }
   else { btn.classList.remove('active'); btn.title = 'Set up GitHub sync'; }
 }
 
 function showSyncModal() {
-  const current = getGHToken() || '';
+  const currentToken = getGHToken() || '';
+  const currentUser  = getGHUser() || '';
   const overlay = openModal(`
     <div class="modal-title">GitHub Sync</div>
-    <div class="modal-desc">Enter a GitHub Personal Access Token with <strong>repo</strong> scope. Your readings will be stored as <code style="color:var(--accent);font-family:var(--font-mono)">data/readings.json</code> in your repo and synced automatically.<br><br>Create one at: GitHub → Settings → Developer settings → Personal access tokens</div>
-    <input id="patInput" type="password" placeholder="ghp_..." value="${current}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:13px;width:100%;outline:none;box-sizing:border-box;">
+    <div class="modal-desc">Enter a username (letters/numbers only) and a GitHub Personal Access Token with <strong>repo</strong> scope. Each username gets their own separate data file.<br><br>Create a token at: GitHub → Settings → Developer settings → Personal access tokens</div>
+    <input id="userInput" type="text" placeholder="username (e.g. alex)" value="${currentUser}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:13px;width:100%;outline:none;box-sizing:border-box;margin-bottom:8px;">
+    <input id="patInput" type="password" placeholder="ghp_..." value="${currentToken}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:13px;width:100%;outline:none;box-sizing:border-box;">
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-save>SAVE & SYNC</button>
@@ -776,17 +781,21 @@ function showSyncModal() {
   `);
   overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
   overlay.querySelector('[data-save]').addEventListener('click', async () => {
+    const user  = overlay.querySelector('#userInput').value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const token = overlay.querySelector('#patInput').value.trim();
+    if (!user)  { showToast('Enter a username'); return; }
     if (!token) { showToast('Enter a token'); return; }
+    localStorage.setItem(GH_USER_KEY, user);
     localStorage.setItem(GH_PAT_KEY, token);
+    ghFileSha = null;
     overlay.remove();
     updateSyncStatus();
     showToast('Connecting to GitHub...');
     const loaded = await loadFromGitHub();
-    if (loaded) { render(); showToast('Synced from GitHub ✓'); }
-    else { await saveToGitHub(); showToast('Connected — readings saved to GitHub ✓'); }
+    if (loaded) { render(); showToast(`Synced as "${user}" ✓`); }
+    else { await saveToGitHub(); showToast(`Connected as "${user}" ✓`); }
   });
-  setTimeout(() => overlay.querySelector('#patInput').focus(), 100);
+  setTimeout(() => overlay.querySelector('#userInput').focus(), 100);
 }
 
 // ---------- Info modal ----------
