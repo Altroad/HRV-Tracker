@@ -738,10 +738,8 @@ async function loadFromGitHub() {
   ghFileSha = file.sha;
   try {
     const data = JSON.parse(atob(file.content.replace(/\n/g, '')));
-    if (Array.isArray(data) && data.length > 0) {
-      readings = data.map(r => ({ ...r, id: r.id ?? newId() }));
-      nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
-    }
+    readings = Array.isArray(data) ? data.map(r => ({ ...r, id: r.id ?? newId() })) : [];
+    if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
     return true;
   } catch { return false; }
 }
@@ -788,12 +786,13 @@ function showSyncModal() {
     localStorage.setItem(GH_USER_KEY, user);
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
+    readings = [];
     overlay.remove();
     updateSyncStatus();
     showToast('Connecting to GitHub...');
     const loaded = await loadFromGitHub();
     if (loaded) { render(); showToast(`Synced as "${user}" ✓`); }
-    else { await saveToGitHub(); showToast(`Connected as "${user}" ✓`); }
+    else { render(); await saveToGitHub(); showToast(`Connected as "${user}" ✓`); }
   });
   setTimeout(() => overlay.querySelector('#userInput').focus(), 100);
 }
@@ -834,13 +833,14 @@ async function init() {
     if (btn) handleDeleteClick(btn);
   });
   $('inputDate').value = new Date().toISOString().split('T')[0];
-  load();
-  render();
   updateSyncStatus();
   if (getGHToken()) {
     const loaded = await loadFromGitHub();
-    if (loaded) render();
+    if (!loaded) await saveToGitHub();
+  } else {
+    load();
   }
+  render();
 }
 
 init();
