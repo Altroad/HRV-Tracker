@@ -258,13 +258,15 @@ function load() {
   } catch { readings = []; }
 }
 
+let saveTimer = null;
 function save() {
   try {
     const data = JSON.stringify(readings);
     localStorage.setItem(STORAGE_KEY, data);
     localStorage.setItem(BACKUP_KEY, data);
   } catch {}
-  saveToGitHub();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToGitHub(), 800);
 }
 
 // ---------- Data shaping ----------
@@ -753,6 +755,8 @@ async function saveToGitHub() {
   if (res && res.ok) {
     const data = await res.json();
     ghFileSha = data.content.sha;
+  } else {
+    showToast('GitHub sync failed — check your token');
   }
 }
 
