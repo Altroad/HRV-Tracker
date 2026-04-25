@@ -21,7 +21,9 @@
   body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; padding:24px 20px 60px; }
 
   /* Header */
-  .header-top { text-align:center; margin-bottom:24px; }
+  .header-top { text-align:center; margin-bottom:24px; position:relative; }
+  .info-btn { position:absolute; right:0; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:13px; cursor:pointer; }
+  .info-btn:hover { border-color:var(--accent); color:var(--accent); }
   .label { font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--accent); font-weight:500; font-family:var(--font-mono); margin-bottom:4px; }
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
   .baseline-badge { font-family:var(--font-mono); font-size:11px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:4px; display:inline-block; }
@@ -116,6 +118,7 @@
 <div class="header-top">
   <h1>HRV Tracker</h1>
   <div class="baseline-badge" id="baselineBadge">Baseline: 88ms</div>
+  <button class="info-btn" id="infoBtn">?</button>
 </div>
 
 <div class="card today-card">
@@ -703,6 +706,27 @@ function render() {
   renderHistory();
 }
 
+// ---------- Info modal ----------
+function showInfoModal() {
+  const overlay = openModal(`
+    <div class="modal-title">About — HRV Calculation</div>
+    <div class="modal-desc" style="line-height:1.7">
+      Daily HRV scores use a <strong>trimmed mean</strong> from raw Apple Watch overnight readings exported via Health Auto Export.<br><br>
+      <strong>Time window:</strong> 1:30am – 3:00am only — the core deep sleep window where HRV is most stable.<br><br>
+      <strong>Steps:</strong><br>
+      1. Extract readings in the 1:30–3am window<br>
+      2. Sort by value<br>
+      3. Drop the highest and lowest reading<br>
+      4. Average the remaining values<br>
+      5. Round to nearest whole number<br><br>
+      <strong>Why trimmed mean?</strong> Removes artefact readings from movement or signal noise — more robust than a simple average for small samples.<br><br>
+      <strong>Minimum:</strong> At least 3 readings required in the window.
+    </div>
+    <button class="modal-btn" data-close>CLOSE</button>
+  `);
+  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+}
+
 // ---------- Init ----------
 function init() {
   drawYAxis();
@@ -711,6 +735,7 @@ function init() {
   $('calcUseBtn').addEventListener('click', () => { $('calcResult').classList.remove('show'); });
   $('exportBtn').addEventListener('click', exportData);
   $('importBtn').addEventListener('click', showImportModal);
+  $('infoBtn').addEventListener('click', showInfoModal);
   $('historyList').addEventListener('click', e => {
     const btn = e.target.closest('.delete-btn');
     if (btn) handleDeleteClick(btn);
