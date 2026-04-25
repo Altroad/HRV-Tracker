@@ -528,7 +528,7 @@ function updateMetrics() {
   $('avg3d').style.color = colorForHRV(avg3);
   const ad3 = avg3 - BASELINE;
   const ael3 = $('avg3dDelta');
-  ael3.textContent = (ad3 >= 0 ? '+' : '') + ad3 + 'ms vs baseline';
+  ael3.textContent = (ad3 >= 0 ? '▲' : '▼') + Math.abs(ad3) + 'ms vs baseline';
   ael3.style.color = ad3 >= 0 ? COLORS.green : COLORS.red;
 
   // 7-day avg
@@ -538,7 +538,7 @@ function updateMetrics() {
   $('avg7d').style.color = colorForHRV(avg);
   const ad = avg - BASELINE;
   const ael = $('avg7dDelta');
-  ael.textContent = (ad >= 0 ? '+' : '') + ad + 'ms vs baseline';
+  ael.textContent = (ad >= 0 ? '▲' : '▼') + Math.abs(ad) + 'ms vs baseline';
   ael.style.color = ad >= 0 ? COLORS.green : COLORS.red;
 
   // Trend
