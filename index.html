@@ -35,7 +35,8 @@
 
   /* Cards */
   .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
-  .today-card { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .today-card { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .today-card .metric-value { font-size:34px; }
 
   .metric { text-align:center; }
   .metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:6px; }
@@ -135,6 +136,12 @@
     <div class="metric-value" id="latestHRV" style="color:var(--accent)">—</div>
     <div class="metric-unit">ms</div>
     <div class="metric-delta" id="hrvDelta">—</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">3D Avg</div>
+    <div class="metric-value" id="avg3d" style="color:var(--orange)">—</div>
+    <div class="metric-unit">ms</div>
+    <div class="metric-delta" id="avg3dDelta">vs baseline</div>
   </div>
   <div class="metric">
     <div class="metric-label">7D Avg</div>
@@ -513,6 +520,15 @@ function updateMetrics() {
     el.textContent = (d >= 0 ? '▲' : '▼') + Math.abs(d) + 'ms from prev';
     el.style.color = d >= 0 ? COLORS.green : COLORS.red;
   }
+
+  // 3-day avg
+  const last3 = sorted.slice(-3);
+  const avg3 = Math.round(last3.reduce((a,b) => a + b.hrv, 0) / last3.length);
+  $('avg3d').textContent = avg3;
+  const ad3 = avg3 - BASELINE;
+  const ael3 = $('avg3dDelta');
+  ael3.textContent = (ad3 >= 0 ? '+' : '') + ad3 + 'ms vs baseline';
+  ael3.style.color = ad3 >= 0 ? COLORS.green : COLORS.red;
 
   // 7-day avg
   const last7 = sorted.slice(-7);
