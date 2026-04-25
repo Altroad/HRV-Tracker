@@ -24,6 +24,9 @@
   .header-top { text-align:center; margin-bottom:24px; position:relative; }
   .info-btn { position:absolute; right:0; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:13px; cursor:pointer; }
   .info-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .sync-btn { position:absolute; right:36px; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:15px; cursor:pointer; line-height:1; }
+  .sync-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .sync-btn.active { color:var(--accent); border-color:var(--accent); }
   .label { font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--accent); font-weight:500; font-family:var(--font-mono); margin-bottom:4px; }
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
   .baseline-badge { font-family:var(--font-mono); font-size:11px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:4px; display:inline-block; }
@@ -118,6 +121,7 @@
 <div class="header-top">
   <h1>HRV Tracker</h1>
   <div class="baseline-badge" id="baselineBadge">Baseline: 88ms</div>
+  <button class="sync-btn" id="syncBtn" title="GitHub sync">⟳</button>
   <button class="info-btn" id="infoBtn">?</button>
 </div>
 
@@ -209,6 +213,10 @@ const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
 const CHART = { minV: 20, maxV: 160, height: 260, range: 14 };
 const COLORS = { accent:'#00e5ff', green:'#4caf50', orange:'#ff9800', red:'#f44336', muted:'#4a6070', surface:'#0e1419' };
+const GH_OWNER = 'Altroad';
+const GH_REPO  = 'HRV-Tracker';
+const GH_PATH  = 'data/readings.json';
+const GH_PAT_KEY = 'hrv_github_pat';
 
 // ---------- State ----------
 let readings = [];
@@ -256,6 +264,7 @@ function save() {
     localStorage.setItem(STORAGE_KEY, data);
     localStorage.setItem(BACKUP_KEY, data);
   } catch {}
+  saveToGitHub();
 }
 
 // ---------- Data shaping ----------
@@ -706,6 +715,80 @@ function render() {
   renderHistory();
 }
 
+// ---------- GitHub Sync ----------
+let ghFileSha = null;
+
+function getGHToken() { return localStorage.getItem(GH_PAT_KEY); }
+
+async function ghRequest(method, body) {
+  const token = getGHToken();
+  if (!token) return null;
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+  const opts = { method, headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try { return await fetch(url, opts); } catch { return null; }
+}
+
+async function loadFromGitHub() {
+  const res = await ghRequest('GET');
+  if (!res || !res.ok) return false;
+  const file = await res.json();
+  ghFileSha = file.sha;
+  try {
+    const data = JSON.parse(atob(file.content.replace(/\n/g, '')));
+    if (Array.isArray(data) && data.length > 0) {
+      readings = data.map(r => ({ ...r, id: r.id ?? newId() }));
+      nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
+    }
+    return true;
+  } catch { return false; }
+}
+
+async function saveToGitHub() {
+  if (!getGHToken()) return;
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(readings, null, 2))));
+  const body = { message: 'Update HRV readings', content };
+  if (ghFileSha) body.sha = ghFileSha;
+  const res = await ghRequest('PUT', body);
+  if (res && res.ok) {
+    const data = await res.json();
+    ghFileSha = data.content.sha;
+  }
+}
+
+function updateSyncStatus() {
+  const btn = $('syncBtn');
+  if (!btn) return;
+  if (getGHToken()) { btn.classList.add('active'); btn.title = 'GitHub sync active — tap to reconfigure'; }
+  else { btn.classList.remove('active'); btn.title = 'Set up GitHub sync'; }
+}
+
+function showSyncModal() {
+  const current = getGHToken() || '';
+  const overlay = openModal(`
+    <div class="modal-title">GitHub Sync</div>
+    <div class="modal-desc">Enter a GitHub Personal Access Token with <strong>repo</strong> scope. Your readings will be stored as <code style="color:var(--accent);font-family:var(--font-mono)">data/readings.json</code> in your repo and synced automatically.<br><br>Create one at: GitHub → Settings → Developer settings → Personal access tokens</div>
+    <input id="patInput" type="password" placeholder="ghp_..." value="${current}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:13px;width:100%;outline:none;box-sizing:border-box;">
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-save>SAVE & SYNC</button>
+    </div>
+  `);
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-save]').addEventListener('click', async () => {
+    const token = overlay.querySelector('#patInput').value.trim();
+    if (!token) { showToast('Enter a token'); return; }
+    localStorage.setItem(GH_PAT_KEY, token);
+    overlay.remove();
+    updateSyncStatus();
+    showToast('Connecting to GitHub...');
+    const loaded = await loadFromGitHub();
+    if (loaded) { render(); showToast('Synced from GitHub ✓'); }
+    else { await saveToGitHub(); showToast('Connected — readings saved to GitHub ✓'); }
+  });
+  setTimeout(() => overlay.querySelector('#patInput').focus(), 100);
+}
+
 // ---------- Info modal ----------
 function showInfoModal() {
   const overlay = openModal(`
@@ -728,13 +811,14 @@ function showInfoModal() {
 }
 
 // ---------- Init ----------
-function init() {
+async function init() {
   drawYAxis();
   $('addBtn').addEventListener('click', addReading);
   $('calcBtn').addEventListener('click', showCalcModal);
   $('calcUseBtn').addEventListener('click', () => { $('calcResult').classList.remove('show'); });
   $('exportBtn').addEventListener('click', exportData);
   $('importBtn').addEventListener('click', showImportModal);
+  $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
   $('historyList').addEventListener('click', e => {
     const btn = e.target.closest('.delete-btn');
@@ -743,6 +827,11 @@ function init() {
   $('inputDate').value = new Date().toISOString().split('T')[0];
   load();
   render();
+  updateSyncStatus();
+  if (getGHToken()) {
+    const loaded = await loadFromGitHub();
+    if (loaded) render();
+  }
 }
 
 init();
