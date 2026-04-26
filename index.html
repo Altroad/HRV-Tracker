@@ -471,7 +471,19 @@ function renderChart() {
       devicePixelRatio: window.devicePixelRatio || 1,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
-        x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: { color: '#a0b4c0', font: { family: 'DM Mono', size: chartRange <= 14 ? 20 : 10, weight: '500' }, maxTicksLimit: chartRange <= 14 ? 20 : 8 } },
+        x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
+          ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
+          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 11, weight: '500' },
+              autoSkip: false,
+              callback: (val, idx) => {
+                const d = new Date(sorted[idx].date);
+                const prev = idx > 0 ? new Date(sorted[idx-1].date) : null;
+                if (idx === 0 || (prev && prev.getMonth() !== d.getMonth()))
+                  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+                return '';
+              }
+            }
+        },
         y: { display: false, min: CHART.minV, max: CHART.maxV }
       }
     }
