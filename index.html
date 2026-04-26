@@ -454,7 +454,7 @@ function renderChart() {
 
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
-  const pr = Math.max(2, Math.min(20, Math.floor(currentPtW / 2) - 1));
+  const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
 
   if (mainChart) { mainChart.destroy(); mainChart = null; }
 
@@ -471,7 +471,7 @@ function renderChart() {
       devicePixelRatio: window.devicePixelRatio || 1,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: {
-        x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } } },
+        x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: { color: '#a0b4c0', font: { family: 'DM Mono', size: chartRange <= 14 ? 20 : 10, weight: '500' }, maxTicksLimit: chartRange <= 14 ? 20 : 8 } },
         y: { display: false, min: CHART.minV, max: CHART.maxV }
       }
     }
