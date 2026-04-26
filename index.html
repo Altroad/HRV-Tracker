@@ -462,7 +462,7 @@ function renderChart() {
     type: 'line',
     plugins: [buildPointsPlugin(values, pr, canvas)],
     data: { labels, datasets: [
-      { data: values, borderColor: COLORS.accent, borderWidth: 3, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
+      { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 3 : 1.5, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
       { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 4, borderDash: [5,4], pointRadius: 0, fill: false },
       { data: rollingAvg, borderWidth: 4, borderDash: [6,3], pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? COLORS.green : COLORS.red } }
     ]},
@@ -473,7 +473,7 @@ function renderChart() {
       scales: {
         x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
           ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
-          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 11, weight: '500' },
+          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 15, weight: '500' },
               autoSkip: false,
               callback: (val, idx) => {
                 const d = new Date(sorted[idx].date);
