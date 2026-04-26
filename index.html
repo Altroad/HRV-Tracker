@@ -454,7 +454,7 @@ function renderChart() {
 
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
-  const pr = currentPtW >= 30 ? 20 : currentPtW >= 15 ? 14 : 10;
+  const pr = Math.max(2, Math.min(20, Math.floor(currentPtW / 2) - 1));
 
   if (mainChart) { mainChart.destroy(); mainChart = null; }
 
