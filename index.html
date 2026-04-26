@@ -452,11 +452,11 @@ function renderChart() {
   const rollingAvg = chartRange <= 14 ? allRolling : allRolling.slice(-chartRange);
   const baselineArr = sorted.map(() => BASELINE);
 
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
+
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
   const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
-
-  if (mainChart) { mainChart.destroy(); mainChart = null; }
 
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
