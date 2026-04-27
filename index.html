@@ -547,6 +547,15 @@ function renderHistory() {
   }
   const weeks = [...weekMap.entries()].sort((a, b) => new Date(b[0]) - new Date(a[0]));
 
+  // Auto-expand enough weeks from the top to always show at least 7 recent readings
+  let autoExpandCount = 0;
+  const autoExpanded = new Set();
+  for (const [key, { entries }] of weeks) {
+    if (autoExpandCount >= 7) break;
+    autoExpanded.add(key);
+    autoExpandCount += entries.length;
+  }
+
   const thisYear = new Date().getFullYear();
   let lastMonthKey = null;
   let html = '';
@@ -559,7 +568,7 @@ function renderHistory() {
       lastMonthKey = monthKey;
     }
 
-    const isFirst = wi === 0;
+    const isFirst = autoExpanded.has(key);
     const chevron = isFirst ? '▼' : '▶';
     const collapsed = isFirst ? '' : 'collapsed';
     html += `<div class="week-header" onclick="toggleWeek('${key}')">
