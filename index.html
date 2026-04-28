@@ -215,6 +215,7 @@
     <div class="calc-result-value" id="calcValue">—</div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
+    <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
   </div>
   <div class="backup-row">
     <button class="btn-secondary" id="exportBtn">Export Backup</button>
@@ -249,6 +250,7 @@ let currentPtW = 0;
 let tappedIdx = null;
 let nextId = 1;
 let chartRange = 14;
+let lastMonthlyData = null; // session-only, never persisted
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -787,7 +789,7 @@ function doImport(text, overlay) {
 function showCalcModal() {
   const overlay = openModal(`
     <div class="modal-title">Calculate from Health Export</div>
-    <div class="modal-desc">Paste one day's export for Mid Sleep Capture (1:30–3:00am), or paste two consecutive days' exports for Early Sleep Capture (11:30pm–1:29am). Method is detected automatically.</div>
+    <div class="modal-desc">Paste one day's export, two consecutive days', or a full monthly export. For monthly data you'll be prompted to choose the date and method.</div>
     <textarea placeholder="Paste JSON here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -827,15 +829,28 @@ function readingLocalHM(r) {
   return { h: d.getHours(), m: d.getMinutes(), ts: d.getTime() };
 }
 
+function readingLocalDate(r) {
+  const raw = (r.start || r.date).replace(' ', 'T').replace(/ ([+-]\d{4})$/, '$1');
+  const d = new Date(raw);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function runCalc(text, overlay) {
   try {
+    lastMonthlyData = null;
     const jsons = parseJsonBlocks(text.trim());
     let filtered, methodLabel;
 
     if (jsons.length === 1) {
-      // Method B: 1:30am–3:00am window
-      const readings = extractHRVReadings(jsons[0]);
-      filtered = readings.filter(r => {
+      const allReadings = extractHRVReadings(jsons[0]);
+      const uniqueDates = [...new Set(allReadings.map(r => readingLocalDate(r)))].sort();
+
+      if (uniqueDates.length > 2) {
+        showMonthlyPicker(allReadings, uniqueDates, overlay);
+        return;
+      }
+
+      filtered = allReadings.filter(r => {
         const { h, m } = readingLocalHM(r);
         const mins = h * 60 + m;
         return mins >= 90 && mins <= 180;
@@ -843,49 +858,124 @@ function runCalc(text, overlay) {
       if (filtered.length < 3) throw new Error(`Only ${filtered.length} reading(s) in 1:30–3am window — need at least 3`);
       methodLabel = 'Mid Sleep Capture · 1:30am–3:00am';
     } else {
-      // Method A: 11:30pm–1:29am window spanning midnight
-      // Sort the two exports so earlier date is first
       const r0 = extractHRVReadings(jsons[0]), r1 = extractHRVReadings(jsons[1]);
       const domDate = rs => (rs[0]?.date || rs[0]?.start || '').split(' ')[0];
       const [early, late] = domDate(r0) <= domDate(r1) ? [r0, r1] : [r1, r0];
-      // Earlier day: 23:30 onwards only
       const fromEarly = early.filter(r => { const { h, m } = readingLocalHM(r); return h === 23 && m >= 30; });
-      // Later day: midnight hour only (00:00–00:59)
       const fromLate  = late.filter(r  => { const { h, m } = readingLocalHM(r); return h === 0 || (h === 1 && m <= 29); });
       filtered = [...fromEarly, ...fromLate];
       if (filtered.length < 3) throw new Error(`Only ${filtered.length} reading(s) in 11:30pm–1:29am window — need at least 3`);
       methodLabel = 'Early Sleep Capture · 11:30pm–1:29am';
     }
 
-    // Sort by timestamp for display
-    filtered.sort((a, b) => readingLocalHM(a).ts - readingLocalHM(b).ts);
-
-    const values = filtered.map(r => r.qty).sort((a, b) => a - b);
-    const trimmed = values.slice(1, -1);
-    const avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
-    const min = values[0], max = values[values.length - 1];
-
-    overlay.remove();
-
-    const panel = $('calcResult');
-    $('calcValue').textContent = avg;
-    $('calcValue').style.color = colorForHRV(avg);
-    $('calcLabel').textContent = `${methodLabel} · trimmed mean · ${filtered.length} readings · dropped ${Math.round(min)} + ${Math.round(max)}`;
-
-    const chips = filtered.map(r => {
-      const qty = Math.round(r.qty);
-      const isDropped = r.qty === values[0] || r.qty === values[values.length - 1];
-      const cls = isDropped ? 'calc-chip dropped' : 'calc-chip used';
-      const { h, m } = readingLocalHM(r);
-      const t = `${h}:${String(m).padStart(2,'0')}`;
-      return `<div class="${cls}">${t} · ${qty}</div>`;
-    });
-    $('calcReadings').innerHTML = chips.join('');
-    $('inputHRV').value = avg;
-    panel.classList.add('show');
-
+    applyCalcResult(filtered, methodLabel, overlay);
   } catch(e) {
     showToast(e.message || 'Invalid export data');
+  }
+}
+
+function applyCalcResult(filtered, methodLabel, overlay) {
+  filtered.sort((a, b) => readingLocalHM(a).ts - readingLocalHM(b).ts);
+  const values = filtered.map(r => r.qty).sort((a, b) => a - b);
+  const trimmed = values.slice(1, -1);
+  const avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
+  const min = values[0], max = values[values.length - 1];
+  overlay.remove();
+  const panel = $('calcResult');
+  $('calcValue').textContent = avg;
+  $('calcValue').style.color = colorForHRV(avg);
+  $('calcLabel').textContent = `${methodLabel} · trimmed mean · ${filtered.length} readings · dropped ${Math.round(min)} + ${Math.round(max)}`;
+  const chips = filtered.map(r => {
+    const qty = Math.round(r.qty);
+    const isDropped = r.qty === values[0] || r.qty === values[values.length - 1];
+    const cls = isDropped ? 'calc-chip dropped' : 'calc-chip used';
+    const { h, m } = readingLocalHM(r);
+    const t = `${h}:${String(m).padStart(2,'0')}`;
+    return `<div class="${cls}">${t} · ${qty}</div>`;
+  });
+  $('calcReadings').innerHTML = chips.join('');
+  $('inputHRV').value = avg;
+  panel.classList.add('show');
+  $('calcAnotherBtn').style.display = lastMonthlyData ? '' : 'none';
+}
+
+function openMonthlyPickerAgain() {
+  if (!lastMonthlyData) return;
+  const overlay = openModal('');
+  showMonthlyPicker(lastMonthlyData.allReadings, lastMonthlyData.dates, overlay);
+}
+
+function showMonthlyPicker(allReadings, dates, overlay) {
+  lastMonthlyData = { allReadings, dates };
+  const modal = overlay.querySelector('.modal');
+  const sortedDates = [...dates].sort((a, b) => b.localeCompare(a));
+  const dateOptions = sortedDates.map(d => {
+    const dt = new Date(d + 'T12:00:00');
+    const label = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `<option value="${d}">${label}</option>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div class="modal-title">Monthly Export — Choose Night</div>
+    <div class="modal-desc">${dates.length} days detected. Select the night to calculate and choose the capture window.</div>
+    <select id="monthDatePicker" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:14px;width:100%;outline:none;box-sizing:border-box;">${dateOptions}</select>
+    <div style="display:flex;flex-direction:column;gap:10px;font-family:var(--font-mono);font-size:12px;color:var(--text);padding:2px 0;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="radio" name="monthMethod" value="mid" checked style="accent-color:var(--accent);">Mid Sleep Capture · 1:30–3:00am
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="radio" name="monthMethod" value="early" style="accent-color:var(--accent);">Early Sleep Capture · 11:30pm–1:29am
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-apply>CALCULATE</button>
+    </div>
+  `;
+
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-apply]').addEventListener('click', () => {
+    const date = overlay.querySelector('#monthDatePicker').value;
+    const method = overlay.querySelector('input[name="monthMethod"]:checked').value;
+    runMonthlyCalc(allReadings, date, method, overlay);
+  });
+}
+
+function runMonthlyCalc(allReadings, date, method, overlay) {
+  try {
+    let filtered, methodLabel;
+
+    if (method === 'mid') {
+      filtered = allReadings.filter(r => {
+        if (readingLocalDate(r) !== date) return false;
+        const { h, m } = readingLocalHM(r);
+        return h * 60 + m >= 90 && h * 60 + m <= 180;
+      });
+      if (filtered.length < 3) throw new Error(`Only ${filtered.length} reading(s) in 1:30–3am window on ${date}`);
+      methodLabel = 'Mid Sleep Capture · 1:30am–3:00am';
+    } else {
+      const prevD = new Date(date + 'T12:00:00');
+      prevD.setDate(prevD.getDate() - 1);
+      const prevStr = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2,'0')}-${String(prevD.getDate()).padStart(2,'0')}`;
+
+      const fromPrev = allReadings.filter(r => {
+        if (readingLocalDate(r) !== prevStr) return false;
+        const { h, m } = readingLocalHM(r);
+        return h === 23 && m >= 30;
+      });
+      const fromTarget = allReadings.filter(r => {
+        if (readingLocalDate(r) !== date) return false;
+        const { h, m } = readingLocalHM(r);
+        return h === 0 || (h === 1 && m <= 29);
+      });
+      filtered = [...fromPrev, ...fromTarget];
+      if (filtered.length < 3) throw new Error(`Only ${filtered.length} reading(s) in 11:30pm–1:29am window for ${date}`);
+      methodLabel = 'Early Sleep Capture · 11:30pm–1:29am';
+    }
+
+    applyCalcResult(filtered, methodLabel, overlay);
+  } catch(e) {
+    showToast(e.message || 'Calculation error');
   }
 }
 
