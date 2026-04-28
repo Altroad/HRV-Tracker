@@ -472,7 +472,7 @@ function renderChart() {
       scales: {
         x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
           ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
-          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 15, weight: '500' },
+          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
               autoSkip: false,
               callback: (val, idx) => {
                 const d = new Date(sorted[idx].date);
