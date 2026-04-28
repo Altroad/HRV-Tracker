@@ -19,8 +19,13 @@
 
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; padding:24px 20px 60px; overscroll-behavior-y:contain; }
-  .pull-indicator { text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--accent); letter-spacing:2px; height:0; overflow:hidden; transition:height 0.1s; opacity:0; transition:height 0.1s, opacity 0.1s; }
-  .pull-indicator.visible { height:28px; opacity:1; line-height:28px; }
+  .pull-indicator { text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--accent); letter-spacing:2px; height:0; overflow:hidden; opacity:0; transition:height 0.3s ease, opacity 0.3s ease; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .pull-indicator.visible { height:36px; opacity:1; }
+  .pull-indicator.refreshing { height:36px; opacity:1; }
+  .pull-spinner { width:14px; height:14px; border:2px solid rgba(0,210,211,0.3); border-top-color:var(--accent); border-radius:50%; display:none; animation:spin 0.7s linear infinite; }
+  .pull-indicator.refreshing .pull-spinner { display:block; }
+  .pull-indicator.refreshing .pull-text { display:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 
   /* Header */
   .header-top { text-align:center; margin-bottom:24px; position:relative; }
@@ -130,7 +135,7 @@
 </head>
 <body>
 
-<div class="pull-indicator" id="pullIndicator">↓ RELEASE TO REFRESH</div>
+<div class="pull-indicator" id="pullIndicator"><div class="pull-spinner"></div><span class="pull-text">↓ RELEASE TO REFRESH</span></div>
 
 <div class="header-top">
   <h1>HRV Tracker</h1>
@@ -1028,13 +1033,18 @@ function showInfoModal() {
     if (!pulling) return;
     pulling = false;
     const dy = e.changedTouches[0].clientY - startY;
-    indicator().classList.remove('visible');
+    const ind = indicator();
     if (dy > 50 && window.scrollY === 0) {
-      showToast('Refreshing...');
-      if (getGHToken()) {
-        const loaded = await loadFromGitHub();
-        if (loaded) render();
-      }
+      ind.classList.remove('visible');
+      ind.classList.add('refreshing');
+      const [loaded] = await Promise.all([
+        getGHToken() ? loadFromGitHub() : Promise.resolve(false),
+        new Promise(r => setTimeout(r, 1200))
+      ]);
+      ind.classList.remove('refreshing');
+      if (loaded) render();
+    } else {
+      ind.classList.remove('visible');
     }
   }, { passive: true });
 })();
