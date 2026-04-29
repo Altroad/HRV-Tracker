@@ -112,6 +112,10 @@
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
   .calc-chip.dropped { text-decoration:line-through; text-decoration-color:var(--red); text-decoration-thickness:1px; color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
+  .calc-chip.deep  { background:rgba(13,71,161,0.25); border:1px solid #1565c0; color:#90caf9; }
+  .calc-chip.core  { background:rgba(0,229,255,0.08); border:1px solid var(--accent); color:var(--accent); }
+  .calc-chip.deep.dropped { text-decoration:line-through; text-decoration-color:var(--red); text-decoration-thickness:1px; color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
+  .calc-chip.core.dropped { text-decoration:line-through; text-decoration-color:var(--red); text-decoration-thickness:1px; color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
 
   /* Toast */
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; padding:10px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
@@ -212,6 +216,7 @@
   </div>
   <div class="backup-row">
     <button class="btn-secondary" id="calcBtn">Import &amp; Calculate</button>
+    <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
   </div>
   <div class="calc-result" id="calcResult">
     <div class="calc-result-value" id="calcValue">—</div>
@@ -809,16 +814,114 @@ function showCalcModal() {
   overlay.querySelector('[data-calc]').addEventListener('click', () => runCalc(ta.value, overlay));
 }
 
+function showSlowWaveModal() {
+  const overlay = openModal(`
+    <div class="modal-title">Slow Wave Sync</div>
+    <div class="modal-desc">Paste all three exports together: previous day HRV, morning HRV, and sleep analysis.</div>
+    <textarea placeholder="Paste all 3 JSON blocks here..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-calc>CALCULATE</button>
+    </div>
+  `);
+  const ta = overlay.querySelector('textarea');
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-calc]').addEventListener('click', () => runSlowWaveCalc(ta.value, overlay));
+}
+
+function parseSleepTs(str) {
+  return new Date(str.trim().replace(/^(\d{4}-\d{2}-\d{2}) /, '$1T').replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3'));
+}
+
+function runSlowWaveCalc(text, overlay) {
+  try {
+    const blocks = parseJsonBlocks(text.trim());
+    if (blocks.length < 3) throw new Error('Paste all 3 exports: previous day HRV, morning HRV, and sleep analysis');
+
+    const sleepJson = blocks.find(b => b?.data?.metrics?.find(m => m.name === 'sleep_analysis'));
+    const hrvJsons  = blocks.filter(b => b?.data?.metrics?.find(m => m.name === 'heart_rate_variability'));
+    if (!sleepJson) throw new Error('No sleep analysis export found');
+    if (hrvJsons.length < 2) throw new Error('Two HRV exports required');
+
+    const allHRV = hrvJsons.flatMap(j => extractHRVReadings(j));
+    const sleepMetric = sleepJson.data.metrics.find(m => m.name === 'sleep_analysis');
+    const stages = sleepMetric.data.filter(s => s.source === 'Apple Watch');
+
+    const deepStages = stages.filter(s => s.value === 'Deep');
+    const coreStages = stages.filter(s => s.value === 'Core');
+
+    const inAnyStage = (r, stageList) => {
+      const t = parseTimestamp(r).getTime();
+      return stageList.some(s => t >= parseSleepTs(s.start).getTime() && t <= parseSleepTs(s.end).getTime());
+    };
+
+    const deepReadings = allHRV
+      .filter(r => inAnyStage(r, deepStages))
+      .sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
+
+    const coreWindow = allHRV.filter(r => {
+      const { h, m } = readingLocalHM(r);
+      const mins = h * 60 + m;
+      return (mins >= 23 * 60 + 30 || mins < 2 * 60) && inAnyStage(r, coreStages);
+    }).sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
+
+    const needed = 6;
+    const selected = [...deepReadings];
+    for (const r of coreWindow) {
+      if (selected.length >= needed) break;
+      if (!deepReadings.includes(r)) selected.push(r);
+    }
+
+    if (selected.length < 3) throw new Error(`Only ${selected.length} reading(s) found across Deep + Core windows — need at least 3`);
+
+    const values = selected.map(r => r.qty).sort((a, b) => a - b);
+    const min = values[0], max = values[values.length - 1];
+    let avg, statLabel;
+    if (selected.length >= 3) {
+      const trimmed = values.slice(1, -1);
+      avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
+      statLabel = `${selected.length} readings · dropped ${Math.round(min)} + ${Math.round(max)}`;
+    } else {
+      avg = Math.round(selected.reduce((a, b) => a + b.qty, 0) / selected.length);
+      statLabel = `${selected.length} readings`;
+    }
+
+    overlay.remove();
+    const panel = $('calcResult');
+    $('calcValue').textContent = avg;
+    $('calcValue').style.color = colorForHRV(avg);
+    $('calcLabel').textContent = `Slow Wave · Deep + Core 11:30pm–2:00am · ${statLabel}`;
+
+    selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
+    const chips = selected.map(r => {
+      const qty = Math.round(r.qty);
+      const isDropped = r.qty === min || r.qty === max;
+      const isDeep = inAnyStage(r, deepStages);
+      const stageCls = isDeep ? 'deep' : 'core';
+      const droppedCls = isDropped ? ' dropped' : '';
+      const { h, m } = readingLocalHM(r);
+      const t = `${h}:${String(m).padStart(2,'0')}`;
+      return `<div class="calc-chip ${stageCls}${droppedCls}">${t} · ${qty}</div>`;
+    });
+    $('calcReadings').innerHTML = chips.join('');
+    $('inputHRV').value = avg;
+    panel.classList.add('show');
+    $('calcAnotherBtn').style.display = 'none';
+  } catch(e) {
+    showToast(e.message || 'Calculation error');
+  }
+}
+
 function parseJsonBlocks(text) {
   try { return [JSON.parse(text)]; } catch(e) {}
-  // Find two top-level JSON objects by brace depth
-  let depth = 0, splitAt = -1;
+  const blocks = [];
+  let depth = 0, start = -1;
   for (let i = 0; i < text.length; i++) {
-    if (text[i] === '{') depth++;
-    else if (text[i] === '}') { depth--; if (depth === 0) { splitAt = i + 1; break; } }
+    if (text[i] === '{') { if (depth === 0) start = i; depth++; }
+    else if (text[i] === '}') { depth--; if (depth === 0 && start >= 0) { blocks.push(text.slice(start, i + 1)); start = -1; } }
   }
-  if (splitAt > 0) {
-    try { return [JSON.parse(text.slice(0, splitAt)), JSON.parse(text.slice(splitAt).trim())]; } catch(e) {}
+  if (blocks.length >= 2) {
+    try { return blocks.map(b => JSON.parse(b)); } catch(e) {}
   }
   throw new Error('Could not parse export data');
 }
@@ -1248,6 +1351,7 @@ async function init() {
   drawYAxis();
   $('addBtn').addEventListener('click', addReading);
   $('calcBtn').addEventListener('click', showCalcModal);
+  $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
   $('exportBtn').addEventListener('click', exportData);
   $('importBtn').addEventListener('click', showImportModal);
   $('syncBtn').addEventListener('click', showSyncModal);
