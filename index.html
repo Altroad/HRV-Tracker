@@ -604,8 +604,15 @@ function renderHistory() {
 // ---------- Metrics + Status ----------
 function updateBaseline() {
   if (!readings.length) { BASELINE = 88; return; }
-  BASELINE = Math.round(readings.reduce((a,b) => a + b.hrv, 0) / readings.length);
-  $('baselineBadge').textContent = `Baseline (avg): ${BASELINE}ms · ${readings.length} readings`;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const pool = readings.filter(r => new Date(r.date) >= cutoff);
+  const src = pool.length > 0 ? pool : readings;
+  const sorted = [...src].map(r => r.hrv).sort((a, b) => a - b);
+  const trimmed = sorted.length >= 3 ? sorted.slice(1, -1) : sorted;
+  BASELINE = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
+  const label = pool.length > 0 ? '12 months' : `all ${readings.length} readings`;
+  $('baselineBadge').textContent = `Baseline: ${BASELINE}ms · ${label}`;
 }
 
 function setStatus(hrv) {
@@ -1202,7 +1209,7 @@ function showInfoModal() {
       After a result is shown, <em>Another Date</em> re-opens the picker reusing the same pasted data — no need to paste again. Session-only; nothing is stored.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">BASELINE &amp; ZONES</strong><br>
-      The baseline is the 60-day trimmed mean of all stored scores. The four colour zones (low / below / normal / above) scale relative to your personal baseline.
+      The baseline is the trimmed mean of the last 12 months of stored scores (drops the single highest and lowest). If fewer than 12 months of data exist, all stored scores are used instead. The badge shows which window is active.
 
     </div>
     <button class="modal-btn" style="margin-top:12px;" data-close>CLOSE</button>
