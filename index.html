@@ -927,7 +927,7 @@ function showMonthlyPicker(allReadings, dates, overlay) {
 
   modal.innerHTML = `
     <div class="modal-title">Import — Choose Date &amp; Stage</div>
-    <div class="modal-desc">${dates.length} date${dates.length !== 1 ? 's' : ''} found in this export. Select one and choose the capture window.</div>
+    <div class="modal-desc">Select a date and capture window.</div>
     <select id="monthDatePicker" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:14px;width:100%;outline:none;box-sizing:border-box;">${dateOptions}</select>
     <div style="display:flex;flex-direction:column;gap:10px;font-family:var(--font-mono);font-size:12px;color:var(--text);padding:2px 0;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
