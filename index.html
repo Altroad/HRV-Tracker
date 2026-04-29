@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HRV Tracker</title>
+<meta name="version" content="2026-04-28-b">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -135,6 +136,7 @@
 <div class="header-top">
   <h1>HRV Tracker</h1>
   <div class="baseline-badge" id="baselineBadge">Baseline: 88ms</div>
+  <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-04-28</div>
   <button class="sync-btn" id="syncBtn" title="GitHub sync">⟳</button>
   <button class="info-btn" id="infoBtn">?</button>
 </div>
@@ -209,7 +211,7 @@
     <button class="btn-primary" id="addBtn">ADD</button>
   </div>
   <div class="backup-row">
-    <button class="btn-secondary" id="calcBtn">Calculate from Export</button>
+    <button class="btn-secondary" id="calcBtn">Import &amp; Calculate</button>
   </div>
   <div class="calc-result" id="calcResult">
     <div class="calc-result-value" id="calcValue">—</div>
@@ -823,16 +825,23 @@ function extractHRVReadings(json) {
   return metric.data;
 }
 
+function parseTimestamp(r) {
+  const s = (r.start || r.date).trim();
+  // Normalize to ISO 8601 with colon in offset (+0800 → +08:00) for Safari compatibility
+  return new Date(
+    s.replace(/^(\d{4}-\d{2}-\d{2}) /, '$1T')
+     .replace(/ ([+-])(\d{2})(\d{2})$/, '$1$2:$3')
+     .replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3')
+  );
+}
+
 function readingLocalHM(r) {
-  const raw = (r.start || r.date).replace(' ', 'T').replace(/ ([+-]\d{4})$/, '$1');
-  const d = new Date(raw);
-  return { h: d.getHours(), m: d.getMinutes(), ts: d.getTime() };
+  const s = (r.start || r.date).trim();
+  return { h: parseInt(s.slice(11, 13), 10), m: parseInt(s.slice(14, 16), 10), ts: parseTimestamp(r).getTime() || 0 };
 }
 
 function readingLocalDate(r) {
-  const raw = (r.start || r.date).replace(' ', 'T').replace(/ ([+-]\d{4})$/, '$1');
-  const d = new Date(raw);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return (r.start || r.date).trim().slice(0, 10);
 }
 
 function runCalc(text, overlay) {
@@ -916,8 +925,8 @@ function showMonthlyPicker(allReadings, dates, overlay) {
   }).join('');
 
   modal.innerHTML = `
-    <div class="modal-title">Monthly Export — Choose Night</div>
-    <div class="modal-desc">${dates.length} days detected. Select the night to calculate and choose the capture window.</div>
+    <div class="modal-title">Import — Choose Date &amp; Stage</div>
+    <div class="modal-desc">Select a date and capture window.</div>
     <select id="monthDatePicker" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:14px;width:100%;outline:none;box-sizing:border-box;">${dateOptions}</select>
     <div style="display:flex;flex-direction:column;gap:10px;font-family:var(--font-mono);font-size:12px;color:var(--text);padding:2px 0;">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
