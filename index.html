@@ -921,6 +921,17 @@ function viableDates(allReadings) {
   return viable;
 }
 
+function hasPrevNightData(allReadings, date) {
+  const prevD = new Date(date + 'T12:00:00');
+  prevD.setDate(prevD.getDate() - 1);
+  const prevStr = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2,'0')}-${String(prevD.getDate()).padStart(2,'0')}`;
+  return allReadings.some(r => {
+    if (readingLocalDate(r) !== prevStr) return false;
+    const { h, m } = readingLocalHM(r);
+    return h === 23 && m >= 30;
+  });
+}
+
 function showMonthlyPicker(allReadings, dates, overlay) {
   lastMonthlyData = { allReadings, dates };
   const modal = overlay.querySelector('.modal');
@@ -939,7 +950,7 @@ function showMonthlyPicker(allReadings, dates, overlay) {
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="methodMid" checked style="accent-color:var(--accent);width:14px;height:14px;">Mid Sleep Capture · 1:30–3:00am
       </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <label id="earlyLabel" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="methodEarly" style="accent-color:var(--accent);width:14px;height:14px;">Early Sleep Capture · 11:30pm–1:29am
       </label>
     </div>
@@ -949,9 +960,23 @@ function showMonthlyPicker(allReadings, dates, overlay) {
     </div>
   `;
 
+  const updateEarly = date => {
+    const hasData = hasPrevNightData(allReadings, date);
+    const earlyCheck = overlay.querySelector('#methodEarly');
+    const earlyLabel = overlay.querySelector('#earlyLabel');
+    earlyCheck.disabled = !hasData;
+    earlyLabel.style.opacity = hasData ? '' : '0.35';
+    earlyLabel.style.cursor = hasData ? 'pointer' : 'not-allowed';
+    if (!hasData) earlyCheck.checked = false;
+  };
+
+  const datePicker = overlay.querySelector('#monthDatePicker');
+  updateEarly(datePicker.value);
+  datePicker.addEventListener('change', e => updateEarly(e.target.value));
+
   overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
   overlay.querySelector('[data-apply]').addEventListener('click', () => {
-    const date = overlay.querySelector('#monthDatePicker').value;
+    const date = datePicker.value;
     const useMid = overlay.querySelector('#methodMid').checked;
     const useEarly = overlay.querySelector('#methodEarly').checked;
     if (!useMid && !useEarly) { showToast('Select at least one capture window'); return; }
