@@ -848,36 +848,13 @@ function runCalc(text, overlay) {
   try {
     lastMonthlyData = null;
     const jsons = parseJsonBlocks(text.trim());
-    let filtered, methodLabel;
 
-    if (jsons.length === 1) {
-      const allReadings = extractHRVReadings(jsons[0]);
-      const uniqueDates = [...new Set(allReadings.map(r => readingLocalDate(r)))].sort();
-
-      if (uniqueDates.length > 2) {
-        showMonthlyPicker(allReadings, uniqueDates, overlay);
-        return;
-      }
-
-      filtered = allReadings.filter(r => {
-        const { h, m } = readingLocalHM(r);
-        const mins = h * 60 + m;
-        return mins >= 90 && mins <= 180;
-      });
-      if (filtered.length < 3) throw new Error(`Only ${filtered.length} reading(s) in 1:30–3am window — need at least 3`);
-      methodLabel = 'Mid Sleep Capture · 1:30am–3:00am';
-    } else {
-      const r0 = extractHRVReadings(jsons[0]), r1 = extractHRVReadings(jsons[1]);
-      const domDate = rs => (rs[0]?.date || rs[0]?.start || '').split(' ')[0];
-      const [early, late] = domDate(r0) <= domDate(r1) ? [r0, r1] : [r1, r0];
-      const fromEarly = early.filter(r => { const { h, m } = readingLocalHM(r); return h === 23 && m >= 30; });
-      const fromLate  = late.filter(r  => { const { h, m } = readingLocalHM(r); return h === 0 || (h === 1 && m <= 29); });
-      filtered = [...fromEarly, ...fromLate];
-      if (filtered.length < 3) throw new Error(`Only ${filtered.length} reading(s) in 11:30pm–1:29am window — need at least 3`);
-      methodLabel = 'Early Sleep Capture · 11:30pm–1:29am';
-    }
-
-    applyCalcResult(filtered, methodLabel, overlay);
+    const allReadings = jsons.length === 1
+      ? extractHRVReadings(jsons[0])
+      : [...extractHRVReadings(jsons[0]), ...extractHRVReadings(jsons[1])];
+    const uniqueDates = [...new Set(allReadings.map(r => readingLocalDate(r)))].sort();
+    showMonthlyPicker(allReadings, uniqueDates, overlay);
+    return;
   } catch(e) {
     showToast(e.message || 'Invalid export data');
   }
