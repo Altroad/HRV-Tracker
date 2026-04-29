@@ -1286,37 +1286,42 @@ function showInfoModal() {
     <div class="modal-title">About — HRV Tracker</div>
     <div class="modal-desc" style="line-height:1.8;max-height:65vh;overflow-y:auto;padding-right:4px;">
 
-      <strong style="color:var(--accent);letter-spacing:1px;">IMPORTING DATA</strong><br>
-      Tap <em>Import &amp; Calculate</em> and paste a Health Auto Export JSON (any size — single day, overnight, or full month). The app always shows the date &amp; window picker so you stay in control.<br><br>
+      <strong style="color:var(--accent);letter-spacing:1px;">SLOW WAVE SYNC</strong><br>
+      The primary import method. Paste three Health Auto Export JSONs together: previous day HRV, morning HRV, and sleep analysis. The app matches each HRV reading against your Apple Watch sleep stages in priority order:<br><br>
 
-      <strong style="color:var(--accent);letter-spacing:1px;">CHOOSING A DATE &amp; WINDOW</strong><br>
-      The picker lists every date found in the pasted export. Select the date you want to score, then choose one or both capture windows:<br><br>
+      <strong>Priority 1 — Deep Sleep HRV</strong><br>
+      HRV readings that fall inside a Deep (slow wave) sleep segment. Collected first, any time of night.<br><br>
+
+      <strong>Priority 2 — Core Sleep HRV · 11:30pm – 2:00am</strong><br>
+      HRV readings during Core sleep within the early overnight window. Added until a total of 6 readings are reached.<br><br>
+
+      Once 6 readings are collected the trimmed mean is applied — highest and lowest are dropped, the remaining 4 are averaged. Chips are colour-coded: <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red or pink = dropped.<br><br>
+
+      <strong style="color:var(--accent);letter-spacing:1px;">MANUAL SYNC</strong><br>
+      For back-filling historical data. Paste one day's HRV export, two consecutive days', or a full monthly export. The date &amp; window picker lets you choose which night and capture window to score:<br><br>
 
       <strong>Mid Sleep · 1:30am – 3:00am</strong><br>
-      Readings taken during the core deep-sleep window. Most stable HRV signal. Use this for a standard overnight score.<br><br>
+      Core deep-sleep window. Most stable HRV signal.<br><br>
 
       <strong>Early Sleep · 11:30pm – 1:29am</strong><br>
-      Covers the first sleep cycle. Only enabled when the export contains prior-night data (readings from 11:30pm the night before). Use this if your deep sleep falls earlier.<br><br>
+      First sleep cycle. Only enabled when prior-night data (11:30pm readings) is present in the export.<br><br>
 
-      <strong>Both windows selected</strong><br>
-      Pools all readings from 11:30pm – 3:00am and scores the combined set. Useful when you want a broader overnight average.<br><br>
+      <strong>Both windows</strong><br>
+      Pools all readings from 11:30pm – 3:00am into one combined score.<br><br>
+
+      <em>Another Date</em> re-opens the picker reusing the same pasted data without re-pasting. Session-only — nothing extra is stored.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">THE CALCULATION</strong><br>
-      1. Filter readings to the selected window &amp; date<br>
-      2. Sort all values lowest → highest<br>
-      3. Drop the single highest and single lowest reading<br>
+      1. Collect readings from the selected window<br>
+      2. Sort values lowest → highest<br>
+      3. Drop the single highest and single lowest<br>
       4. Average the remaining values<br>
       5. Round to nearest whole number<br><br>
 
-      With only 2 readings the average is used (no trim). With 1 reading it is used directly.<br><br>
-
-      <strong>Why trimmed mean?</strong> Removes artefact spikes from movement or signal noise — more robust than a plain average for small overnight samples.<br><br>
-
-      <strong style="color:var(--accent);letter-spacing:1px;">ANOTHER DATE</strong><br>
-      After a result is shown, <em>Another Date</em> re-opens the picker reusing the same pasted data — no need to paste again. Session-only; nothing is stored.<br><br>
+      With 2 readings a plain average is used. With 1 reading it is used directly. <strong>Why trimmed mean?</strong> Removes artefact spikes from movement or signal noise.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">BASELINE &amp; ZONES</strong><br>
-      The baseline is the average of the last 12 months of stored scores. If fewer than 12 months of data exist, all stored scores are used instead. The badge shows which window is active.
+      The baseline is the rolling 12-month average of all stored scores (falls back to all data if fewer than 12 months exist). The four zones scale relative to your personal baseline.
 
     </div>
     <button class="modal-btn" style="margin-top:12px;" data-close>CLOSE</button>
