@@ -1184,22 +1184,25 @@ function renderHeatmap() {
   const wrap = $('heatmapWrap');
   if (!wrap) return;
 
-  // Build date→hrv lookup from averaged readings
   const byDate = {};
   getAveragedByDate().forEach(r => { byDate[r.date] = r.hrv; });
 
-  // Range: 52 weeks back from today (364 days) + pad to Monday start
   const today = new Date();
   today.setHours(12,0,0,0);
+
+  // End on the Sunday of the current week
+  const dow = today.getDay(); // 0=Sun
+  const daysToSun = dow === 0 ? 0 : 7 - dow;
   const endSunday = new Date(today);
-  // advance to end of current week (Sunday)
-  endSunday.setDate(today.getDate() + (7 - ((today.getDay() + 6) % 7 + 1)));
+  endSunday.setDate(today.getDate() + daysToSun);
+
+  // Start on the Monday 52 weeks before that Sunday
   const startMonday = new Date(endSunday);
   startMonday.setDate(endSunday.getDate() - 52 * 7 + 1);
 
-  // Build columns (each column = one Mon–Sun week)
+  // Build week columns (Mon–Sun)
   const weeks = [];
-  let cur = new Date(startMonday);
+  const cur = new Date(startMonday);
   while (cur <= endSunday) {
     const week = [];
     for (let d = 0; d < 7; d++) {
@@ -1209,70 +1212,42 @@ function renderHeatmap() {
     weeks.push(week);
   }
 
-  // Month label positions
-  const monthLabels = [];
-  weeks.forEach((week, wi) => {
-    const firstDay = week.find(d => d <= today);
-    if (!firstDay) return;
-    if (wi === 0 || week[0].getDate() <= 7) {
-      const mo = week[0].getMonth();
-      if (!monthLabels.length || monthLabels.at(-1).month !== mo) {
-        monthLabels.push({ wi, month: mo, label: week[0].toLocaleString('default',{month:'short'}) });
-      }
-    }
-  });
-
   const zoneColor = hrv => {
-    if (hrv >= ZONE_HIGH) return 'rgba(0,229,255,0.75)';
-    if (hrv >= ZONE_GOOD) return 'rgba(76,175,80,0.75)';
-    if (hrv >= ZONE_OK)   return 'rgba(255,152,0,0.75)';
-    return 'rgba(244,67,54,0.75)';
+    if (hrv >= ZONE_HIGH) return 'rgba(0,229,255,0.8)';
+    if (hrv >= ZONE_GOOD) return 'rgba(76,175,80,0.8)';
+    if (hrv >= ZONE_OK)   return 'rgba(255,152,0,0.8)';
+    return 'rgba(244,67,54,0.8)';
   };
 
-  // Month label row
-  const CELL = 11, GAP = 3, STEP = CELL + GAP;
+  const CELL = 11, GAP = 3;
+
+  // Month label row — one span per week column, inside scroll area
   const labelRow = document.createElement('div');
-  labelRow.style.cssText = `display:flex;gap:${GAP}px;margin-bottom:4px;padding-left:${CELL+GAP+4}px;`;
-  let lastLabelEnd = -99;
-  weeks.forEach((week, wi) => {
+  labelRow.style.cssText = `display:flex;gap:${GAP}px;margin-bottom:4px;`;
+  let lastMonth = -1;
+  weeks.forEach(week => {
     const span = document.createElement('div');
-    span.style.cssText = `width:${CELL}px;flex-shrink:0;font-family:var(--font-mono);font-size:8px;color:var(--muted);`;
-    const hit = monthLabels.find(m => m.wi === wi);
-    if (hit && wi * STEP - lastLabelEnd > 18) {
-      span.textContent = hit.label;
-      lastLabelEnd = wi * STEP + hit.label.length * 5;
+    span.style.cssText = `width:${CELL}px;flex-shrink:0;font-family:var(--font-mono);font-size:8px;color:var(--muted);overflow:visible;white-space:nowrap;`;
+    const mo = week[0].getMonth();
+    if (mo !== lastMonth && week[0].getDate() <= 7 + 6) {
+      span.textContent = week[0].toLocaleString('default',{month:'short'});
+      lastMonth = mo;
     }
     labelRow.appendChild(span);
   });
 
-  // Day labels + grid
-  const DAY_LABELS = ['M','','W','','F','','S'];
-  const outerRow = document.createElement('div');
-  outerRow.style.cssText = 'display:flex;align-items:flex-start;';
-
-  const dayLabelCol = document.createElement('div');
-  dayLabelCol.className = 'heatmap-day-labels';
-  DAY_LABELS.forEach(l => {
-    const el = document.createElement('div');
-    el.className = 'heatmap-day-label';
-    el.textContent = l;
-    dayLabelCol.appendChild(el);
-  });
-
-  const scrollWrap = document.createElement('div');
-  scrollWrap.className = 'heatmap-scroll';
-
+  // Grid
   const grid = document.createElement('div');
   grid.className = 'heatmap-grid';
-
   weeks.forEach(week => {
     const col = document.createElement('div');
     col.className = 'heatmap-col';
     week.forEach(day => {
       const cell = document.createElement('div');
       cell.className = 'hm-cell';
-      const isFuture = day > today;
-      if (!isFuture) {
+      if (day > today) {
+        cell.style.opacity = '0.15';
+      } else {
         const iso = day.toISOString().slice(0,10);
         const hrv = byDate[iso];
         if (hrv !== undefined) {
@@ -1280,23 +1255,39 @@ function renderHeatmap() {
           cell.style.background = zoneColor(hrv);
           cell.addEventListener('click', e => showHeatmapTooltip(e, day, hrv));
         }
-      } else {
-        cell.style.opacity = '0.2';
       }
       col.appendChild(cell);
     });
     grid.appendChild(col);
   });
 
+  // Scroll container holds both labels + grid so they move together
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'heatmap-scroll';
+  scrollWrap.appendChild(labelRow);
   scrollWrap.appendChild(grid);
-  outerRow.appendChild(dayLabelCol);
+
+  // Day labels fixed on left, scroll area to the right
+  const DAY_LABELS = ['M','','W','','F','','S'];
+  const dayCol = document.createElement('div');
+  dayCol.className = 'heatmap-day-labels';
+  // push day labels down to align with grid (label row height = 8px font + 4px margin = ~16px)
+  dayCol.style.marginTop = '16px';
+  DAY_LABELS.forEach(l => {
+    const el = document.createElement('div');
+    el.className = 'heatmap-day-label';
+    el.textContent = l;
+    dayCol.appendChild(el);
+  });
+
+  const outerRow = document.createElement('div');
+  outerRow.style.cssText = 'display:flex;align-items:flex-start;gap:4px;';
+  outerRow.appendChild(dayCol);
   outerRow.appendChild(scrollWrap);
 
   wrap.innerHTML = '';
-  wrap.appendChild(labelRow);
   wrap.appendChild(outerRow);
 
-  // Scroll to end (most recent)
   requestAnimationFrame(() => { scrollWrap.scrollLeft = scrollWrap.scrollWidth; });
 }
 
