@@ -126,10 +126,7 @@
   .heatmap-day-labels { display:flex; flex-direction:column; gap:3px; flex-shrink:0; margin-right:4px; }
   .heatmap-day-label { font-family:var(--font-mono); font-size:8px; color:var(--muted); width:16px; height:11px; line-height:11px; text-align:right; }
   .heatmap-month-label { font-family:var(--font-mono); font-size:8px; color:var(--muted); white-space:nowrap; }
-  .hm-cell { width:11px; height:11px; border-radius:2px; background:var(--border); cursor:default; flex-shrink:0; }
-  .hm-cell.has-data { cursor:pointer; }
-  .hm-cell:active { opacity:0.7; }
-  .hm-tooltip { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--font-mono); font-size:11px; color:var(--text); pointer-events:none; z-index:1000; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
+  .hm-cell { width:11px; height:11px; border-radius:2px; background:var(--border); flex-shrink:0; }
 
   /* Toast */
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; padding:10px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
@@ -1251,9 +1248,7 @@ function renderHeatmap() {
         const iso = day.toISOString().slice(0,10);
         const hrv = byDate[iso];
         if (hrv !== undefined) {
-          cell.classList.add('has-data');
           cell.style.background = zoneColor(hrv);
-          cell.addEventListener('click', e => showHeatmapTooltip(e, day, hrv));
         }
       }
       col.appendChild(cell);
@@ -1291,28 +1286,6 @@ function renderHeatmap() {
   requestAnimationFrame(() => { scrollWrap.scrollLeft = scrollWrap.scrollWidth; });
 }
 
-let hmTooltip = null;
-function showHeatmapTooltip(e, day, hrv) {
-  removeHeatmapTooltip();
-  const label = day.toLocaleDateString('default',{day:'numeric',month:'short',year:'numeric'});
-  const zone = hrv >= ZONE_HIGH ? 'High' : hrv >= ZONE_GOOD ? 'Good' : hrv >= ZONE_OK ? 'OK' : 'Low';
-  const color = hrv >= ZONE_HIGH ? COLORS.accent : hrv >= ZONE_GOOD ? COLORS.green : hrv >= ZONE_OK ? COLORS.orange : COLORS.red;
-  hmTooltip = document.createElement('div');
-  hmTooltip.className = 'hm-tooltip';
-  hmTooltip.innerHTML = `<span style="color:${color}">${hrv}ms · ${zone}</span>  <span style="color:var(--muted)">${label}</span>`;
-  document.body.appendChild(hmTooltip);
-  const r = e.target.getBoundingClientRect();
-  const tw = hmTooltip.offsetWidth;
-  let left = r.left + r.width/2 - tw/2;
-  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-  const top = r.top - hmTooltip.offsetHeight - 6;
-  hmTooltip.style.left = left + 'px';
-  hmTooltip.style.top = (top < 0 ? r.bottom + 6 : top) + 'px';
-  setTimeout(() => document.addEventListener('click', removeHeatmapTooltip, {once:true}), 0);
-}
-function removeHeatmapTooltip() {
-  hmTooltip?.remove(); hmTooltip = null;
-}
 
 function render() {
   updateBaseline();
