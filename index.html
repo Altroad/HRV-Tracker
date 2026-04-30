@@ -474,7 +474,7 @@ function renderChart() {
     data: { labels, datasets: [
       { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 3 : 1.5, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
       { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false },
-      { data: rollingAvg, borderWidth: 6, borderDash: [6,3], pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
+      { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
     ]},
     options: {
       responsive: false, animation: false,
