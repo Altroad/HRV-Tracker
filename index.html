@@ -117,6 +117,20 @@
   .calc-chip.deep.dropped { text-decoration:line-through; text-decoration-thickness:1px; color:#b71c1c; border:1px solid rgba(183,28,28,0.5); background:rgba(183,28,28,0.15); }
   .calc-chip.core.dropped { text-decoration:line-through; text-decoration-thickness:1px; color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
 
+  /* Heatmap */
+  .heatmap-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
+  .heatmap-scroll::-webkit-scrollbar { display:none; }
+  .heatmap-grid { display:flex; gap:3px; align-items:flex-start; }
+  .heatmap-col { display:flex; flex-direction:column; gap:3px; }
+  .heatmap-month-labels { display:flex; gap:3px; margin-bottom:4px; padding-left:20px; }
+  .heatmap-day-labels { display:flex; flex-direction:column; gap:3px; flex-shrink:0; margin-right:4px; }
+  .heatmap-day-label { font-family:var(--font-mono); font-size:8px; color:var(--muted); width:16px; height:11px; line-height:11px; text-align:right; }
+  .heatmap-month-label { font-family:var(--font-mono); font-size:8px; color:var(--muted); white-space:nowrap; }
+  .hm-cell { width:11px; height:11px; border-radius:2px; background:var(--border); cursor:default; flex-shrink:0; }
+  .hm-cell.has-data { cursor:pointer; }
+  .hm-cell:active { opacity:0.7; }
+  .hm-tooltip { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-family:var(--font-mono); font-size:11px; color:var(--text); pointer-events:none; z-index:1000; white-space:nowrap; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
+
   /* Toast */
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; padding:10px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
   .toast.show { opacity:1; }
@@ -205,6 +219,11 @@
       </div>
     </div>
   </div>
+</div>
+
+<div class="card" id="heatmapCard">
+  <div class="chart-title" style="margin-bottom:12px;">Year at a Glance</div>
+  <div id="heatmapWrap"></div>
 </div>
 
 <div class="card">
@@ -1160,10 +1179,155 @@ function setChartRange(range) {
 }
 
 // ---------- Render orchestration ----------
+// ---------- Heatmap ----------
+function renderHeatmap() {
+  const wrap = $('heatmapWrap');
+  if (!wrap) return;
+
+  // Build date→hrv lookup from averaged readings
+  const byDate = {};
+  getAveragedByDate().forEach(r => { byDate[r.date] = r.hrv; });
+
+  // Range: 52 weeks back from today (364 days) + pad to Monday start
+  const today = new Date();
+  today.setHours(12,0,0,0);
+  const endSunday = new Date(today);
+  // advance to end of current week (Sunday)
+  endSunday.setDate(today.getDate() + (7 - ((today.getDay() + 6) % 7 + 1)));
+  const startMonday = new Date(endSunday);
+  startMonday.setDate(endSunday.getDate() - 52 * 7 + 1);
+
+  // Build columns (each column = one Mon–Sun week)
+  const weeks = [];
+  let cur = new Date(startMonday);
+  while (cur <= endSunday) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  // Month label positions
+  const monthLabels = [];
+  weeks.forEach((week, wi) => {
+    const firstDay = week.find(d => d <= today);
+    if (!firstDay) return;
+    if (wi === 0 || week[0].getDate() <= 7) {
+      const mo = week[0].getMonth();
+      if (!monthLabels.length || monthLabels.at(-1).month !== mo) {
+        monthLabels.push({ wi, month: mo, label: week[0].toLocaleString('default',{month:'short'}) });
+      }
+    }
+  });
+
+  const zoneColor = hrv => {
+    if (hrv >= ZONE_HIGH) return 'rgba(0,229,255,0.75)';
+    if (hrv >= ZONE_GOOD) return 'rgba(76,175,80,0.75)';
+    if (hrv >= ZONE_OK)   return 'rgba(255,152,0,0.75)';
+    return 'rgba(244,67,54,0.75)';
+  };
+
+  // Month label row
+  const CELL = 11, GAP = 3, STEP = CELL + GAP;
+  const labelRow = document.createElement('div');
+  labelRow.style.cssText = `display:flex;gap:${GAP}px;margin-bottom:4px;padding-left:${CELL+GAP+4}px;`;
+  let lastLabelEnd = -99;
+  weeks.forEach((week, wi) => {
+    const span = document.createElement('div');
+    span.style.cssText = `width:${CELL}px;flex-shrink:0;font-family:var(--font-mono);font-size:8px;color:var(--muted);`;
+    const hit = monthLabels.find(m => m.wi === wi);
+    if (hit && wi * STEP - lastLabelEnd > 18) {
+      span.textContent = hit.label;
+      lastLabelEnd = wi * STEP + hit.label.length * 5;
+    }
+    labelRow.appendChild(span);
+  });
+
+  // Day labels + grid
+  const DAY_LABELS = ['M','','W','','F','','S'];
+  const outerRow = document.createElement('div');
+  outerRow.style.cssText = 'display:flex;align-items:flex-start;';
+
+  const dayLabelCol = document.createElement('div');
+  dayLabelCol.className = 'heatmap-day-labels';
+  DAY_LABELS.forEach(l => {
+    const el = document.createElement('div');
+    el.className = 'heatmap-day-label';
+    el.textContent = l;
+    dayLabelCol.appendChild(el);
+  });
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'heatmap-scroll';
+
+  const grid = document.createElement('div');
+  grid.className = 'heatmap-grid';
+
+  weeks.forEach(week => {
+    const col = document.createElement('div');
+    col.className = 'heatmap-col';
+    week.forEach(day => {
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell';
+      const isFuture = day > today;
+      if (!isFuture) {
+        const iso = day.toISOString().slice(0,10);
+        const hrv = byDate[iso];
+        if (hrv !== undefined) {
+          cell.classList.add('has-data');
+          cell.style.background = zoneColor(hrv);
+          cell.addEventListener('click', e => showHeatmapTooltip(e, day, hrv));
+        }
+      } else {
+        cell.style.opacity = '0.2';
+      }
+      col.appendChild(cell);
+    });
+    grid.appendChild(col);
+  });
+
+  scrollWrap.appendChild(grid);
+  outerRow.appendChild(dayLabelCol);
+  outerRow.appendChild(scrollWrap);
+
+  wrap.innerHTML = '';
+  wrap.appendChild(labelRow);
+  wrap.appendChild(outerRow);
+
+  // Scroll to end (most recent)
+  requestAnimationFrame(() => { scrollWrap.scrollLeft = scrollWrap.scrollWidth; });
+}
+
+let hmTooltip = null;
+function showHeatmapTooltip(e, day, hrv) {
+  removeHeatmapTooltip();
+  const label = day.toLocaleDateString('default',{day:'numeric',month:'short',year:'numeric'});
+  const zone = hrv >= ZONE_HIGH ? 'High' : hrv >= ZONE_GOOD ? 'Good' : hrv >= ZONE_OK ? 'OK' : 'Low';
+  const color = hrv >= ZONE_HIGH ? COLORS.accent : hrv >= ZONE_GOOD ? COLORS.green : hrv >= ZONE_OK ? COLORS.orange : COLORS.red;
+  hmTooltip = document.createElement('div');
+  hmTooltip.className = 'hm-tooltip';
+  hmTooltip.innerHTML = `<span style="color:${color}">${hrv}ms · ${zone}</span>  <span style="color:var(--muted)">${label}</span>`;
+  document.body.appendChild(hmTooltip);
+  const r = e.target.getBoundingClientRect();
+  const tw = hmTooltip.offsetWidth;
+  let left = r.left + r.width/2 - tw/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+  const top = r.top - hmTooltip.offsetHeight - 6;
+  hmTooltip.style.left = left + 'px';
+  hmTooltip.style.top = (top < 0 ? r.bottom + 6 : top) + 'px';
+  setTimeout(() => document.addEventListener('click', removeHeatmapTooltip, {once:true}), 0);
+}
+function removeHeatmapTooltip() {
+  hmTooltip?.remove(); hmTooltip = null;
+}
+
 function render() {
   updateBaseline();
   updateMetrics();
   renderChart();
+  renderHeatmap();
   renderHistory();
 }
 
