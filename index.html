@@ -178,10 +178,10 @@
 </div>
 
 <div class="zones">
-  <div class="zone-card"><div class="zone-label">High</div><div class="zone-range" style="color:var(--accent)">90+</div></div>
-  <div class="zone-card"><div class="zone-label">Good</div><div class="zone-range" style="color:var(--green)">75–90</div></div>
-  <div class="zone-card"><div class="zone-label">OK</div><div class="zone-range" style="color:var(--orange)">59–75</div></div>
-  <div class="zone-card"><div class="zone-label">Low</div><div class="zone-range" style="color:var(--red)">&lt;59</div></div>
+  <div class="zone-card"><div class="zone-label">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
+  <div class="zone-card"><div class="zone-label">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
+  <div class="zone-card"><div class="zone-label">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
+  <div class="zone-card"><div class="zone-label">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
 </div>
 
 <div class="card">
@@ -252,6 +252,7 @@ const GH_USER_KEY = 'hrv_github_user';
 // ---------- State ----------
 let readings = [];
 let BASELINE = 88;
+let ZONE_HIGH = 97, ZONE_GOOD = 84, ZONE_OK = 70;
 let mainChart = null;
 let currentPtW = 0;
 let tappedIdx = null;
@@ -264,7 +265,7 @@ const $ = id => document.getElementById(id);
 const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
-const colorForHRV = v => v >= 90 ? COLORS.accent : v >= 75 ? COLORS.green : v >= 59 ? COLORS.orange : COLORS.red;
+const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
 
 function showToast(msg) {
   const t = $('toast');
@@ -609,23 +610,32 @@ function renderHistory() {
 
 // ---------- Metrics + Status ----------
 function updateBaseline() {
-  if (!readings.length) { BASELINE = 88; return; }
-  const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 1);
-  const pool = readings.filter(r => new Date(r.date) >= cutoff);
-  const src = pool.length > 0 ? pool : readings;
-  BASELINE = Math.round(src.reduce((a, b) => a + b.hrv, 0) / src.length);
-  const label = pool.length > 0 ? '12 months' : `all ${readings.length} readings`;
-  $('baselineBadge').textContent = `Baseline: ${BASELINE}ms · ${label}`;
+  if (!readings.length) { BASELINE = 88; }
+  else {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    const pool = readings.filter(r => new Date(r.date) >= cutoff);
+    const src = pool.length > 0 ? pool : readings;
+    BASELINE = Math.round(src.reduce((a, b) => a + b.hrv, 0) / src.length);
+    const label = pool.length > 0 ? '12 months' : `all ${readings.length} readings`;
+    $('baselineBadge').textContent = `Baseline: ${BASELINE}ms · ${label}`;
+  }
+  ZONE_HIGH = Math.round(BASELINE * 1.10);
+  ZONE_GOOD = Math.round(BASELINE * 0.95);
+  ZONE_OK   = Math.round(BASELINE * 0.80);
+  $('zoneHigh').textContent = `${ZONE_HIGH}+`;
+  $('zoneGood').textContent = `${ZONE_GOOD}–${ZONE_HIGH - 1}`;
+  $('zoneOK').textContent   = `${ZONE_OK}–${ZONE_GOOD - 1}`;
+  $('zoneLow').textContent  = `<${ZONE_OK}`;
 }
 
 function setStatus(hrv) {
   const vsB = hrv - BASELINE;
   let text, color;
-  if      (hrv >= 90) { text = 'High — above baseline, go hard';    color = COLORS.accent; }
-  else if (hrv >= 75) { text = 'Good — green light for intensity';     color = COLORS.green;  }
-  else if (hrv >= 59) { text = 'OK — moderate session, monitor legs';  color = COLORS.orange; }
-  else                { text = 'Low — consider easy day or rest';      color = COLORS.red;    }
+  if      (hrv >= ZONE_HIGH) { text = 'High — above baseline, go hard';    color = COLORS.accent; }
+  else if (hrv >= ZONE_GOOD) { text = 'Good — green light for intensity';   color = COLORS.green;  }
+  else if (hrv >= ZONE_OK)   { text = 'OK — moderate session, monitor legs'; color = COLORS.orange; }
+  else                       { text = 'Low — consider easy day or rest';    color = COLORS.red;    }
   $('statusDot').style.background = color;
   const txt = $('statusText');
   txt.textContent = text;
