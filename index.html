@@ -905,17 +905,12 @@ function runSlowWaveCalc(text, overlay) {
 
     if (selected.length < 3) throw new Error(`Only ${selected.length} reading(s) found across Deep + Core windows — need at least 3`);
 
-    const values = selected.map(r => r.qty).sort((a, b) => a - b);
-    const min = values[0], max = values[values.length - 1];
-    let avg, statLabel;
-    if (selected.length >= 3) {
-      const trimmed = values.slice(1, -1);
-      avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
-      statLabel = `${selected.length} readings · dropped ${Math.round(min)} + ${Math.round(max)}`;
-    } else {
-      avg = Math.round(selected.reduce((a, b) => a + b.qty, 0) / selected.length);
-      statLabel = `${selected.length} readings`;
-    }
+    const sortedByQty = [...selected].sort((a, b) => a.qty - b.qty);
+    const dropLow = sortedByQty[0], dropHigh = sortedByQty[sortedByQty.length - 1];
+    const droppedSet = new Set([dropLow, dropHigh]);
+    const trimmed = sortedByQty.slice(1, -1);
+    const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
+    const statLabel = `${selected.length} readings · dropped ${Math.round(dropLow.qty)} + ${Math.round(dropHigh.qty)}`;
 
     overlay.remove();
     const panel = $('calcResult');
@@ -926,7 +921,7 @@ function runSlowWaveCalc(text, overlay) {
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
     const chips = selected.map(r => {
       const qty = Math.round(r.qty);
-      const isDropped = r.qty === min || r.qty === max;
+      const isDropped = droppedSet.has(r);
       const isDeep = inAnyStage(r, deepStages);
       const stageCls = isDeep ? 'deep' : 'core';
       const droppedCls = isDropped ? ' dropped' : '';
