@@ -237,7 +237,13 @@
 </div>
 
 <div class="card" id="heatmapCard">
-  <div class="chart-title" style="margin-bottom:12px;">Year at a Glance</div>
+  <div class="chart-header" style="margin-bottom:12px;">
+    <div class="chart-title">Year at a Glance</div>
+    <div class="chart-range-toggle">
+      <button class="range-btn active" id="hmBtnHRV" onclick="setHeatmapMode('hrv')">HRV</button>
+      <button class="range-btn" id="hmBtnTag" onclick="setHeatmapMode('tag')">Tags</button>
+    </div>
+  </div>
   <div id="heatmapWrap"></div>
 </div>
 
@@ -307,6 +313,7 @@ let nextId = 1;
 let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
 let historyFilter = null;
+let heatmapMode = 'hrv';
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -1308,6 +1315,13 @@ function setChartRange(range) {
 
 // ---------- Render orchestration ----------
 // ---------- Heatmap ----------
+function setHeatmapMode(mode) {
+  heatmapMode = mode;
+  $('hmBtnHRV').classList.toggle('active', mode === 'hrv');
+  $('hmBtnTag').classList.toggle('active', mode === 'tag');
+  renderHeatmap();
+}
+
 function renderHeatmap() {
   const wrap = $('heatmapWrap');
   if (!wrap) return;
@@ -1383,12 +1397,12 @@ function renderHeatmap() {
         const iso = day.toISOString().slice(0,10);
         const hrv = byDate[iso];
         if (hrv !== undefined) {
-          const zc = zoneColor(hrv);
           const tag = tagByDate[iso];
-          const tc = tag ? TAG_MAP[tag] : null;
-          cell.style.background = tc
-            ? `linear-gradient(to bottom, ${tc} 50%, ${zc} 50%)`
-            : zc;
+          if (heatmapMode === 'tag') {
+            cell.style.background = tag ? TAG_MAP[tag] : 'var(--border)';
+          } else {
+            cell.style.background = zoneColor(hrv);
+          }
           cell.style.color = 'rgba(0,0,0,0.45)';
         }
       }
