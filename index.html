@@ -288,9 +288,9 @@ const GH_USER_KEY = 'hrv_github_user';
 const TAGS = [
   { label:'Sick',              color:'#f44336' },
   { label:'Rest',              color:'#4caf50' },
-  { label:'Active Recovery',   color:'#2e7d32' },
+  { label:'Active Recovery',   color:'#00bcd4' },
   { label:'Zone 2',            color:'#ff9800' },
-  { label:'Efforts',           color:'#f57c00' },
+  { label:'Efforts',           color:'#ffd600' },
   { label:'Hard Bunch Ride',   color:'#ab47bc' },
   { label:'Epic Ride',         color:'#e040fb' },
 ];
@@ -677,7 +677,7 @@ function renderHistoryList() {
       const color = colorForHRV(r.hrv);
       const tagColor = r.tag ? TAG_MAP[r.tag] : null;
       const tagHtml = tagColor
-        ? `<span class="tag-chip" style="background:${tagColor}22;border-color:${tagColor};color:${tagColor};align-self:flex-start;" onclick="openTagPicker(event,'${r.id}')">${r.tag.toUpperCase()}</span>`
+        ? `<span class="tag-chip" style="border-color:${tagColor};color:${tagColor};align-self:flex-start;" onclick="openTagPicker(event,'${r.id}')">${r.tag.toUpperCase()}</span>`
         : `<span class="tag-empty" onclick="openTagPicker(event,'${r.id}')">＋</span>`;
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
@@ -713,7 +713,7 @@ function openTagPicker(e, id) {
     const item = document.createElement('div');
     item.className = 'tag-picker-item';
     item.textContent = t.label;
-    item.style.cssText = `background:${t.color}22;border-color:${t.color};color:${t.color};`;
+    item.style.cssText = `border-color:${t.color};color:${t.color};`;
     item.addEventListener('click', ev => { ev.stopPropagation(); applyTag(id, t.label); closeTagPicker(); });
     picker.appendChild(item);
   });
