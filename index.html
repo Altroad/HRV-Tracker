@@ -790,10 +790,10 @@ function updateBaseline() {
 function setStatus(hrv) {
   const vsB = hrv - BASELINE;
   let text, color;
-  if      (hrv >= ZONE_HIGH) { text = 'High — above baseline, go hard';    color = COLORS.accent; }
-  else if (hrv >= ZONE_GOOD) { text = 'Good — green light for intensity';   color = COLORS.green;  }
-  else if (hrv >= ZONE_OK)   { text = 'OK — moderate session, monitor legs'; color = COLORS.orange; }
-  else                       { text = 'Low — consider easy day or rest';    color = COLORS.red;    }
+  if      (hrv >= ZONE_HIGH) { text = 'High — an ideal state, try to stay in this zone';  color = COLORS.accent; }
+  else if (hrv >= ZONE_GOOD) { text = 'Good — all systems should be in order';             color = COLORS.green;  }
+  else if (hrv >= ZONE_OK)   { text = 'OK — monitor RHR, also check trend direction';      color = COLORS.orange; }
+  else                       { text = 'Low — consider reducing volume or rest';             color = COLORS.red;    }
   $('statusDot').style.background = color;
   const txt = $('statusText');
   txt.textContent = text;
@@ -849,7 +849,7 @@ function updateMetrics() {
     else                { tv.textContent = '→'; tv.style.color = COLORS.orange; tl.textContent = 'stable';  }
   }
 
-  setStatus(latest.hrv);
+  setStatus(avg3);
 }
 
 // ---------- CRUD ----------
