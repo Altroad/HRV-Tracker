@@ -838,10 +838,9 @@ function updateMetrics() {
   ael.textContent = (ad >= 0 ? '▲' : '▼') + Math.abs(ad) + 'ms vs baseline';
   ael.style.color = ad >= 0 ? COLORS.green : COLORS.red;
 
-  // Trend
+  // Trend: 3D avg vs 7D avg
   if (sorted.length >= 3) {
-    const l3 = sorted.slice(-3).map(r => r.hrv);
-    const diff = l3[2] - l3[0];
+    const diff = avg3 - avg;
     const tv = $('trendValue');
     const tl = $('trendLabel');
     if      (diff > 3)  { tv.textContent = '↑'; tv.style.color = COLORS.green;  tl.textContent = 'rising';  }
