@@ -133,6 +133,9 @@
   .tag-chip { display:inline-block; font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:10px; cursor:pointer; flex-shrink:0; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
   .tag-empty { font-family:var(--font-mono); font-size:10px; color:var(--border); cursor:pointer; padding:2px 4px; flex-shrink:0; }
   .tag-empty:hover, .tag-empty:active { color:var(--muted); }
+  .rhr-chip { display:inline-flex; align-items:center; gap:3px; font-family:var(--font-mono); font-size:9px; padding:2px 5px 2px 7px; border-radius:10px; border:1px solid transparent; flex-shrink:0; }
+  .rhr-delete { background:none; border:none; color:inherit; cursor:pointer; font-size:10px; padding:0 1px; opacity:0.55; line-height:1; }
+  .rhr-delete:hover { opacity:1; }
   .note-btn { background:none; border:none; font-size:13px; cursor:pointer; padding:2px 4px; flex-shrink:0; opacity:0.35; }
   .note-btn.has-note { opacity:1; }
   .note-row { padding:4px 0 8px 0; display:none; }
@@ -745,6 +748,7 @@ function renderHistoryList() {
   const thisYear = new Date().getFullYear();
   let lastMonthKey = null;
   let html = summaryHtml;
+  const shownRHRDates = new Set();
 
   weeks.forEach(([key, { monday, entries }]) => {
     const monthKey = `${monday.getFullYear()}-${monday.getMonth()}`;
@@ -773,6 +777,12 @@ function renderHistoryList() {
       const tagHtml = tagColor
         ? `<span class="tag-chip" style="border-color:${tagColor};color:${tagColor};align-self:flex-start;" onclick="openTagPicker(event,'${r.id}')">${r.tag.toUpperCase()}</span>`
         : `<span class="tag-empty" onclick="openTagPicker(event,'${r.id}')">＋</span>`;
+      const rhrVal = rhrData[r.date];
+      const showRHR = rhrVal !== undefined && !shownRHRDates.has(r.date);
+      if (showRHR) shownRHRDates.add(r.date);
+      const rhrHtml = showRHR
+        ? `<span class="rhr-chip" style="border-color:${rhrZoneColor(rhrVal)};color:${rhrZoneColor(rhrVal)};">♥${rhrVal}<button class="rhr-delete" onclick="deleteRHREntry('${r.date}')">✕</button></span>`
+        : '';
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
         : `<button class="note-btn" onclick="toggleNote('${r.id}')">✎</button>`;
@@ -783,6 +793,7 @@ function renderHistoryList() {
         <div class="history-date">
           <span class="history-date-line">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</span>
           ${tagHtml}
+          ${rhrHtml}
         </div>
         <div class="history-hrv" style="color:${color}">${Math.round(r.hrv)}</div>
         <div class="history-delta" style="color:${dColor}">${dStr}</div>
@@ -962,6 +973,13 @@ function deleteReading(id) {
   save();
   render();
   showToast('Reading removed');
+}
+
+function deleteRHREntry(date) {
+  delete rhrData[date];
+  saveRHR();
+  render();
+  showToast('RHR entry removed');
 }
 
 function handleDeleteClick(btn) {
