@@ -214,18 +214,18 @@
 </div>
 
 <div class="card">
-  <div class="chart-header">
+  <div class="chart-header" style="margin-bottom:8px;">
     <div class="chart-title">HRV Trend</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="btn14d" onclick="setChartRange(14)">14D</button>
       <button class="range-btn" id="btn60d" onclick="setChartRange(60)">60D</button>
     </div>
-    <div class="chart-legend">
+  </div>
+  <div class="chart-legend" style="margin-bottom:12px;flex-wrap:wrap;gap:10px 16px;">
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
-      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#76ff03"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR</div>
-    </div>
+      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#76ff03"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR Halo</div>
   </div>
   <div class="chart-outer">
     <div class="y-axis-wrap"><canvas id="yAxis" width="28" height="260"></canvas></div>
@@ -474,14 +474,14 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
 
       meta.data.forEach((pt, i) => {
         const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
-        // RHR halo (filled ring behind HRV dot)
+        // RHR halo — stroke ring with gap (matches tap-selection ring style)
         if (rhr !== undefined) {
           ctx.save();
-          ctx.globalAlpha = 0.75;
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
-          ctx.fillStyle = rhrZoneColor(rhr);
-          ctx.fill();
+          ctx.arc(pt.x, pt.y, pr + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = rhrZoneColor(rhr);
+          ctx.lineWidth = 2;
+          ctx.stroke();
           ctx.restore();
         }
         // HRV dot
