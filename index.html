@@ -117,7 +117,7 @@
   .calc-result-value { font-family:var(--font-display); font-size:48px; letter-spacing:2px; text-align:center; line-height:1; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
-  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; padding-top:4px; border-top:1px solid var(--border); }
+  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:8px; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
@@ -282,9 +282,9 @@
       <div class="calc-metric calc-rhr-display" id="calcRHRDisplay" style="display:none;">
         <div class="calc-metric-label">RHR</div>
         <div class="calc-result-value" id="calcRHRValue">—</div>
-        <div class="calc-rhr-window" id="calcRHRWindow"></div>
       </div>
     </div>
+    <div class="calc-rhr-window" id="calcRHRWindow" style="display:none;text-align:center;"></div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
@@ -1227,11 +1227,14 @@ function runSlowWaveCalc(text, overlay) {
     if (rhrResult) {
       $('calcRHRValue').textContent = rhrResult.rhr;
       $('calcRHRValue').style.color = rhrZoneColor(rhrResult.rhr);
-      $('calcRHRWindow').textContent = rhrResult.windowLabel || '';
+      const wl = rhrResult.windowLabel || '';
+      $('calcRHRWindow').textContent = wl;
+      $('calcRHRWindow').style.display = wl ? '' : 'none';
       $('calcRHRDisplay').style.display = '';
       $('inputRHR').value = rhrResult.rhr;
     } else {
       $('calcRHRDisplay').style.display = 'none';
+      $('calcRHRWindow').style.display = 'none';
     }
 
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
@@ -1333,6 +1336,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   $('calcValue').style.color = colorForHRV(avg);
   $('calcLabel').textContent = `${methodLabel} · ${statLabel}`;
   $('calcRHRDisplay').style.display = 'none';
+  $('calcRHRWindow').style.display = 'none';
   const chips = filtered.map(r => {
     const qty = Math.round(r.qty);
     const isDropped = values.length >= 3 && (r.qty === values[0] || r.qty === values[values.length - 1]);
