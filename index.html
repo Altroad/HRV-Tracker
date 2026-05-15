@@ -30,6 +30,8 @@
   .sync-btn { position:absolute; right:36px; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:15px; cursor:pointer; line-height:1; }
   .sync-btn:hover { border-color:var(--accent); color:var(--accent); }
   .sync-btn.active { color:var(--accent); border-color:var(--accent); }
+  .menu-btn { position:absolute; left:0; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:16px; cursor:pointer; line-height:1; }
+  .menu-btn:hover { border-color:var(--accent); color:var(--accent); }
   .label { font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--accent); font-weight:500; font-family:var(--font-mono); margin-bottom:4px; }
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
   .baseline-badge { font-family:var(--font-mono); font-size:11px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:4px; display:inline-block; }
@@ -170,6 +172,7 @@
   <h1>HRV Tracker</h1>
   <div id="baselineBadge" style="font-family:var(--font-mono);font-size:13px;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 14px;border-radius:6px;display:inline-block;margin-top:6px;letter-spacing:1px;">Baseline: —ms</div>
   <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-05-15.1</div>
+  <button class="menu-btn" id="menuBtn">≡</button>
   <button class="sync-btn" id="syncBtn" title="GitHub sync">⟳</button>
   <button class="info-btn" id="infoBtn">?</button>
 </div>
@@ -260,20 +263,12 @@
   </div>
   <div class="backup-row">
     <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
-    <button class="btn-secondary" id="calcBtn">Manual Sync</button>
   </div>
   <div class="calc-result" id="calcResult">
     <div class="calc-result-value" id="calcValue">—</div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
-  </div>
-  <div class="backup-row">
-    <button class="btn-secondary" id="exportBtn">Export Backup</button>
-    <button class="btn-secondary" id="importBtn">Import Backup</button>
-  </div>
-  <div class="backup-row">
-    <button class="btn-secondary" id="importRHRBtn">Import RHR Data</button>
   </div>
 </div>
 
@@ -1749,6 +1744,23 @@ function showSyncModal() {
   setTimeout(() => overlay.querySelector('#userInput').focus(), 100);
 }
 
+// ---------- Menu ----------
+function showMenuModal() {
+  const overlay = openModal(`
+    <div class="modal-title">Tools</div>
+    <button class="modal-btn" id="menuCalc" style="text-align:left;">Manual Sync</button>
+    <button class="modal-btn" id="menuExport" style="text-align:left;">Export Backup</button>
+    <button class="modal-btn" id="menuImport" style="text-align:left;">Import Backup</button>
+    <button class="modal-btn" id="menuRHR" style="text-align:left;">Import RHR Data</button>
+    <button class="modal-btn cancel" data-close>Close</button>
+  `);
+  overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
+  overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportData(); });
+  overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportModal(); });
+  overlay.querySelector('#menuRHR').addEventListener('click',    () => { overlay.remove(); showRHRImportModal(); });
+  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+}
+
 // ---------- Info modal ----------
 function showInfoModal() {
   const overlay = openModal(`
@@ -1829,11 +1841,8 @@ function showInfoModal() {
 async function init() {
   drawYAxis();
   $('addBtn').addEventListener('click', addEntry);
-  $('calcBtn').addEventListener('click', showCalcModal);
   $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
-  $('exportBtn').addEventListener('click', exportData);
-  $('importBtn').addEventListener('click', showImportModal);
-  $('importRHRBtn').addEventListener('click', showRHRImportModal);
+  $('menuBtn').addEventListener('click', showMenuModal);
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
   loadRHR();
