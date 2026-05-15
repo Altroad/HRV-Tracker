@@ -504,16 +504,19 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
       const pt = meta.data[tappedIdx];
       const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[tappedIdx]] : undefined;
       const hrvText = `${Math.round(values[tappedIdx])}ms`;
-      const rhrText = rhr !== undefined ? `♥${rhr}` : null;
+      const rhrNum  = rhr !== undefined ? `${rhr}` : null;
       const BIG = 'bold 42px "Bebas Neue", sans-serif';
       const SML = 'bold 21px "Bebas Neue", sans-serif';
       ctx.save();
       ctx.font = BIG;
       const w1 = ctx.measureText(hrvText).width;
-      let w2 = 0;
-      if (rhrText) { ctx.font = SML; w2 = ctx.measureText(rhrText).width; }
+      let wHeart = 0, wNum = 0;
+      if (rhrNum) {
+        ctx.font = SML; wHeart = ctx.measureText('♥').width;
+        ctx.font = BIG; wNum   = ctx.measureText(rhrNum).width;
+      }
       const PAD = 14, GAP = 7;
-      const bw = w1 + (rhrText ? GAP + w2 : 0) + PAD * 2;
+      const bw = w1 + (rhrNum ? GAP + wHeart + wNum : 0) + PAD * 2;
       const bh = 54;
       const dpr = window.devicePixelRatio || 1;
       const maxX = canvas.width / dpr - bw - 4;
@@ -539,10 +542,13 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
       ctx.fillStyle = colorForHRV(values[tappedIdx]);
       ctx.textAlign = 'left';
       ctx.fillText(hrvText, bx + PAD, my);
-      if (rhrText) {
+      if (rhrNum) {
+        const rx = bx + PAD + w1 + GAP;
         ctx.font = SML;
         ctx.fillStyle = rhrZoneColor(rhr);
-        ctx.fillText(rhrText, bx + PAD + w1 + GAP, my + 2);
+        ctx.fillText('♥', rx, my + 2);
+        ctx.font = BIG;
+        ctx.fillText(rhrNum, rx + wHeart, my);
       }
       ctx.restore();
     }
