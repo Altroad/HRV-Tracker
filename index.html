@@ -252,13 +252,10 @@
 <div class="card">
   <div class="input-label">Log HRV &amp; RHR</div>
   <div class="input-row">
-    <input type="date" id="inputDate">
-    <input type="number" id="inputHRV" placeholder="HRV ms" min="20" max="220">
-    <button class="btn-primary" id="addBtn">ADD</button>
-  </div>
-  <div class="input-row" style="margin-top:8px;">
-    <input type="number" id="inputRHR" placeholder="RHR bpm" min="25" max="120" style="flex:1;min-width:0;">
-    <button class="btn-primary" id="addRHRBtn" style="background:#76ff03;">RHR</button>
+    <input type="date" id="inputDate" style="flex:2;min-width:0;">
+    <input type="number" id="inputHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    <input type="number" id="inputRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    <button class="btn-primary" id="addBtn" style="padding:0 12px;">ADD</button>
   </div>
   <div class="backup-row">
     <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
@@ -926,32 +923,22 @@ function updateMetrics() {
 
 // ---------- CRUD ----------
 
-function addRHR() {
-  const date = $('inputDate').value;
-  const rhr = parseInt($('inputRHR').value);
-  if (!date || isNaN(rhr) || rhr < 25 || rhr > 120) {
-    showToast('Enter valid date and RHR (25–120 bpm)');
-    return;
-  }
-  rhrData[date] = rhr;
-  saveRHR();
-  $('inputRHR').value = '';
-  render();
-  showToast(`RHR ${rhr}bpm logged for ${date}`);
-}
-
-function addReading() {
+function addEntry() {
   const date = $('inputDate').value;
   const hrv = parseInt($('inputHRV').value);
-  if (!date || isNaN(hrv) || hrv < 20 || hrv > 220) {
-    showToast('Enter valid date and HRV (20–220ms)');
-    return;
-  }
-  readings.push({ id: newId(), date, hrv });
-  save();
+  const rhr = parseInt($('inputRHR').value);
+  const hasHRV = !isNaN(hrv) && hrv >= 20 && hrv <= 220;
+  const hasRHR = !isNaN(rhr) && rhr >= 25 && rhr <= 120;
+  if (!date) { showToast('Select a date'); return; }
+  if (!hasHRV && !hasRHR) { showToast('Enter HRV, RHR, or both'); return; }
+  if (hasHRV) { readings.push({ id: newId(), date, hrv }); save(); }
+  if (hasRHR) { rhrData[date] = rhr; saveRHR(); }
   $('inputHRV').value = '';
+  $('inputRHR').value = '';
   render();
-  showToast(`Logged ${hrv}ms`);
+  if (hasHRV && hasRHR) showToast(`Logged HRV ${hrv}ms + RHR ${rhr}bpm`);
+  else if (hasHRV)      showToast(`Logged HRV ${hrv}ms`);
+  else                  showToast(`Logged RHR ${rhr}bpm`);
 }
 
 function deleteReading(id) {
@@ -1812,8 +1799,7 @@ function showInfoModal() {
 // ---------- Init ----------
 async function init() {
   drawYAxis();
-  $('addBtn').addEventListener('click', addReading);
-  $('addRHRBtn').addEventListener('click', addRHR);
+  $('addBtn').addEventListener('click', addEntry);
   $('calcBtn').addEventListener('click', showCalcModal);
   $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
   $('exportBtn').addEventListener('click', exportData);
