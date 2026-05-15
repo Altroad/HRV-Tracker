@@ -271,7 +271,7 @@
     <button class="btn-primary" id="addBtn" style="padding:0 12px;">ADD</button>
   </div>
   <div class="backup-row">
-    <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
+    <button class="btn-secondary" id="slowWaveBtn">Overnight Capture</button>
   </div>
   <div class="calc-result" id="calcResult">
     <div class="calc-result-values">
@@ -1145,7 +1145,7 @@ function showCalcModal() {
 
 function showSlowWaveModal() {
   const overlay = openModal(`
-    <div class="modal-title">Slow Wave Sync</div>
+    <div class="modal-title">Overnight Capture</div>
     <div class="modal-desc">Paste all four exports together: previous day HRV, morning HRV, sleep analysis, and heart rate.</div>
     <textarea placeholder="Paste all 4 JSON blocks here..."></textarea>
     <div class="modal-actions">
@@ -1234,7 +1234,7 @@ function runSlowWaveCalc(text, overlay) {
     const panel = $('calcResult');
     $('calcValue').textContent = avg;
     $('calcValue').style.color = colorForHRV(avg);
-    $('calcLabel').textContent = `Slow Wave · Deep + Core 11:30pm–2:00am · ${statLabel}`;
+    $('calcLabel').textContent = `Overnight Capture · Deep + Core 11:30pm–2:00am · ${statLabel}`;
 
     if (rhrResult) {
       $('calcRHRValue').textContent = rhrResult.rhr;
@@ -1966,7 +1966,7 @@ function showInfoModal() {
       <span style="color:#f44336">●</span> 47+ — High<br><br>
 
       <strong>Importing RHR</strong><br>
-      Use <em>Slow Wave Sync</em> (add the heart_rate export as a 4th block) to log HRV and RHR together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
+      Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV and RHR together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
 
       <strong>Backup &amp; sync</strong><br>
       RHR data is included in both the Export Backup and GitHub sync, so it is fully restored after a reinstall.
