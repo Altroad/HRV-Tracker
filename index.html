@@ -237,7 +237,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
-      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#76ff03"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR Halo</div>
+      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#4caf50"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR Halo</div>
   </div>
   <div class="chart-outer">
     <div class="y-axis-wrap"><canvas id="yAxis" width="28" height="260"></canvas></div>
@@ -346,8 +346,8 @@ const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
-const rhrZoneColor = rhr => rhr <= 40 ? '#76ff03' : rhr <= 43 ? '#ffab00' : rhr <= 46 ? '#ff6d00' : '#f44336';
-const rhrLineColor = rhr => rhr === null ? 'transparent' : rhr <= 40 ? 'rgba(118,255,3,0.65)' : rhr <= 43 ? 'rgba(255,171,0,0.65)' : rhr <= 46 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)';
+const rhrZoneColor = rhr => rhr <= 40 ? '#4caf50' : rhr <= 43 ? '#ffab00' : rhr <= 46 ? '#ff6d00' : '#f44336';
+const rhrLineColor = rhr => rhr === null ? 'transparent' : rhr <= 40 ? 'rgba(76,175,80,0.65)' : rhr <= 43 ? 'rgba(255,171,0,0.65)' : rhr <= 46 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)';
 
 function loadRHR() {
   try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
@@ -495,7 +495,7 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, pr + 3, 0, Math.PI * 2);
           ctx.strokeStyle = rhrZoneColor(rhr);
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 4;
           ctx.stroke();
           ctx.restore();
         }
@@ -1573,7 +1573,7 @@ function importRHRFromJSON(json) {
 function showRHRImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Import RHR Data</div>
-    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 10-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#76ff03">●</span> ≤40 &nbsp;<span style="color:#ffab00">●</span> 41–43 &nbsp;<span style="color:#ff6d00">●</span> 44–46 &nbsp;<span style="color:#f44336">●</span> 47+</div>
+    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 10-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#4caf50">●</span> ≤40 &nbsp;<span style="color:#ffab00">●</span> 41–43 &nbsp;<span style="color:#ff6d00">●</span> 44–46 &nbsp;<span style="color:#f44336">●</span> 47+</div>
     <textarea placeholder="Paste one or more JSON exports here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
