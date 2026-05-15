@@ -1000,7 +1000,7 @@ function deleteRHREntry(date) {
 function clearNumConfirming() {
   document.querySelectorAll('.history-rhr.confirming').forEach(el => {
     el.classList.remove('confirming');
-    if (el.dataset.orig) el.textContent = el.dataset.orig;
+    if (el.dataset.orig) el.innerHTML = el.dataset.orig;
   });
 }
 function armConfirm(el) {
