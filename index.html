@@ -61,7 +61,7 @@
   .status-sub { font-size:11px; color:var(--muted); margin-left:auto; font-family:var(--font-mono); }
 
   /* Zones */
-  .zones { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; }
+  .zones { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:16px; cursor:pointer; user-select:none; }
   .zone-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
   .zone-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px; }
   .zone-range { font-family:var(--font-display); font-size:16px; }
@@ -225,11 +225,11 @@
   <div class="status-sub" id="statusSub"></div>
 </div>
 
-<div class="zones">
-  <div class="zone-card"><div class="zone-label">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
-  <div class="zone-card"><div class="zone-label">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
-  <div class="zone-card"><div class="zone-label">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
-  <div class="zone-card"><div class="zone-label">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
+<div class="zones" id="zonesPanel" onclick="flipMetrics()">
+  <div class="zone-card"><div class="zone-label" id="zoneLabelHigh">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
+  <div class="zone-card"><div class="zone-label" id="zoneLabelGood">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
+  <div class="zone-card"><div class="zone-label" id="zoneLabelOK">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
+  <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
 </div>
 
 <div class="card">
@@ -996,16 +996,24 @@ function updateMetrics() {
     _rhrMetrics = null;
   }
 
-  // If currently in RHR mode, re-apply RHR values after data update
+  // If currently in RHR mode, reset to HRV on data update
   if (metricsMode === 'rhr') {
     metricsMode = 'hrv';
     $('todayCard').classList.remove('rhr-mode');
     $('latestUnit').textContent = 'ms';
     $('avg3Unit').textContent = 'ms';
     $('avg7Unit').textContent = 'ms';
+    applyHRVZones();
   }
 
   setStatus(avg3);
+}
+
+function applyHRVZones() {
+  $('zoneLabelHigh').textContent = 'High';     $('zoneHigh').style.color = 'var(--accent)'; $('zoneHigh').textContent = `${ZONE_HIGH}+`;
+  $('zoneLabelGood').textContent = 'Good';     $('zoneGood').style.color = 'var(--green)';  $('zoneGood').textContent = `${ZONE_GOOD}–${ZONE_HIGH - 1}`;
+  $('zoneLabelOK').textContent   = 'OK';       $('zoneOK').style.color   = 'var(--orange)'; $('zoneOK').textContent   = `${ZONE_OK}–${ZONE_GOOD - 1}`;
+  $('zoneLabelLow').textContent  = 'Low';      $('zoneLow').style.color  = 'var(--red)';    $('zoneLow').textContent  = `<${ZONE_OK}`;
 }
 
 function flipMetrics() {
@@ -1015,7 +1023,11 @@ function flipMetrics() {
   const animEls = ['latestHRV','latestUnit','hrvDelta',
                    'avg3d','avg3Unit','avg3dDelta',
                    'avg7d','avg7Unit','avg7dDelta',
-                   'trendValue','trendLabel'].map($).filter(Boolean);
+                   'trendValue','trendLabel',
+                   'zoneLabelHigh','zoneHigh',
+                   'zoneLabelGood','zoneGood',
+                   'zoneLabelOK','zoneOK',
+                   'zoneLabelLow','zoneLow'].map($).filter(Boolean);
 
   animEls.forEach(el => { el.classList.remove('metric-anim-in'); el.classList.add('metric-anim-out'); });
 
@@ -1036,9 +1048,14 @@ function flipMetrics() {
       $('trendValue').textContent = m.trend;        $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLabel;
       $('todayCard').classList.add('rhr-mode');
+      // Zones — Excellent/Good/Elevated/High mapped to RHR thresholds
+      $('zoneLabelHigh').textContent = 'Excellent'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = '≤40';
+      $('zoneLabelGood').textContent = 'Good';      $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = '41–43';
+      $('zoneLabelOK').textContent   = 'Elevated';  $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = '44–46';
+      $('zoneLabelLow').textContent  = 'High';      $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = '47+';
     } else {
-      // Let updateMetrics repopulate — but avoid a full re-render. Just restore inline.
       updateMetrics();
+      applyHRVZones();
     }
 
     animEls.forEach(el => {
