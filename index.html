@@ -1201,7 +1201,7 @@ function runSlowWaveCalc(text, overlay) {
     const droppedSet = new Set([dropLow, dropHigh]);
     const trimmed = sortedByQty.slice(1, -1);
     const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
-    const statLabel = `${selected.length} readings · dropped ${Math.round(dropLow.qty)} + ${Math.round(dropHigh.qty)}`;
+    const statLabel = `${selected.length} readings`;
 
     // Try to extract RHR from heart_rate block if present
     const hrBlock = blocks.find(b => {
@@ -1318,7 +1318,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
     const trimmed = values.slice(1, -1);
     avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
     min = values[0]; max = values[values.length - 1];
-    statLabel = `trimmed mean · ${filtered.length} readings · dropped ${Math.round(min)} + ${Math.round(max)}`;
+    statLabel = `trimmed mean · ${filtered.length} readings`;
   } else if (values.length === 2) {
     avg = Math.round((values[0] + values[1]) / 2);
     statLabel = `average · 2 readings`;
