@@ -111,8 +111,13 @@
   /* Calculator */
   .calc-result { margin-top:12px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; display:none; }
   .calc-result.show { display:block; }
+  .calc-result-values { display:flex; align-items:baseline; justify-content:center; gap:16px; }
   .calc-result-value { font-family:var(--font-display); font-size:48px; letter-spacing:2px; text-align:center; margin-bottom:4px; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-bottom:12px; }
+  .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
+  .calc-rhr-number { display:flex; align-items:baseline; gap:2px; }
+  .calc-rhr-heart { font-size:4px; vertical-align:middle; }
+  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--muted); letter-spacing:1px; margin-top:2px; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
@@ -269,7 +274,15 @@
     <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
   </div>
   <div class="calc-result" id="calcResult">
-    <div class="calc-result-value" id="calcValue">—</div>
+    <div class="calc-result-values">
+      <div class="calc-result-value" id="calcValue">—</div>
+      <div class="calc-rhr-display" id="calcRHRDisplay" style="display:none;">
+        <div class="calc-rhr-number">
+          <span class="calc-rhr-heart" id="calcRHRHeart">♥</span><span class="calc-result-value" id="calcRHRValue">—</span>
+        </div>
+        <div class="calc-rhr-window" id="calcRHRWindow"></div>
+      </div>
+    </div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
@@ -1119,8 +1132,8 @@ function showCalcModal() {
 function showSlowWaveModal() {
   const overlay = openModal(`
     <div class="modal-title">Slow Wave Sync</div>
-    <div class="modal-desc">Paste all three exports together: previous day HRV, morning HRV, and sleep analysis.</div>
-    <textarea placeholder="Paste all 3 JSON blocks here..."></textarea>
+    <div class="modal-desc">Paste all four exports together: previous day HRV, morning HRV, sleep analysis, and heart rate.</div>
+    <textarea placeholder="Paste all 4 JSON blocks here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-calc>CALCULATE</button>
@@ -1190,11 +1203,35 @@ function runSlowWaveCalc(text, overlay) {
     const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
     const statLabel = `${selected.length} readings · dropped ${Math.round(dropLow.qty)} + ${Math.round(dropHigh.qty)}`;
 
+    // Try to extract RHR from heart_rate block if present
+    const hrBlock = blocks.find(b => {
+      const mx = b?.data?.metrics ?? b?.metrics;
+      return Array.isArray(mx) && mx.some(m =>
+        m.name === 'heart_rate' || m.name === 'Heart Rate' || m.name === 'heart_rate_bpm'
+      );
+    });
+    let rhrResult = null;
+    if (hrBlock) {
+      const date = $('inputDate').value;
+      if (date) rhrResult = extractRHRForSlowWave(hrBlock, date);
+    }
+
     overlay.remove();
     const panel = $('calcResult');
     $('calcValue').textContent = avg;
     $('calcValue').style.color = colorForHRV(avg);
     $('calcLabel').textContent = `Slow Wave · Deep + Core 11:30pm–2:00am · ${statLabel}`;
+
+    if (rhrResult) {
+      $('calcRHRValue').textContent = rhrResult.rhr;
+      $('calcRHRValue').style.color = rhrZoneColor(rhrResult.rhr);
+      $('calcRHRHeart').style.color = rhrZoneColor(rhrResult.rhr);
+      $('calcRHRWindow').textContent = rhrResult.windowLabel || '';
+      $('calcRHRDisplay').style.display = '';
+      $('inputRHR').value = rhrResult.rhr;
+    } else {
+      $('calcRHRDisplay').style.display = 'none';
+    }
 
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
     const chips = selected.map(r => {
@@ -1294,6 +1331,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   $('calcValue').textContent = avg;
   $('calcValue').style.color = colorForHRV(avg);
   $('calcLabel').textContent = `${methodLabel} · ${statLabel}`;
+  $('calcRHRDisplay').style.display = 'none';
   const chips = filtered.map(r => {
     const qty = Math.round(r.qty);
     const isDropped = values.length >= 3 && (r.qty === values[0] || r.qty === values[values.length - 1]);
@@ -1456,6 +1494,50 @@ function findLowestConsecutiveRHR(readings) {
     }
   }
   return bestAvg < Infinity ? Math.round(bestAvg) : null;
+}
+
+function findRHRWindowDetail(readings) {
+  const MAX_GAP_MS = 3 * 60 * 1000;
+  const MIN_SPAN_MS = 10 * 60 * 1000;
+  let bestAvg = Infinity, bestI = -1, bestJ = -1;
+  for (let i = 0; i < readings.length; i++) {
+    let sum = readings[i].avg;
+    for (let j = i + 1; j < readings.length; j++) {
+      if (readings[j].ts - readings[j-1].ts > MAX_GAP_MS) break;
+      sum += readings[j].avg;
+      if (readings[j].ts - readings[i].ts >= MIN_SPAN_MS) {
+        const avg = sum / (j - i + 1);
+        if (avg < bestAvg) { bestAvg = avg; bestI = i; bestJ = j; }
+      }
+    }
+  }
+  if (bestAvg === Infinity) return null;
+  const s = readings[bestI], e = readings[bestJ];
+  const fmt = r => `${r.h}:${String(r.m).padStart(2, '0')}`;
+  return { rhr: Math.round(bestAvg), windowLabel: `${fmt(s)}–${fmt(e)}` };
+}
+
+function extractRHRForSlowWave(json, dateStr) {
+  const metrics = json?.data?.metrics ?? json?.metrics;
+  if (!Array.isArray(metrics)) return null;
+  const metric = metrics.find(m =>
+    m.name === 'heart_rate' || m.name === 'Heart Rate' || m.name === 'heart_rate_bpm'
+  );
+  if (!metric) return null;
+  const readings = [];
+  for (const r of metric.data) {
+    const avg = typeof r.Avg === 'number' ? r.Avg : typeof r.avg === 'number' ? r.avg : null;
+    if (avg === null) continue;
+    const s = (r.date ?? r.start ?? '').trim();
+    if (!s || s.slice(0, 10) !== dateStr) continue;
+    const h = parseInt(s.slice(11, 13), 10);
+    const m = parseInt(s.slice(14, 16), 10);
+    if (h * 60 + m > 210) continue;
+    readings.push({ ts: parseTimestamp(r).getTime(), avg, h, m });
+  }
+  if (!readings.length) return null;
+  readings.sort((a, b) => a.ts - b.ts);
+  return findRHRWindowDetail(readings);
 }
 
 function importRHRFromJSON(json) {
