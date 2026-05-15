@@ -243,6 +243,7 @@
     <div class="chart-title">Year at a Glance</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="hmBtnHRV" onclick="setHeatmapMode('hrv')">HRV</button>
+      <button class="range-btn" id="hmBtnRHR" onclick="setHeatmapMode('rhr')">RHR</button>
       <button class="range-btn" id="hmBtnTag" onclick="setHeatmapMode('tag')">Tags</button>
     </div>
   </div>
@@ -1485,6 +1486,7 @@ function setChartRange(range) {
 function setHeatmapMode(mode) {
   heatmapMode = mode;
   $('hmBtnHRV').classList.toggle('active', mode === 'hrv');
+  $('hmBtnRHR').classList.toggle('active', mode === 'rhr');
   $('hmBtnTag').classList.toggle('active', mode === 'tag');
   renderHeatmap();
 }
@@ -1563,13 +1565,16 @@ function renderHeatmap() {
       } else {
         const iso = day.toISOString().slice(0,10);
         const hrv = byDate[iso];
-        if (hrv !== undefined) {
-          const tag = tagByDate[iso];
-          if (heatmapMode === 'tag') {
-            cell.style.background = tag ? TAG_MAP[tag] : 'var(--border)';
-          } else {
-            cell.style.background = zoneColor(hrv);
+        const rhr = rhrData[iso];
+        if (heatmapMode === 'rhr') {
+          if (rhr !== undefined) {
+            cell.style.background = rhrZoneColor(rhr);
+            cell.style.color = 'rgba(0,0,0,0.45)';
           }
+        } else if (hrv !== undefined) {
+          cell.style.background = heatmapMode === 'tag'
+            ? (tagByDate[iso] ? TAG_MAP[tagByDate[iso]] : 'var(--border)')
+            : zoneColor(hrv);
           cell.style.color = 'rgba(0,0,0,0.45)';
         }
       }
