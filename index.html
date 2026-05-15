@@ -250,11 +250,15 @@
 </div>
 
 <div class="card">
-  <div class="input-label">Log Sleep HRV, Early, Mid, or Combined</div>
+  <div class="input-label">Log HRV &amp; RHR</div>
   <div class="input-row">
     <input type="date" id="inputDate">
-    <input type="number" id="inputHRV" placeholder="HRV" min="20" max="220">
+    <input type="number" id="inputHRV" placeholder="HRV ms" min="20" max="220">
     <button class="btn-primary" id="addBtn">ADD</button>
+  </div>
+  <div class="input-row" style="margin-top:8px;">
+    <input type="number" id="inputRHR" placeholder="RHR bpm" min="25" max="120" style="flex:1;min-width:0;">
+    <button class="btn-primary" id="addRHRBtn" style="background:#76ff03;">RHR</button>
   </div>
   <div class="backup-row">
     <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
@@ -921,6 +925,20 @@ function updateMetrics() {
 }
 
 // ---------- CRUD ----------
+
+function addRHR() {
+  const date = $('inputDate').value;
+  const rhr = parseInt($('inputRHR').value);
+  if (!date || isNaN(rhr) || rhr < 25 || rhr > 120) {
+    showToast('Enter valid date and RHR (25–120 bpm)');
+    return;
+  }
+  rhrData[date] = rhr;
+  saveRHR();
+  $('inputRHR').value = '';
+  render();
+  showToast(`RHR ${rhr}bpm logged for ${date}`);
+}
 
 function addReading() {
   const date = $('inputDate').value;
@@ -1795,6 +1813,7 @@ function showInfoModal() {
 async function init() {
   drawYAxis();
   $('addBtn').addEventListener('click', addReading);
+  $('addRHRBtn').addEventListener('click', addRHR);
   $('calcBtn').addEventListener('click', showCalcModal);
   $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
   $('exportBtn').addEventListener('click', exportData);
