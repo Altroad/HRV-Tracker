@@ -224,7 +224,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
-      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#4caf50"></div><div class="legend-dot" style="background:#ff9800;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR</div>
+      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#76ff03"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR</div>
     </div>
   </div>
   <div class="chart-outer">
@@ -330,8 +330,8 @@ const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
-const rhrZoneColor = rhr => rhr <= 45 ? '#4caf50' : rhr <= 55 ? '#ff9800' : '#f44336';
-const rhrLineColor = rhr => rhr === null ? 'transparent' : rhr <= 45 ? 'rgba(76,175,80,0.65)' : rhr <= 55 ? 'rgba(255,152,0,0.65)' : 'rgba(244,67,54,0.65)';
+const rhrZoneColor = rhr => rhr <= 40 ? '#76ff03' : rhr <= 43 ? '#ffab00' : rhr <= 46 ? '#ff6d00' : '#f44336';
+const rhrLineColor = rhr => rhr === null ? 'transparent' : rhr <= 40 ? 'rgba(118,255,3,0.65)' : rhr <= 43 ? 'rgba(255,171,0,0.65)' : rhr <= 46 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)';
 
 function loadRHR() {
   try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
@@ -1420,7 +1420,7 @@ function importRHRFromJSON(json) {
 function showRHRImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Import RHR Data</div>
-    <div class="modal-desc">Paste your Health Auto Export <strong>heart_rate</strong> JSON. The app takes the lowest 10-minute consecutive window between midnight and 3:30am as your resting heart rate.<br><br>RHR zones: ≤45 green · 46–55 orange · 56+ red</div>
+    <div class="modal-desc">Paste your Health Auto Export <strong>heart_rate</strong> JSON. The app takes the lowest 10-minute consecutive window between midnight and 3:30am as your resting heart rate.<br><br>RHR zones: ≤40 fluro green · 41–43 amber · 44–46 orange · 47+ red</div>
     <textarea placeholder="Paste JSON here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
