@@ -111,13 +111,13 @@
   /* Calculator */
   .calc-result { margin-top:12px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; display:none; }
   .calc-result.show { display:block; }
-  .calc-result-values { display:flex; align-items:baseline; justify-content:center; gap:16px; }
-  .calc-result-value { font-family:var(--font-display); font-size:48px; letter-spacing:2px; text-align:center; margin-bottom:4px; }
-  .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-bottom:12px; }
-  .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
-  .calc-rhr-number { display:flex; align-items:center; gap:4px; }
+  .calc-result-values { display:flex; align-items:center; justify-content:center; gap:10px; }
+  .calc-result-value { font-family:var(--font-display); font-size:48px; letter-spacing:2px; text-align:center; line-height:1; }
+  .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
+  .calc-rhr-display { display:flex; align-items:center; gap:8px; }
   .calc-rhr-heart { font-size:14px; line-height:1; }
-  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:8px; padding-top:6px; border-top:1px solid var(--border); }
+  .calc-rhr-right { display:flex; flex-direction:column; align-items:flex-start; }
+  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; padding-top:4px; border-top:1px solid var(--border); }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
@@ -277,10 +277,11 @@
     <div class="calc-result-values">
       <div class="calc-result-value" id="calcValue">—</div>
       <div class="calc-rhr-display" id="calcRHRDisplay" style="display:none;">
-        <div class="calc-rhr-number">
-          <span class="calc-rhr-heart" id="calcRHRHeart">♥</span><span class="calc-result-value" id="calcRHRValue">—</span>
+        <span class="calc-rhr-heart" id="calcRHRHeart">♥</span>
+        <div class="calc-rhr-right">
+          <div class="calc-result-value" id="calcRHRValue">—</div>
+          <div class="calc-rhr-window" id="calcRHRWindow"></div>
         </div>
-        <div class="calc-rhr-window" id="calcRHRWindow"></div>
       </div>
     </div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
