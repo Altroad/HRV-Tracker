@@ -644,7 +644,7 @@ function renderChart() {
     y: { display: false, min: CHART.minV, max: CHART.maxV }
   };
   if (hasRHR) {
-    datasets.push({ data: rhrValues, yAxisID: 'yRHR', borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, fill: false, tension: 0.3, spanGaps: true, segment: { borderColor: ctx => rhrLineColor(rhrValues[ctx.p1DataIndex]) } });
+    datasets.push({ data: rhrValues, yAxisID: 'yRHR', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false, tension: 0.3, spanGaps: true, segment: { borderColor: ctx => rhrLineColor(rhrValues[ctx.p1DataIndex]) } });
     chartScales.yRHR = { display: false, position: 'right', min: RHR_SCALE_MIN, max: RHR_SCALE_MAX };
   }
 
