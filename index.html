@@ -68,7 +68,7 @@
   .legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-family:var(--font-mono); }
   .legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; display:block; }
   .chart-outer { display:flex; }
-  .y-axis-wrap { flex-shrink:0; width:28px; height:260px; background:var(--surface); }
+  .y-axis-wrap, .rhr-axis-wrap { flex-shrink:0; width:28px; height:260px; background:var(--surface); }
   .chart-scroll-area { flex:1; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; height:260px; }
   .chart-scroll-area::-webkit-scrollbar { display:none; }
   .chart-inner { height:260px; }
@@ -169,7 +169,7 @@
 <div class="header-top">
   <h1>HRV Tracker</h1>
   <div id="baselineBadge" style="font-family:var(--font-mono);font-size:13px;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 14px;border-radius:6px;display:inline-block;margin-top:6px;letter-spacing:1px;">Baseline: —ms</div>
-  <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-05-02.1</div>
+  <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-05-15.1</div>
   <button class="sync-btn" id="syncBtn" title="GitHub sync">⟳</button>
   <button class="info-btn" id="infoBtn">?</button>
 </div>
@@ -224,6 +224,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
+      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#4caf50"></div><div class="legend-dot" style="background:#ff9800;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR</div>
     </div>
   </div>
   <div class="chart-outer">
@@ -233,6 +234,7 @@
         <canvas id="hrvChart"></canvas>
       </div>
     </div>
+    <div class="rhr-axis-wrap" id="rhrAxisWrap" style="display:none"><canvas id="rhrAxis" width="28" height="260"></canvas></div>
   </div>
 </div>
 
@@ -268,6 +270,9 @@
     <button class="btn-secondary" id="exportBtn">Export Backup</button>
     <button class="btn-secondary" id="importBtn">Import Backup</button>
   </div>
+  <div class="backup-row">
+    <button class="btn-secondary" id="importRHRBtn">Import RHR Data</button>
+  </div>
 </div>
 
 <div class="card">
@@ -290,6 +295,8 @@ const GH_OWNER = 'Altroad';
 const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
+const RHR_KEY     = 'hrv_rhr_v1';
+const RHR_SCALE_MIN = 30, RHR_SCALE_MAX = 80;
 
 // ---------- Tags ----------
 const TAGS = [
@@ -315,6 +322,7 @@ let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
 let historyFilter = null;
 let heatmapMode = 'hrv';
+let rhrData = {};
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -322,6 +330,15 @@ const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
+const rhrZoneColor = rhr => rhr <= 45 ? '#4caf50' : rhr <= 55 ? '#ff9800' : '#f44336';
+const rhrLineColor = rhr => rhr === null ? 'transparent' : rhr <= 45 ? 'rgba(76,175,80,0.65)' : rhr <= 55 ? 'rgba(255,152,0,0.65)' : 'rgba(244,67,54,0.65)';
+
+function loadRHR() {
+  try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
+}
+function saveRHR() {
+  try { localStorage.setItem(RHR_KEY, JSON.stringify(rhrData)); } catch {}
+}
 
 function showToast(msg) {
   const t = $('toast');
@@ -403,6 +420,29 @@ function drawYAxis() {
   }
 }
 
+function drawRHRAxis() {
+  const c = $('rhrAxis');
+  if (!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = 28 * dpr; c.height = CHART.height * dpr;
+  c.style.width = '28px'; c.style.height = CHART.height + 'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = COLORS.surface;
+  ctx.fillRect(0, 0, 28, CHART.height);
+  const padTop = 10, padBottom = 32, dH = CHART.height - padTop - padBottom;
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'left';
+  for (let v = RHR_SCALE_MIN; v <= RHR_SCALE_MAX; v += 10) {
+    const y = padTop + dH * (1 - (v - RHR_SCALE_MIN) / (RHR_SCALE_MAX - RHR_SCALE_MIN));
+    ctx.fillStyle = rhrZoneColor(v);
+    ctx.fillText(v, 3, y + 3);
+    ctx.strokeStyle = 'rgba(30,42,51,0.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(4, y); ctx.stroke();
+  }
+}
+
 // ---------- Chart ----------
 function sizeChartCanvas(n) {
   const visibleW = $('chartScroll').clientWidth || 280;
@@ -423,7 +463,7 @@ function sizeChartCanvas(n) {
   return canvas;
 }
 
-function buildPointsPlugin(values, pr, canvas) {
+function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
   return {
     id: 'customPoints',
     afterDatasetsDraw(chart) {
@@ -431,8 +471,19 @@ function buildPointsPlugin(values, pr, canvas) {
       const meta = chart.getDatasetMeta(0);
       if (!meta) return;
 
-      // Draw all points
       meta.data.forEach((pt, i) => {
+        const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
+        // RHR halo (filled ring behind HRV dot)
+        if (rhr !== undefined) {
+          ctx.save();
+          ctx.globalAlpha = 0.75;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
+          ctx.fillStyle = rhrZoneColor(rhr);
+          ctx.fill();
+          ctx.restore();
+        }
+        // HRV dot
         ctx.save();
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pr, 0, Math.PI * 2);
@@ -440,7 +491,7 @@ function buildPointsPlugin(values, pr, canvas) {
         ctx.fill();
         if (tappedIdx === i) {
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, pr + (rhr !== undefined ? 7 : 4), 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -448,10 +499,10 @@ function buildPointsPlugin(values, pr, canvas) {
         ctx.restore();
       });
 
-      // Draw tooltip for tapped point
       if (tappedIdx === null || !meta.data[tappedIdx]) return;
       const pt = meta.data[tappedIdx];
-      const label = `${Math.round(values[tappedIdx])}ms`;
+      const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[tappedIdx]] : undefined;
+      const label = rhr !== undefined ? `${Math.round(values[tappedIdx])}ms · ♥${rhr}` : `${Math.round(values[tappedIdx])}ms`;
       ctx.save();
       ctx.font = 'bold 42px "Bebas Neue", sans-serif';
       const bw = ctx.measureText(label).width + 28;
@@ -463,7 +514,7 @@ function buildPointsPlugin(values, pr, canvas) {
       const by = aboveY < 4 ? pt.y + pr + 14 : aboveY;
       const r = 6;
       ctx.fillStyle = COLORS.surface;
-      ctx.strokeStyle = COLORS.accent;
+      ctx.strokeStyle = rhr !== undefined ? rhrZoneColor(rhr) : COLORS.accent;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(bx + r, by);
@@ -474,7 +525,7 @@ function buildPointsPlugin(values, pr, canvas) {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = COLORS.accent;
+      ctx.fillStyle = rhr !== undefined ? rhrZoneColor(rhr) : COLORS.accent;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, bx + bw / 2, by + bh / 2 + 2);
@@ -518,40 +569,58 @@ function renderChart() {
   const rollingAvg = chartRange <= 14 ? allRolling : allRolling.slice(-chartRange);
   const baselineArr = sorted.map(() => BASELINE);
 
+  const sortedDates = sorted.map(r => r.date);
+  const rhrValues = sortedDates.map(d => rhrData[d] !== undefined ? rhrData[d] : null);
+  const hasRHR = rhrValues.some(v => v !== null);
+
+  // Show/hide RHR axis and legend
+  const rhrAxisWrap = $('rhrAxisWrap');
+  if (rhrAxisWrap) rhrAxisWrap.style.display = hasRHR ? '' : 'none';
+  const rhrLegend = $('rhrLegendItem');
+  if (rhrLegend) rhrLegend.style.display = hasRHR ? '' : 'none';
+  if (hasRHR) drawRHRAxis();
+
   if (mainChart) { mainChart.destroy(); mainChart = null; }
 
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
   const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
 
+  const datasets = [
+    { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
+    { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false },
+    { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
+  ];
+  const chartScales = {
+    x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
+      ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
+      : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
+          autoSkip: false,
+          callback: (val, idx) => {
+            const d = new Date(sorted[idx].date);
+            const prev = idx > 0 ? new Date(sorted[idx-1].date) : null;
+            if (idx === 0 || (prev && prev.getMonth() !== d.getMonth()))
+              return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+            return '';
+          }
+        }
+    },
+    y: { display: false, min: CHART.minV, max: CHART.maxV }
+  };
+  if (hasRHR) {
+    datasets.push({ data: rhrValues, yAxisID: 'yRHR', borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, fill: false, tension: 0.3, spanGaps: true, segment: { borderColor: ctx => rhrLineColor(rhrValues[ctx.p1DataIndex]) } });
+    chartScales.yRHR = { display: false, position: 'right', min: RHR_SCALE_MIN, max: RHR_SCALE_MAX };
+  }
+
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    plugins: [buildPointsPlugin(values, pr, canvas)],
-    data: { labels, datasets: [
-      { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
-      { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false },
-      { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
-    ]},
+    plugins: [buildPointsPlugin(values, pr, canvas, sortedDates, rhrData)],
+    data: { labels, datasets },
     options: {
       responsive: false, animation: false,
       devicePixelRatio: window.devicePixelRatio || 1,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: {
-        x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
-          ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
-          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
-              autoSkip: false,
-              callback: (val, idx) => {
-                const d = new Date(sorted[idx].date);
-                const prev = idx > 0 ? new Date(sorted[idx-1].date) : null;
-                if (idx === 0 || (prev && prev.getMonth() !== d.getMonth()))
-                  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
-                return '';
-              }
-            }
-        },
-        y: { display: false, min: CHART.minV, max: CHART.maxV }
-      }
+      scales: chartScales
     }
   });
 
@@ -1304,6 +1373,77 @@ function runMonthlyCalc(allReadings, date, useMid, useEarly, overlay) {
   }
 }
 
+// ---------- RHR Import ----------
+function findLowestConsecutiveRHR(readings) {
+  const MAX_GAP_MS = 3 * 60 * 1000;
+  const MIN_SPAN_MS = 10 * 60 * 1000;
+  let bestAvg = Infinity;
+  for (let i = 0; i < readings.length; i++) {
+    let sum = readings[i].avg;
+    for (let j = i + 1; j < readings.length; j++) {
+      if (readings[j].ts - readings[j-1].ts > MAX_GAP_MS) break;
+      sum += readings[j].avg;
+      if (readings[j].ts - readings[i].ts >= MIN_SPAN_MS) {
+        const avg = sum / (j - i + 1);
+        if (avg < bestAvg) bestAvg = avg;
+      }
+    }
+  }
+  return bestAvg < Infinity ? Math.round(bestAvg) : null;
+}
+
+function importRHRFromJSON(json) {
+  const metrics = json?.data?.metrics;
+  if (!Array.isArray(metrics)) throw new Error('Invalid Health Auto Export format');
+  const metric = metrics.find(m => m.name === 'heart_rate');
+  if (!metric) throw new Error('No heart_rate data found in this export');
+  const byDate = {};
+  for (const r of metric.data) {
+    if (typeof r.Avg !== 'number') continue;
+    const s = r.date.trim();
+    const h = parseInt(s.slice(11, 13), 10);
+    const m = parseInt(s.slice(14, 16), 10);
+    if (h * 60 + m > 210) continue; // only 00:00–03:30
+    const dateStr = s.slice(0, 10);
+    const ts = parseTimestamp(r).getTime();
+    (byDate[dateStr] = byDate[dateStr] || []).push({ ts, avg: r.Avg });
+  }
+  let count = 0;
+  for (const [date, readings] of Object.entries(byDate)) {
+    readings.sort((a, b) => a.ts - b.ts);
+    const rhr = findLowestConsecutiveRHR(readings);
+    if (rhr !== null) { rhrData[date] = rhr; count++; }
+  }
+  return count;
+}
+
+function showRHRImportModal() {
+  const overlay = openModal(`
+    <div class="modal-title">Import RHR Data</div>
+    <div class="modal-desc">Paste your Health Auto Export <strong>heart_rate</strong> JSON. The app takes the lowest 10-minute consecutive window between midnight and 3:30am as your resting heart rate.<br><br>RHR zones: ≤45 green · 46–55 orange · 56+ red</div>
+    <textarea placeholder="Paste JSON here..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-import>IMPORT</button>
+    </div>
+  `);
+  const ta = overlay.querySelector('textarea');
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-import]').addEventListener('click', () => {
+    try {
+      const jsons = parseJsonBlocks(ta.value.trim());
+      let total = 0;
+      for (const j of jsons) total += importRHRFromJSON(j);
+      saveRHR();
+      overlay.remove();
+      render();
+      showToast(`Imported RHR for ${total} day${total !== 1 ? 's' : ''}`);
+    } catch(e) {
+      showToast(e.message || 'Invalid JSON');
+    }
+  });
+}
+
 // ---------- Chart range toggle ----------
 function setChartRange(range) {
   chartRange = range;
@@ -1657,8 +1797,10 @@ async function init() {
   $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
   $('exportBtn').addEventListener('click', exportData);
   $('importBtn').addEventListener('click', showImportModal);
+  $('importRHRBtn').addEventListener('click', showRHRImportModal);
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
+  loadRHR();
   $('historyList').addEventListener('click', e => {
     const btn = e.target.closest('.delete-btn');
     if (btn) handleDeleteClick(btn);
