@@ -1420,8 +1420,8 @@ function importRHRFromJSON(json) {
 function showRHRImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Import RHR Data</div>
-    <div class="modal-desc">Paste your Health Auto Export <strong>heart_rate</strong> JSON. The app takes the lowest 10-minute consecutive window between midnight and 3:30am as your resting heart rate.<br><br>RHR zones: ≤40 fluro green · 41–43 amber · 44–46 orange · 47+ red</div>
-    <textarea placeholder="Paste JSON here..."></textarea>
+    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 10-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#76ff03">●</span> ≤40 &nbsp;<span style="color:#ffab00">●</span> 41–43 &nbsp;<span style="color:#ff6d00">●</span> 44–46 &nbsp;<span style="color:#f44336">●</span> 47+</div>
+    <textarea placeholder="Paste one or more JSON exports here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-import>IMPORT</button>
@@ -1437,7 +1437,9 @@ function showRHRImportModal() {
       saveRHR();
       overlay.remove();
       render();
-      showToast(`Imported RHR for ${total} day${total !== 1 ? 's' : ''}`);
+      const dates = Object.keys(rhrData).sort();
+      const rangeStr = dates.length >= 2 ? ` · ${dates[0]} → ${dates.at(-1)}` : '';
+      showToast(`RHR: ${total} day${total !== 1 ? 's' : ''} imported${rangeStr}`);
     } catch(e) {
       showToast(e.message || 'Invalid JSON');
     }
