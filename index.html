@@ -94,7 +94,8 @@
   .history-date-line { white-space:nowrap; }
   .history-nums { display:flex; align-items:baseline; gap:5px; flex-shrink:0; }
   .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
-  .history-rhr { font-family:var(--font-display); font-size:13px; cursor:pointer; }
+  .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
+  .history-rhr-heart { font-size:3px; vertical-align:middle; }
   .history-hrv.confirming, .history-rhr.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
   .history-delta { font-size:11px; font-family:var(--font-mono); width:36px; text-align:right; flex-shrink:0; }
   .delete-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.5; }
@@ -778,7 +779,7 @@ function renderHistoryList() {
         : `<span class="tag-empty" onclick="openTagPicker(event,'${r.id}')">＋</span>`;
       const rhrVal = rhrData[r.date];
       const rhrSpan = rhrVal !== undefined
-        ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}">♥${rhrVal}</span>`
+        ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>`
         : '';
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
