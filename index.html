@@ -1047,19 +1047,20 @@ function openModal(innerHTML) {
 }
 
 function exportData() {
-  const data = JSON.stringify(readings);
+  const payload = JSON.stringify({ readings, rhr: rhrData });
   if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(data)
-      .then(() => showToast(`Copied ${readings.length} readings to clipboard`))
-      .catch(() => showExportModal(data));
+    navigator.clipboard.writeText(payload)
+      .then(() => showToast(`Copied ${readings.length} readings + RHR to clipboard`))
+      .catch(() => showExportModal(payload));
   } else {
-    showExportModal(data);
+    showExportModal(payload);
   }
 }
 
 function showExportModal(data) {
+  const rhrCount = Object.keys(rhrData).length;
   const overlay = openModal(`
-    <div class="modal-title">Backup Data — ${readings.length} Readings</div>
+    <div class="modal-title">Backup Data — ${readings.length} HRV · ${rhrCount} RHR</div>
     <div class="modal-desc">Copy this text and save it somewhere safe. To restore later, tap Import and paste it back.</div>
     <textarea readonly></textarea>
     <button class="modal-btn" data-close>CLOSE</button>
@@ -1074,7 +1075,7 @@ function showExportModal(data) {
 function showImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Import Backup</div>
-    <div class="modal-desc">Paste your backup text below. Only new entries will be added — existing data stays intact.</div>
+    <div class="modal-desc">Paste your backup text below. Both HRV and RHR data will be restored. Only new entries will be added — existing data stays intact.</div>
     <textarea placeholder="Paste backup JSON here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -1089,9 +1090,11 @@ function showImportModal() {
 function doImport(text, overlay) {
   try {
     const parsed = JSON.parse(text.trim());
-    if (!Array.isArray(parsed)) throw new Error('Not an array');
-    const valid = parsed.filter(r => r && typeof r.date === 'string' && typeof r.hrv === 'number');
-    if (!valid.length) throw new Error('No valid entries');
+    const rawReadings = Array.isArray(parsed) ? parsed : (parsed.readings ?? []);
+    const rawRHR = (!Array.isArray(parsed) && parsed.rhr) ? parsed.rhr : null;
+
+    const valid = rawReadings.filter(r => r && typeof r.date === 'string' && typeof r.hrv === 'number');
+    if (!valid.length && !rawRHR) throw new Error('No valid entries');
 
     const existing = new Set(readings.map(r => `${r.date}_${r.hrv}`));
     let added = 0;
@@ -1102,10 +1105,23 @@ function doImport(text, overlay) {
       existing.add(key);
       added++;
     }
-    save();
+    if (valid.length) save();
+
+    let rhrAdded = 0;
+    if (rawRHR) {
+      for (const [date, val] of Object.entries(rawRHR)) {
+        if (!(date in rhrData)) { rhrData[date] = val; rhrAdded++; }
+      }
+      if (rhrAdded) saveRHR();
+    }
+
     overlay.remove();
     render();
-    showToast(`Merged: ${added} new, ${valid.length - added} already existed`);
+    const parts = [];
+    if (added) parts.push(`${added} HRV`);
+    if (rhrAdded) parts.push(`${rhrAdded} RHR`);
+    const skipped = valid.length - added;
+    showToast(parts.length ? `Added: ${parts.join(' + ')}${skipped ? ` · ${skipped} skipped` : ''}` : 'Nothing new to import');
   } catch {
     showToast('Invalid backup data');
   }
@@ -1899,15 +1915,17 @@ function showInfoModal() {
     <div class="modal-desc" style="line-height:1.8;max-height:65vh;overflow-y:auto;padding-right:4px;">
 
       <strong style="color:var(--accent);letter-spacing:1px;">SLOW WAVE SYNC</strong><br>
-      The primary import method. Paste three Health Auto Export JSONs together: previous day HRV, morning HRV, and sleep analysis. The app matches each HRV reading against your Apple Watch sleep stages in priority order:<br><br>
+      The primary import method. Paste four Health Auto Export JSONs together: previous day HRV, morning HRV, sleep analysis, and heart rate. The app matches HRV readings against your Apple Watch sleep stages in priority order:<br><br>
 
       <strong>Priority 1 — Deep Sleep HRV</strong><br>
       HRV readings that fall inside a Deep (slow wave) sleep segment. Collected first, any time of night.<br><br>
 
       <strong>Priority 2 — Core Sleep HRV · 11:30pm – 2:00am</strong><br>
-      HRV readings during Core sleep within the early overnight window. Added until a total of 6 readings are reached.<br><br>
+      HRV readings during Core sleep within the early overnight window. Added until a total of 7 readings are reached.<br><br>
 
-      Once 6 readings are collected the trimmed mean is applied — highest and lowest are dropped, the remaining 4 are averaged. Chips are colour-coded: <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red or pink = dropped.<br><br>
+      Once 7 readings are collected the trimmed mean is applied — highest and lowest are dropped, the remaining 5 are averaged. Chips are colour-coded: <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red or pink = dropped.<br><br>
+
+      The heart rate export is used to calculate your RHR for that night — the lowest consecutive 10-minute window between midnight and 3:30am. Both HRV and RHR are pre-filled; press ADD to log them together.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">MANUAL SYNC</strong><br>
       For back-filling historical data. Paste one day's HRV export, two consecutive days', or a full monthly export. The date &amp; window picker lets you choose which night and capture window to score:<br><br>
@@ -1933,7 +1951,25 @@ function showInfoModal() {
       With 2 readings a plain average is used. With 1 reading it is used directly. <strong>Why trimmed mean?</strong> Removes artefact spikes from movement or signal noise.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">BASELINE &amp; ZONES</strong><br>
-      The baseline is the rolling 12-month average of all stored scores (falls back to all data if fewer than 12 months exist). The four zones scale relative to your personal baseline.
+      The baseline is the rolling 12-month average of all stored scores (falls back to all data if fewer than 12 months exist). The four zones scale relative to your personal baseline.<br><br>
+
+      <strong style="color:var(--accent);letter-spacing:1px;">RESTING HEART RATE (RHR)</strong><br>
+      Tracked alongside HRV as a secondary recovery signal. The coloured halo ring around each chart dot shows your RHR zone for that night.<br><br>
+
+      <strong>How RHR is calculated</strong><br>
+      The app scans your Apple Watch heart rate between midnight and 3:30am and finds the lowest 10-minute consecutive window (gaps up to 5 minutes are bridged). That average is your RHR for the night.<br><br>
+
+      <strong>Zones</strong><br>
+      <span style="color:#4caf50">●</span> ≤40 bpm — Excellent &nbsp;
+      <span style="color:#ffab00">●</span> 41–43 — Good &nbsp;
+      <span style="color:#ff6d00">●</span> 44–46 — Elevated &nbsp;
+      <span style="color:#f44336">●</span> 47+ — High<br><br>
+
+      <strong>Importing RHR</strong><br>
+      Use <em>Slow Wave Sync</em> (add the heart_rate export as a 4th block) to log HRV and RHR together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
+
+      <strong>Backup &amp; sync</strong><br>
+      RHR data is included in both the Export Backup and GitHub sync, so it is fully restored after a reinstall.
 
     </div>
     <button class="modal-btn" style="margin-top:12px;" data-close>CLOSE</button>
