@@ -1005,13 +1005,13 @@ function clearNumConfirming() {
 }
 function armConfirm(el) {
   clearNumConfirming();
-  el.dataset.orig = el.textContent;
+  el.dataset.orig = el.innerHTML;
   el.classList.add('confirming');
   el.textContent = 'DEL?';
   setTimeout(() => {
     if (el.isConnected && el.classList.contains('confirming')) {
       el.classList.remove('confirming');
-      el.textContent = el.dataset.orig;
+      el.innerHTML = el.dataset.orig;
     }
   }, 3000);
 }
