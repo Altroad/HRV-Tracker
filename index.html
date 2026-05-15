@@ -30,6 +30,8 @@
   .sync-btn { position:absolute; right:36px; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:15px; cursor:pointer; line-height:1; }
   .sync-btn:hover { border-color:var(--accent); color:var(--accent); }
   .sync-btn.active { color:var(--accent); border-color:var(--accent); }
+  .menu-btn { position:absolute; left:0; top:0; background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:50%; font-family:var(--font-mono); font-size:16px; cursor:pointer; line-height:1; }
+  .menu-btn:hover { border-color:var(--accent); color:var(--accent); }
   .label { font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--accent); font-weight:500; font-family:var(--font-mono); margin-bottom:4px; }
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
   .baseline-badge { font-family:var(--font-mono); font-size:11px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:4px; display:inline-block; }
@@ -68,7 +70,7 @@
   .legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-family:var(--font-mono); }
   .legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; display:block; }
   .chart-outer { display:flex; }
-  .y-axis-wrap { flex-shrink:0; width:28px; height:260px; background:var(--surface); }
+  .y-axis-wrap, .rhr-axis-wrap { flex-shrink:0; width:28px; height:260px; background:var(--surface); }
   .chart-scroll-area { flex:1; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; height:260px; }
   .chart-scroll-area::-webkit-scrollbar { display:none; }
   .chart-inner { height:260px; }
@@ -86,7 +88,7 @@
   .backup-row { display:flex; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
 
   /* History */
-  .history-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); gap:12px; }
+  .history-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); gap:10px; }
   .history-row:last-child { border-bottom:none; }
   .history-date { font-size:11px; color:var(--muted); font-family:var(--font-mono); flex:1; display:flex; flex-direction:column; gap:3px; }
   .history-date-line { white-space:nowrap; }
@@ -114,11 +116,41 @@
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
-  .calc-chip.dropped { text-decoration:line-through; text-decoration-color:var(--red); text-decoration-thickness:1px; color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
+  .calc-chip.dropped { color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
   .calc-chip.deep  { background:rgba(13,71,161,0.25); border:1px solid #1565c0; color:#90caf9; }
   .calc-chip.core  { background:rgba(0,229,255,0.08); border:1px solid var(--accent); color:var(--accent); }
-  .calc-chip.deep.dropped { text-decoration:line-through; text-decoration-thickness:1px; color:#b71c1c; border:1px solid rgba(183,28,28,0.5); background:rgba(183,28,28,0.15); }
-  .calc-chip.core.dropped { text-decoration:line-through; text-decoration-thickness:1px; color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
+  .calc-chip.deep.dropped { color:#ff5252; border:1px solid rgba(255,82,82,0.5); background:rgba(255,82,82,0.12); }
+  .calc-chip.core.dropped { color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
+
+  /* Heatmap */
+  .heatmap-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
+  .heatmap-scroll::-webkit-scrollbar { display:none; }
+  .heatmap-grid { display:flex; gap:3px; align-items:flex-start; }
+  .heatmap-col { display:flex; flex-direction:column; gap:3px; }
+  .heatmap-month-labels { display:flex; gap:3px; margin-bottom:4px; padding-left:20px; }
+  .heatmap-day-labels { display:flex; flex-direction:column; gap:3px; flex-shrink:0; margin-right:4px; }
+  .heatmap-day-label { font-family:var(--font-mono); font-size:7px; color:var(--muted); width:16px; height:14px; line-height:14px; text-align:right; }
+  .heatmap-month-label { font-family:var(--font-mono); font-size:8px; color:var(--muted); white-space:nowrap; }
+  .hm-cell { width:14px; height:14px; border-radius:2px; background:var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:6px; color:rgba(255,255,255,0.35); line-height:1; }
+
+  /* Tags */
+  .tag-chip { display:inline-block; font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:10px; cursor:pointer; flex-shrink:0; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
+  .tag-empty { font-family:var(--font-mono); font-size:10px; color:var(--border); cursor:pointer; padding:2px 4px; flex-shrink:0; }
+  .tag-empty:hover, .tag-empty:active { color:var(--muted); }
+  .note-btn { background:none; border:none; font-size:13px; cursor:pointer; padding:2px 4px; flex-shrink:0; opacity:0.35; }
+  .note-btn.has-note { opacity:1; }
+  .note-row { padding:4px 0 8px 0; display:none; }
+  .note-row.open { display:block; }
+  .note-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; padding:8px 10px; resize:none; outline:none; }
+  .note-input:focus { border-color:var(--muted); }
+  .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:1000; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:6px; min-width:180px; }
+  .tag-picker-item { font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:6px; cursor:pointer; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
+  .tag-picker-item:active { opacity:0.7; }
+  .tag-picker-clear { font-family:var(--font-mono); font-size:10px; color:var(--muted); text-align:center; padding:4px; cursor:pointer; }
+  .history-filter { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .filter-chip { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:3px 10px; border-radius:10px; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:none; -webkit-user-select:none; user-select:none; }
+  .filter-chip.active { color:#000; }
+  .filter-summary { font-family:var(--font-mono); font-size:10px; color:var(--muted); margin-bottom:10px; padding:8px 10px; background:var(--surface2); border-radius:6px; }
 
   /* Toast */
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; padding:10px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
@@ -142,8 +174,9 @@
 
 <div class="header-top">
   <h1>HRV Tracker</h1>
-  <div id="baselineBadge" style="font-family:var(--font-mono);font-size:13px;color:var(--accent);background:var(--surface2);border:1px solid var(--accent);padding:5px 14px;border-radius:6px;display:inline-block;margin-top:6px;letter-spacing:1px;">Baseline: —ms</div>
-  <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-04-30.1</div>
+  <div id="baselineBadge" style="font-family:var(--font-mono);font-size:13px;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 14px;border-radius:6px;display:inline-block;margin-top:6px;letter-spacing:1px;">Baseline: —ms</div>
+  <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-05-15.1</div>
+  <button class="menu-btn" id="menuBtn">≡</button>
   <button class="sync-btn" id="syncBtn" title="GitHub sync">⟳</button>
   <button class="info-btn" id="infoBtn">?</button>
 </div>
@@ -188,17 +221,18 @@
 </div>
 
 <div class="card">
-  <div class="chart-header">
+  <div class="chart-header" style="margin-bottom:8px;">
     <div class="chart-title">HRV Trend</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="btn14d" onclick="setChartRange(14)">14D</button>
       <button class="range-btn" id="btn60d" onclick="setChartRange(60)">60D</button>
     </div>
-    <div class="chart-legend">
+  </div>
+  <div class="chart-legend" style="margin-bottom:12px;flex-wrap:wrap;gap:10px 16px;">
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
-    </div>
+      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#76ff03"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR Halo</div>
   </div>
   <div class="chart-outer">
     <div class="y-axis-wrap"><canvas id="yAxis" width="28" height="260"></canvas></div>
@@ -207,19 +241,32 @@
         <canvas id="hrvChart"></canvas>
       </div>
     </div>
+    <div class="rhr-axis-wrap" id="rhrAxisWrap" style="display:none"><canvas id="rhrAxis" width="28" height="260"></canvas></div>
   </div>
 </div>
 
+<div class="card" id="heatmapCard">
+  <div class="chart-header" style="margin-bottom:12px;">
+    <div class="chart-title">Year at a Glance</div>
+    <div class="chart-range-toggle">
+      <button class="range-btn active" id="hmBtnHRV" onclick="setHeatmapMode('hrv')">HRV</button>
+      <button class="range-btn" id="hmBtnRHR" onclick="setHeatmapMode('rhr')">RHR</button>
+      <button class="range-btn" id="hmBtnTag" onclick="setHeatmapMode('tag')">Tags</button>
+    </div>
+  </div>
+  <div id="heatmapWrap"></div>
+</div>
+
 <div class="card">
-  <div class="input-label">Log Sleep HRV, Early, Mid, or Combined</div>
+  <div class="input-label">Log HRV &amp; RHR</div>
   <div class="input-row">
-    <input type="date" id="inputDate">
-    <input type="number" id="inputHRV" placeholder="HRV" min="20" max="220">
-    <button class="btn-primary" id="addBtn">ADD</button>
+    <input type="date" id="inputDate" style="flex:2;min-width:0;">
+    <input type="number" id="inputHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    <input type="number" id="inputRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    <button class="btn-primary" id="addBtn" style="padding:0 12px;">ADD</button>
   </div>
   <div class="backup-row">
     <button class="btn-secondary" id="slowWaveBtn">Slow Wave Sync</button>
-    <button class="btn-secondary" id="calcBtn">Manual Sync</button>
   </div>
   <div class="calc-result" id="calcResult">
     <div class="calc-result-value" id="calcValue">—</div>
@@ -227,14 +274,11 @@
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
   </div>
-  <div class="backup-row">
-    <button class="btn-secondary" id="exportBtn">Export Backup</button>
-    <button class="btn-secondary" id="importBtn">Import Backup</button>
-  </div>
 </div>
 
 <div class="card">
   <div class="input-label">History</div>
+  <div id="historyFilter" class="history-filter"></div>
   <div id="historyList"><div class="empty-state">No readings yet</div></div>
 </div>
 
@@ -245,12 +289,27 @@
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
+const DATE_KEY    = 'hrv_last_date';
 const CHART = { minV: 20, maxV: 150, height: 260, range: 14 };
 const COLORS = { accent:'#00e5ff', green:'#4caf50', orange:'#ff9800', red:'#f44336', muted:'#4a6070', surface:'#0e1419' };
 const GH_OWNER = 'Altroad';
 const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
+const RHR_KEY     = 'hrv_rhr_v1';
+const RHR_SCALE_MIN = 30, RHR_SCALE_MAX = 80;
+
+// ---------- Tags ----------
+const TAGS = [
+  { label:'Sick',              color:'#f44336' },
+  { label:'Rest',              color:'#4caf50' },
+  { label:'Active Recovery',   color:'#00bcd4' },
+  { label:'<100TSS',           color:'#ff9800' },
+  { label:'100-200TSS',        color:'#ffd600' },
+  { label:'200-300TSS',        color:'#ab47bc' },
+  { label:'300TSS+',           color:'#e040fb' },
+];
+const TAG_MAP = Object.fromEntries(TAGS.map(t => [t.label, t.color]));
 
 // ---------- State ----------
 let readings = [];
@@ -262,6 +321,9 @@ let tappedIdx = null;
 let nextId = 1;
 let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
+let historyFilter = null;
+let heatmapMode = 'hrv';
+let rhrData = {};
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -269,6 +331,15 @@ const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
+const rhrZoneColor = rhr => rhr <= 40 ? '#76ff03' : rhr <= 43 ? '#ffab00' : rhr <= 46 ? '#ff6d00' : '#f44336';
+const rhrLineColor = rhr => rhr === null ? 'transparent' : rhr <= 40 ? 'rgba(118,255,3,0.65)' : rhr <= 43 ? 'rgba(255,171,0,0.65)' : rhr <= 46 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)';
+
+function loadRHR() {
+  try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
+}
+function saveRHR() {
+  try { localStorage.setItem(RHR_KEY, JSON.stringify(rhrData)); } catch {}
+}
 
 function showToast(msg) {
   const t = $('toast');
@@ -350,6 +421,29 @@ function drawYAxis() {
   }
 }
 
+function drawRHRAxis() {
+  const c = $('rhrAxis');
+  if (!c) return;
+  const dpr = window.devicePixelRatio || 1;
+  c.width = 28 * dpr; c.height = CHART.height * dpr;
+  c.style.width = '28px'; c.style.height = CHART.height + 'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = COLORS.surface;
+  ctx.fillRect(0, 0, 28, CHART.height);
+  const padTop = 10, padBottom = 32, dH = CHART.height - padTop - padBottom;
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'left';
+  for (let v = RHR_SCALE_MIN; v <= RHR_SCALE_MAX; v += 10) {
+    const y = padTop + dH * (1 - (v - RHR_SCALE_MIN) / (RHR_SCALE_MAX - RHR_SCALE_MIN));
+    ctx.fillStyle = rhrZoneColor(v);
+    ctx.fillText(v, 3, y + 3);
+    ctx.strokeStyle = 'rgba(30,42,51,0.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(4, y); ctx.stroke();
+  }
+}
+
 // ---------- Chart ----------
 function sizeChartCanvas(n) {
   const visibleW = $('chartScroll').clientWidth || 280;
@@ -370,7 +464,7 @@ function sizeChartCanvas(n) {
   return canvas;
 }
 
-function buildPointsPlugin(values, pr, canvas) {
+function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
   return {
     id: 'customPoints',
     afterDatasetsDraw(chart) {
@@ -378,8 +472,19 @@ function buildPointsPlugin(values, pr, canvas) {
       const meta = chart.getDatasetMeta(0);
       if (!meta) return;
 
-      // Draw all points
       meta.data.forEach((pt, i) => {
+        const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
+        // RHR halo — stroke ring with gap (matches tap-selection ring style)
+        if (rhr !== undefined) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pr + 3, 0, Math.PI * 2);
+          ctx.strokeStyle = rhrZoneColor(rhr);
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+        // HRV dot
         ctx.save();
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pr, 0, Math.PI * 2);
@@ -387,7 +492,7 @@ function buildPointsPlugin(values, pr, canvas) {
         ctx.fill();
         if (tappedIdx === i) {
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, pr + (rhr !== undefined ? 7 : 4), 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -395,36 +500,56 @@ function buildPointsPlugin(values, pr, canvas) {
         ctx.restore();
       });
 
-      // Draw tooltip for tapped point
       if (tappedIdx === null || !meta.data[tappedIdx]) return;
       const pt = meta.data[tappedIdx];
-      const label = `${Math.round(values[tappedIdx])}ms`;
+      const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[tappedIdx]] : undefined;
+      const hrvText = `${Math.round(values[tappedIdx])}ms`;
+      const rhrNum  = rhr !== undefined ? `${rhr}` : null;
+      const BIG = 'bold 42px "Bebas Neue", sans-serif';
+      const SML = 'bold 21px "Bebas Neue", sans-serif';
       ctx.save();
-      ctx.font = 'bold 42px "Bebas Neue", sans-serif';
-      const bw = ctx.measureText(label).width + 28;
+      ctx.font = BIG;
+      const w1 = ctx.measureText(hrvText).width;
+      let wHeart = 0, wNum = 0;
+      if (rhrNum) {
+        ctx.font = SML; wHeart = ctx.measureText('♥').width;
+        ctx.font = BIG; wNum   = ctx.measureText(rhrNum).width;
+      }
+      const PAD = 14, GAP = 7;
+      const bw = w1 + (rhrNum ? GAP + wHeart + wNum : 0) + PAD * 2;
       const bh = 54;
       const dpr = window.devicePixelRatio || 1;
       const maxX = canvas.width / dpr - bw - 4;
       const bx = Math.max(4, Math.min(maxX, pt.x - bw / 2));
       const aboveY = pt.y - pr - 68;
       const by = aboveY < 4 ? pt.y + pr + 14 : aboveY;
-      const r = 6;
+      const rad = 6;
       ctx.fillStyle = COLORS.surface;
-      ctx.strokeStyle = COLORS.accent;
+      ctx.strokeStyle = rhr !== undefined ? rhrZoneColor(rhr) : colorForHRV(values[tappedIdx]);
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(bx + r, by);
-      ctx.arcTo(bx + bw, by, bx + bw, by + bh, r);
-      ctx.arcTo(bx + bw, by + bh, bx, by + bh, r);
-      ctx.arcTo(bx, by + bh, bx, by, r);
-      ctx.arcTo(bx, by, bx + bw, by, r);
+      ctx.moveTo(bx + rad, by);
+      ctx.arcTo(bx + bw, by, bx + bw, by + bh, rad);
+      ctx.arcTo(bx + bw, by + bh, bx, by + bh, rad);
+      ctx.arcTo(bx, by + bh, bx, by, rad);
+      ctx.arcTo(bx, by, bx + bw, by, rad);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = COLORS.accent;
-      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label, bx + bw / 2, by + bh / 2 + 2);
+      const my = by + bh / 2 + 2;
+      ctx.font = BIG;
+      ctx.fillStyle = colorForHRV(values[tappedIdx]);
+      ctx.textAlign = 'left';
+      ctx.fillText(hrvText, bx + PAD, my);
+      if (rhrNum) {
+        const rx = bx + PAD + w1 + GAP;
+        ctx.font = SML;
+        ctx.fillStyle = rhrZoneColor(rhr);
+        ctx.fillText('♥', rx, my + 2);
+        ctx.font = BIG;
+        ctx.fillText(rhrNum, rx + wHeart, my);
+      }
       ctx.restore();
     }
   };
@@ -465,40 +590,58 @@ function renderChart() {
   const rollingAvg = chartRange <= 14 ? allRolling : allRolling.slice(-chartRange);
   const baselineArr = sorted.map(() => BASELINE);
 
+  const sortedDates = sorted.map(r => r.date);
+  const rhrValues = sortedDates.map(d => rhrData[d] !== undefined ? rhrData[d] : null);
+  const hasRHR = rhrValues.some(v => v !== null);
+
+  // Show/hide RHR axis and legend
+  const rhrAxisWrap = $('rhrAxisWrap');
+  if (rhrAxisWrap) rhrAxisWrap.style.display = hasRHR ? '' : 'none';
+  const rhrLegend = $('rhrLegendItem');
+  if (rhrLegend) rhrLegend.style.display = hasRHR ? '' : 'none';
+  if (hasRHR) drawRHRAxis();
+
   if (mainChart) { mainChart.destroy(); mainChart = null; }
 
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
   const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
 
+  const datasets = [
+    { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
+    { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false },
+    { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
+  ];
+  const chartScales = {
+    x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
+      ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
+      : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
+          autoSkip: false,
+          callback: (val, idx) => {
+            const d = new Date(sorted[idx].date);
+            const prev = idx > 0 ? new Date(sorted[idx-1].date) : null;
+            if (idx === 0 || (prev && prev.getMonth() !== d.getMonth()))
+              return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+            return '';
+          }
+        }
+    },
+    y: { display: false, min: CHART.minV, max: CHART.maxV }
+  };
+  if (hasRHR) {
+    datasets.push({ data: rhrValues, yAxisID: 'yRHR', borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, fill: false, tension: 0.3, spanGaps: true, segment: { borderColor: ctx => rhrLineColor(rhrValues[ctx.p1DataIndex]) } });
+    chartScales.yRHR = { display: false, position: 'right', min: RHR_SCALE_MIN, max: RHR_SCALE_MAX };
+  }
+
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    plugins: [buildPointsPlugin(values, pr, canvas)],
-    data: { labels, datasets: [
-      { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 3 : 1.5, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
-      { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false },
-      { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
-    ]},
+    plugins: [buildPointsPlugin(values, pr, canvas, sortedDates, rhrData)],
+    data: { labels, datasets },
     options: {
       responsive: false, animation: false,
       devicePixelRatio: window.devicePixelRatio || 1,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: {
-        x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
-          ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
-          : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
-              autoSkip: false,
-              callback: (val, idx) => {
-                const d = new Date(sorted[idx].date);
-                const prev = idx > 0 ? new Date(sorted[idx-1].date) : null;
-                if (idx === 0 || (prev && prev.getMonth() !== d.getMonth()))
-                  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
-                return '';
-              }
-            }
-        },
-        y: { display: false, min: CHART.minV, max: CHART.maxV }
-      }
+      scales: chartScales
     }
   });
 
@@ -534,25 +677,60 @@ function toggleWeek(key) {
   chev.textContent = collapsed ? '▶' : '▼';
 }
 
+function renderFilterBar() {
+  const el = $('historyFilter');
+  if (!readings.length) { el.innerHTML = ''; return; }
+  const usedTags = [...new Set(readings.map(r => r.tag).filter(Boolean))];
+  if (!usedTags.length) { el.innerHTML = ''; return; }
+  let html = `<button class="filter-chip${historyFilter === null ? ' active' : ''}" style="${historyFilter === null ? 'background:var(--muted);border-color:var(--muted);' : ''}" onclick="setHistoryFilter(null)">ALL</button>`;
+  TAGS.filter(t => usedTags.includes(t.label)).forEach(t => {
+    const active = historyFilter === t.label;
+    html += `<button class="filter-chip${active ? ' active' : ''}" style="${active ? `background:${t.color};border-color:${t.color};` : `border-color:${t.color};color:${t.color};`}" onclick="setHistoryFilter('${t.label}')">${t.label.toUpperCase()}</button>`;
+  });
+  el.innerHTML = html;
+}
+
+function setHistoryFilter(tag) {
+  historyFilter = tag;
+  renderFilterBar();
+  renderHistoryList();
+}
+
 function renderHistory() {
+  renderFilterBar();
+  renderHistoryList();
+}
+
+function renderHistoryList() {
   const el = $('historyList');
   if (!readings.length) { el.innerHTML = '<div class="empty-state">No readings yet</div>'; return; }
 
-  const sorted = [...readings].sort((a, b) => {
+  const allSorted = [...readings].sort((a, b) => {
     const d = new Date(b.date) - new Date(a.date);
     return d !== 0 ? d : b.id - a.id;
   });
 
-  // Pre-compute deltas against chronological neighbour
-  const deltaMap = new Map();
-  for (let i = 0; i < sorted.length; i++) {
-    const prev = sorted[i + 1];
-    deltaMap.set(sorted[i].id, prev ? sorted[i].hrv - prev.hrv : null);
+  const filtered = historyFilter ? allSorted.filter(r => r.tag === historyFilter) : allSorted;
+  if (!filtered.length) { el.innerHTML = '<div class="empty-state">No entries with this tag</div>'; return; }
+
+  // Summary when filtering
+  let summaryHtml = '';
+  if (historyFilter) {
+    const avg = Math.round(filtered.reduce((a, r) => a + r.hrv, 0) / filtered.length);
+    const color = colorForHRV(avg);
+    summaryHtml = `<div class="filter-summary">${filtered.length} entries · avg <span style="color:${color};font-family:var(--font-display);font-size:14px;">${avg}ms</span> · ${filtered.at(-1).date} → ${filtered[0].date}</div>`;
   }
 
-  // Group by week
+  // Pre-compute deltas using full sorted list
+  const deltaMap = new Map();
+  for (let i = 0; i < allSorted.length; i++) {
+    const prev = allSorted[i + 1];
+    deltaMap.set(allSorted[i].id, prev ? allSorted[i].hrv - prev.hrv : null);
+  }
+
+  // Group filtered by week
   const weekMap = new Map();
-  for (const r of sorted) {
+  for (const r of filtered) {
     const mon = getWeekMonday(r.date);
     const key = mon.toISOString().split('T')[0];
     if (!weekMap.has(key)) weekMap.set(key, { monday: mon, entries: [] });
@@ -560,7 +738,6 @@ function renderHistory() {
   }
   const weeks = [...weekMap.entries()].sort((a, b) => new Date(b[0]) - new Date(a[0]));
 
-  // Auto-expand enough weeks from the top to always show at least 7 recent readings
   let autoExpandCount = 0;
   const autoExpanded = new Set();
   for (const [key, { entries }] of weeks) {
@@ -571,9 +748,9 @@ function renderHistory() {
 
   const thisYear = new Date().getFullYear();
   let lastMonthKey = null;
-  let html = '';
+  let html = summaryHtml;
 
-  weeks.forEach(([key, { monday, entries }], wi) => {
+  weeks.forEach(([key, { monday, entries }]) => {
     const monthKey = `${monday.getFullYear()}-${monday.getMonth()}`;
     if (monthKey !== lastMonthKey) {
       const yr = monday.getFullYear() !== thisYear ? ` ${monday.getFullYear()}` : '';
@@ -593,22 +770,97 @@ function renderHistory() {
 
     entries.forEach(r => {
       const delta = deltaMap.get(r.id);
-      const dStr = delta === null ? '—' : (delta >= 0 ? `▲${delta}` : `▼${Math.abs(delta)}`);
+      const dStr = delta === null ? '—' : (delta >= 0 ? `▲${Math.abs(delta)}` : `▼${Math.abs(delta)}`);
       const dColor = delta === null ? COLORS.muted : delta >= 0 ? COLORS.green : COLORS.red;
-      const bw = Math.min(100, (r.hrv / 150) * 100);
       const color = colorForHRV(r.hrv);
-      html += `<div class="history-row">
-        <div class="history-date">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</div>
-        <div class="history-hrv" style="color:${color}">${Math.round(r.hrv)}</div>
-        <div class="history-bar"><div class="history-bar-fill" style="width:${bw}%;background:${color}"></div></div>
-        <div class="history-delta" style="color:${dColor}">${dStr}</div>
-        <button class="delete-btn" data-id="${r.id}">✕</button>
+      const tagColor = r.tag ? TAG_MAP[r.tag] : null;
+      const tagHtml = tagColor
+        ? `<span class="tag-chip" style="border-color:${tagColor};color:${tagColor};align-self:flex-start;" onclick="openTagPicker(event,'${r.id}')">${r.tag.toUpperCase()}</span>`
+        : `<span class="tag-empty" onclick="openTagPicker(event,'${r.id}')">＋</span>`;
+      const rhrVal = rhrData[r.date];
+      const rhrSpan = rhrVal !== undefined
+        ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>`
+        : '';
+      const noteIcon = r.note
+        ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
+        : `<button class="note-btn" onclick="toggleNote('${r.id}')">✎</button>`;
+      const noteRow = `<div class="note-row" id="note-row-${r.id}">
+        <textarea class="note-input" rows="2" placeholder="Add a note…" onblur="saveNote('${r.id}',this.value)">${r.note || ''}</textarea>
       </div>`;
+      html += `<div class="history-row" id="row-${r.id}">
+        <div class="history-date">
+          <span class="history-date-line">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</span>
+          ${tagHtml}
+        </div>
+        <div class="history-nums">
+          <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
+          ${rhrSpan}
+        </div>
+        <div class="history-delta" style="color:${dColor}">${dStr}</div>
+        ${noteIcon}
+        <button class="delete-btn" data-id="${r.id}">✕</button>
+      </div>${noteRow}`;
     });
     html += '</div>';
   });
 
   el.innerHTML = html;
+}
+
+// ---------- Tag Picker ----------
+let tagPickerEl = null;
+function openTagPicker(e, id) {
+  e.stopPropagation();
+  closeTagPicker();
+  const picker = document.createElement('div');
+  picker.className = 'tag-picker';
+  TAGS.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'tag-picker-item';
+    item.textContent = t.label;
+    item.style.cssText = `border-color:${t.color};color:${t.color};`;
+    item.addEventListener('click', ev => { ev.stopPropagation(); applyTag(id, t.label); closeTagPicker(); });
+    picker.appendChild(item);
+  });
+  const clear = document.createElement('div');
+  clear.className = 'tag-picker-clear';
+  clear.textContent = 'Clear tag';
+  clear.addEventListener('click', ev => { ev.stopPropagation(); applyTag(id, null); closeTagPicker(); });
+  picker.appendChild(clear);
+  document.body.appendChild(picker);
+  tagPickerEl = picker;
+  const r = e.target.getBoundingClientRect();
+  let top = r.bottom + 6;
+  let left = r.left;
+  if (top + 280 > window.innerHeight) top = r.top - 280;
+  if (left + 190 > window.innerWidth) left = window.innerWidth - 196;
+  picker.style.top = top + 'px';
+  picker.style.left = Math.max(4, left) + 'px';
+  setTimeout(() => document.addEventListener('click', closeTagPicker, { once: true }), 0);
+}
+function closeTagPicker() { tagPickerEl?.remove(); tagPickerEl = null; }
+
+function applyTag(id, tag) {
+  const r = readings.find(r => String(r.id) === String(id));
+  if (!r) return;
+  r.tag = tag || undefined;
+  save();
+  renderHistory();
+}
+
+function toggleNote(id) {
+  const row = $(`note-row-${id}`);
+  if (!row) return;
+  const open = row.classList.toggle('open');
+  if (open) row.querySelector('textarea').focus();
+}
+
+function saveNote(id, value) {
+  const r = readings.find(r => String(r.id) === String(id));
+  if (!r) return;
+  r.note = value.trim() || undefined;
+  save();
+  renderHistory();
 }
 
 // ---------- Metrics + Status ----------
@@ -635,10 +887,10 @@ function updateBaseline() {
 function setStatus(hrv) {
   const vsB = hrv - BASELINE;
   let text, color;
-  if      (hrv >= ZONE_HIGH) { text = 'High — above baseline, go hard';    color = COLORS.accent; }
-  else if (hrv >= ZONE_GOOD) { text = 'Good — green light for intensity';   color = COLORS.green;  }
-  else if (hrv >= ZONE_OK)   { text = 'OK — moderate session, monitor legs'; color = COLORS.orange; }
-  else                       { text = 'Low — consider easy day or rest';    color = COLORS.red;    }
+  if      (hrv >= ZONE_HIGH) { text = 'High — an ideal state, try to stay in this zone';  color = COLORS.accent; }
+  else if (hrv >= ZONE_GOOD) { text = 'Good — all systems should be in order';             color = COLORS.green;  }
+  else if (hrv >= ZONE_OK)   { text = 'OK — monitor RHR, also check trend direction';      color = COLORS.orange; }
+  else                       { text = 'Low — consider reducing volume or rest';             color = COLORS.red;    }
   $('statusDot').style.background = color;
   const txt = $('statusText');
   txt.textContent = text;
@@ -683,10 +935,9 @@ function updateMetrics() {
   ael.textContent = (ad >= 0 ? '▲' : '▼') + Math.abs(ad) + 'ms vs baseline';
   ael.style.color = ad >= 0 ? COLORS.green : COLORS.red;
 
-  // Trend
+  // Trend: 3D avg vs 7D avg
   if (sorted.length >= 3) {
-    const l3 = sorted.slice(-3).map(r => r.hrv);
-    const diff = l3[2] - l3[0];
+    const diff = avg3 - avg;
     const tv = $('trendValue');
     const tl = $('trendLabel');
     if      (diff > 3)  { tv.textContent = '↑'; tv.style.color = COLORS.green;  tl.textContent = 'rising';  }
@@ -694,23 +945,27 @@ function updateMetrics() {
     else                { tv.textContent = '→'; tv.style.color = COLORS.orange; tl.textContent = 'stable';  }
   }
 
-  setStatus(latest.hrv);
+  setStatus(avg3);
 }
 
 // ---------- CRUD ----------
 
-function addReading() {
+function addEntry() {
   const date = $('inputDate').value;
   const hrv = parseInt($('inputHRV').value);
-  if (!date || isNaN(hrv) || hrv < 20 || hrv > 220) {
-    showToast('Enter valid date and HRV (20–220ms)');
-    return;
-  }
-  readings.push({ id: newId(), date, hrv });
-  save();
+  const rhr = parseInt($('inputRHR').value);
+  const hasHRV = !isNaN(hrv) && hrv >= 20 && hrv <= 220;
+  const hasRHR = !isNaN(rhr) && rhr >= 25 && rhr <= 120;
+  if (!date) { showToast('Select a date'); return; }
+  if (!hasHRV && !hasRHR) { showToast('Enter HRV, RHR, or both'); return; }
+  if (hasHRV) { readings.push({ id: newId(), date, hrv }); save(); }
+  if (hasRHR) { rhrData[date] = rhr; saveRHR(); }
   $('inputHRV').value = '';
+  $('inputRHR').value = '';
   render();
-  showToast(`Logged ${hrv}ms`);
+  if (hasHRV && hasRHR) showToast(`Logged HRV ${hrv}ms + RHR ${rhr}bpm`);
+  else if (hasHRV)      showToast(`Logged HRV ${hrv}ms`);
+  else                  showToast(`Logged RHR ${rhr}bpm`);
 }
 
 function deleteReading(id) {
@@ -718,6 +973,40 @@ function deleteReading(id) {
   save();
   render();
   showToast('Reading removed');
+}
+
+function deleteRHREntry(date) {
+  delete rhrData[date];
+  saveRHR();
+  render();
+  showToast('RHR entry removed');
+}
+
+function clearNumConfirming() {
+  document.querySelectorAll('.history-hrv.confirming,.history-rhr.confirming').forEach(el => {
+    el.classList.remove('confirming');
+    if (el.dataset.orig) el.textContent = el.dataset.orig;
+  });
+}
+function armConfirm(el) {
+  clearNumConfirming();
+  el.dataset.orig = el.textContent;
+  el.classList.add('confirming');
+  el.textContent = 'DEL?';
+  setTimeout(() => {
+    if (el.isConnected && el.classList.contains('confirming')) {
+      el.classList.remove('confirming');
+      el.textContent = el.dataset.orig;
+    }
+  }, 3000);
+}
+function handleHRVTap(el) {
+  if (el.classList.contains('confirming')) { deleteReading(el.dataset.id); return; }
+  armConfirm(el);
+}
+function handleRHRTap(el) {
+  if (el.classList.contains('confirming')) { deleteRHREntry(el.dataset.date); return; }
+  armConfirm(el);
 }
 
 function handleDeleteClick(btn) {
@@ -883,7 +1172,9 @@ function runSlowWaveCalc(text, overlay) {
       return (mins >= 23 * 60 + 30 || mins < 2 * 60) && inAnyStage(r, coreStages);
     }).sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
 
-    const needed = 6;
+    const deepSet = new Set(deepReadings);
+
+    const needed = 7;
     const selected = [...deepReadings];
     for (const r of coreWindow) {
       if (selected.length >= needed) break;
@@ -892,17 +1183,12 @@ function runSlowWaveCalc(text, overlay) {
 
     if (selected.length < 3) throw new Error(`Only ${selected.length} reading(s) found across Deep + Core windows — need at least 3`);
 
-    const values = selected.map(r => r.qty).sort((a, b) => a - b);
-    const min = values[0], max = values[values.length - 1];
-    let avg, statLabel;
-    if (selected.length >= 3) {
-      const trimmed = values.slice(1, -1);
-      avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
-      statLabel = `${selected.length} readings · dropped ${Math.round(min)} + ${Math.round(max)}`;
-    } else {
-      avg = Math.round(selected.reduce((a, b) => a + b.qty, 0) / selected.length);
-      statLabel = `${selected.length} readings`;
-    }
+    const sortedByQty = [...selected].sort((a, b) => a.qty - b.qty);
+    const dropLow = sortedByQty[0], dropHigh = sortedByQty[sortedByQty.length - 1];
+    const droppedSet = new Set([dropLow, dropHigh]);
+    const trimmed = sortedByQty.slice(1, -1);
+    const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
+    const statLabel = `${selected.length} readings · dropped ${Math.round(dropLow.qty)} + ${Math.round(dropHigh.qty)}`;
 
     overlay.remove();
     const panel = $('calcResult');
@@ -913,8 +1199,8 @@ function runSlowWaveCalc(text, overlay) {
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
     const chips = selected.map(r => {
       const qty = Math.round(r.qty);
-      const isDropped = r.qty === min || r.qty === max;
-      const isDeep = inAnyStage(r, deepStages);
+      const isDropped = droppedSet.has(r);
+      const isDeep = deepSet.has(r);
       const stageCls = isDeep ? 'deep' : 'core';
       const droppedCls = isDropped ? ' dropped' : '';
       const { h, m } = readingLocalHM(r);
@@ -938,7 +1224,7 @@ function parseJsonBlocks(text) {
     if (text[i] === '{') { if (depth === 0) start = i; depth++; }
     else if (text[i] === '}') { depth--; if (depth === 0 && start >= 0) { blocks.push(text.slice(start, i + 1)); start = -1; } }
   }
-  if (blocks.length >= 2) {
+  if (blocks.length >= 1) {
     try { return blocks.map(b => JSON.parse(b)); } catch(e) {}
   }
   throw new Error('Could not parse export data');
@@ -1153,6 +1439,83 @@ function runMonthlyCalc(allReadings, date, useMid, useEarly, overlay) {
   }
 }
 
+// ---------- RHR Import ----------
+function findLowestConsecutiveRHR(readings) {
+  const MAX_GAP_MS = 3 * 60 * 1000;
+  const MIN_SPAN_MS = 10 * 60 * 1000;
+  let bestAvg = Infinity;
+  for (let i = 0; i < readings.length; i++) {
+    let sum = readings[i].avg;
+    for (let j = i + 1; j < readings.length; j++) {
+      if (readings[j].ts - readings[j-1].ts > MAX_GAP_MS) break;
+      sum += readings[j].avg;
+      if (readings[j].ts - readings[i].ts >= MIN_SPAN_MS) {
+        const avg = sum / (j - i + 1);
+        if (avg < bestAvg) bestAvg = avg;
+      }
+    }
+  }
+  return bestAvg < Infinity ? Math.round(bestAvg) : null;
+}
+
+function importRHRFromJSON(json) {
+  const metrics = json?.data?.metrics ?? json?.metrics;
+  if (!Array.isArray(metrics)) throw new Error('Invalid format — paste a Health Auto Export heart_rate JSON');
+  const metric = metrics.find(m =>
+    m.name === 'heart_rate' || m.name === 'Heart Rate' || m.name === 'heart_rate_bpm'
+  );
+  if (!metric) throw new Error(`No heart_rate data found — found: ${metrics.map(m => m.name).join(', ') || 'nothing'}`);
+  const byDate = {};
+  for (const r of metric.data) {
+    const avg = typeof r.Avg === 'number' ? r.Avg : typeof r.avg === 'number' ? r.avg : null;
+    if (avg === null) continue;
+    const s = (r.date ?? r.start ?? '').trim();
+    if (!s) continue;
+    const h = parseInt(s.slice(11, 13), 10);
+    const m = parseInt(s.slice(14, 16), 10);
+    if (h * 60 + m > 210) continue; // only 00:00–03:30
+    const dateStr = s.slice(0, 10);
+    const ts = parseTimestamp(r).getTime();
+    (byDate[dateStr] = byDate[dateStr] || []).push({ ts, avg });
+  }
+  let count = 0;
+  for (const [date, readings] of Object.entries(byDate)) {
+    readings.sort((a, b) => a.ts - b.ts);
+    const rhr = findLowestConsecutiveRHR(readings);
+    if (rhr !== null) { rhrData[date] = rhr; count++; }
+  }
+  return count;
+}
+
+function showRHRImportModal() {
+  const overlay = openModal(`
+    <div class="modal-title">Import RHR Data</div>
+    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 10-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#76ff03">●</span> ≤40 &nbsp;<span style="color:#ffab00">●</span> 41–43 &nbsp;<span style="color:#ff6d00">●</span> 44–46 &nbsp;<span style="color:#f44336">●</span> 47+</div>
+    <textarea placeholder="Paste one or more JSON exports here..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-import>IMPORT</button>
+    </div>
+  `);
+  const ta = overlay.querySelector('textarea');
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-import]').addEventListener('click', () => {
+    try {
+      const jsons = parseJsonBlocks(ta.value.trim());
+      let total = 0;
+      for (const j of jsons) total += importRHRFromJSON(j);
+      saveRHR();
+      overlay.remove();
+      render();
+      const dates = Object.keys(rhrData).sort();
+      const rangeStr = dates.length >= 2 ? ` · ${dates[0]} → ${dates.at(-1)}` : '';
+      showToast(`RHR: ${total} day${total !== 1 ? 's' : ''} imported${rangeStr}`);
+    } catch(e) {
+      showToast(e.message || 'Invalid JSON');
+    }
+  });
+}
+
 // ---------- Chart range toggle ----------
 function setChartRange(range) {
   chartRange = range;
@@ -1163,10 +1526,143 @@ function setChartRange(range) {
 }
 
 // ---------- Render orchestration ----------
+// ---------- Heatmap ----------
+function setHeatmapMode(mode) {
+  heatmapMode = mode;
+  $('hmBtnHRV').classList.toggle('active', mode === 'hrv');
+  $('hmBtnRHR').classList.toggle('active', mode === 'rhr');
+  $('hmBtnTag').classList.toggle('active', mode === 'tag');
+  renderHeatmap();
+}
+
+function renderHeatmap() {
+  const wrap = $('heatmapWrap');
+  if (!wrap) return;
+
+  const byDate = {};
+  getAveragedByDate().forEach(r => { byDate[r.date] = r.hrv; });
+
+  const tagByDate = {};
+  readings.forEach(r => { if (r.tag) tagByDate[r.date] = r.tag; });
+
+  const today = new Date();
+  today.setHours(12,0,0,0);
+
+  // End on the Sunday of the current week
+  const dow = today.getDay(); // 0=Sun
+  const daysToSun = dow === 0 ? 0 : 7 - dow;
+  const endSunday = new Date(today);
+  endSunday.setDate(today.getDate() + daysToSun);
+
+  // Start on the Monday 52 weeks before that Sunday
+  const startMonday = new Date(endSunday);
+  startMonday.setDate(endSunday.getDate() - 52 * 7 + 1);
+
+  // Build week columns (Mon–Sun)
+  const weeks = [];
+  const cur = new Date(startMonday);
+  while (cur <= endSunday) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const zoneColor = hrv => {
+    if (hrv >= ZONE_HIGH) return 'rgba(0,229,255,0.8)';
+    if (hrv >= ZONE_GOOD) return 'rgba(76,175,80,0.8)';
+    if (hrv >= ZONE_OK)   return 'rgba(255,152,0,0.8)';
+    return 'rgba(244,67,54,0.8)';
+  };
+
+  const CELL = 14, GAP = 3;
+
+  // Month label row — one span per week column, inside scroll area
+  const labelRow = document.createElement('div');
+  labelRow.style.cssText = `display:flex;gap:${GAP}px;margin-bottom:4px;`;
+  let lastMonth = -1;
+  weeks.forEach(week => {
+    const span = document.createElement('div');
+    span.style.cssText = `width:${CELL}px;flex-shrink:0;font-family:var(--font-mono);font-size:8px;color:var(--muted);overflow:visible;white-space:nowrap;`;
+    const mo = week[0].getMonth();
+    if (mo !== lastMonth && week[0].getDate() <= 7 + 6) {
+      span.textContent = week[0].toLocaleString('default',{month:'short'});
+      lastMonth = mo;
+    }
+    labelRow.appendChild(span);
+  });
+
+  // Grid
+  const grid = document.createElement('div');
+  grid.className = 'heatmap-grid';
+  weeks.forEach(week => {
+    const col = document.createElement('div');
+    col.className = 'heatmap-col';
+    week.forEach(day => {
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell';
+      cell.textContent = day.getDate();
+      if (day > today) {
+        cell.style.opacity = '0.15';
+      } else {
+        const iso = day.toISOString().slice(0,10);
+        const hrv = byDate[iso];
+        const rhr = rhrData[iso];
+        if (heatmapMode === 'rhr') {
+          if (rhr !== undefined) {
+            cell.style.background = rhrZoneColor(rhr);
+            cell.style.color = 'rgba(0,0,0,0.45)';
+          }
+        } else if (hrv !== undefined) {
+          cell.style.background = heatmapMode === 'tag'
+            ? (tagByDate[iso] ? TAG_MAP[tagByDate[iso]] : 'var(--border)')
+            : zoneColor(hrv);
+          cell.style.color = 'rgba(0,0,0,0.45)';
+        }
+      }
+      col.appendChild(cell);
+    });
+    grid.appendChild(col);
+  });
+
+  // Scroll container holds both labels + grid so they move together
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'heatmap-scroll';
+  scrollWrap.appendChild(labelRow);
+  scrollWrap.appendChild(grid);
+
+  // Day labels fixed on left, scroll area to the right
+  const DAY_LABELS = ['M','T','W','T','F','S','S'];
+  const dayCol = document.createElement('div');
+  dayCol.className = 'heatmap-day-labels';
+  // push day labels down to align with grid (label row height = 8px font + 4px margin = ~16px)
+  dayCol.style.marginTop = '16px';
+  DAY_LABELS.forEach(l => {
+    const el = document.createElement('div');
+    el.className = 'heatmap-day-label';
+    el.textContent = l;
+    dayCol.appendChild(el);
+  });
+
+  const outerRow = document.createElement('div');
+  outerRow.style.cssText = 'display:flex;align-items:flex-start;gap:4px;';
+  outerRow.appendChild(dayCol);
+  outerRow.appendChild(scrollWrap);
+
+  wrap.innerHTML = '';
+  wrap.appendChild(outerRow);
+
+  requestAnimationFrame(() => { scrollWrap.scrollLeft = scrollWrap.scrollWidth; });
+}
+
+
 function render() {
   updateBaseline();
   updateMetrics();
   renderChart();
+  renderHeatmap();
   renderHistory();
 }
 
@@ -1293,6 +1789,23 @@ function showSyncModal() {
   setTimeout(() => overlay.querySelector('#userInput').focus(), 100);
 }
 
+// ---------- Menu ----------
+function showMenuModal() {
+  const overlay = openModal(`
+    <div class="modal-title">Tools</div>
+    <button class="modal-btn" id="menuCalc" style="text-align:left;">Manual Sync</button>
+    <button class="modal-btn" id="menuExport" style="text-align:left;">Export Backup</button>
+    <button class="modal-btn" id="menuImport" style="text-align:left;">Import Backup</button>
+    <button class="modal-btn" id="menuRHR" style="text-align:left;">Import RHR Data</button>
+    <button class="modal-btn cancel" data-close>Close</button>
+  `);
+  overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
+  overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportData(); });
+  overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportModal(); });
+  overlay.querySelector('#menuRHR').addEventListener('click',    () => { overlay.remove(); showRHRImportModal(); });
+  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+}
+
 // ---------- Info modal ----------
 function showInfoModal() {
   const overlay = openModal(`
@@ -1372,18 +1885,22 @@ function showInfoModal() {
 // ---------- Init ----------
 async function init() {
   drawYAxis();
-  $('addBtn').addEventListener('click', addReading);
-  $('calcBtn').addEventListener('click', showCalcModal);
+  $('addBtn').addEventListener('click', addEntry);
   $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
-  $('exportBtn').addEventListener('click', exportData);
-  $('importBtn').addEventListener('click', showImportModal);
+  $('menuBtn').addEventListener('click', showMenuModal);
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
+  loadRHR();
   $('historyList').addEventListener('click', e => {
     const btn = e.target.closest('.delete-btn');
-    if (btn) handleDeleteClick(btn);
+    if (btn) { handleDeleteClick(btn); return; }
+    const hrv = e.target.closest('.history-hrv');
+    if (hrv) { handleHRVTap(hrv); return; }
+    const rhr = e.target.closest('.history-rhr');
+    if (rhr) { handleRHRTap(rhr); return; }
   });
-  $('inputDate').value = new Date().toISOString().split('T')[0];
+  $('inputDate').value = localStorage.getItem(DATE_KEY) || new Date().toISOString().split('T')[0];
+  $('inputDate').addEventListener('change', e => localStorage.setItem(DATE_KEY, e.target.value));
   updateSyncStatus();
   if (getGHToken()) {
     const loaded = await loadFromGitHub();
