@@ -111,13 +111,13 @@
   /* Calculator */
   .calc-result { margin-top:12px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; display:none; }
   .calc-result.show { display:block; }
-  .calc-result-values { display:flex; align-items:flex-end; justify-content:center; gap:24px; }
+  .calc-result-values { display:flex; align-items:flex-start; justify-content:center; gap:24px; }
   .calc-metric { display:flex; flex-direction:column; align-items:center; }
   .calc-metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
   .calc-result-value { font-family:var(--font-display); font-size:48px; letter-spacing:2px; text-align:center; line-height:1; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
-  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:8px; }
+  .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
@@ -282,9 +282,9 @@
       <div class="calc-metric calc-rhr-display" id="calcRHRDisplay" style="display:none;">
         <div class="calc-metric-label">RHR</div>
         <div class="calc-result-value" id="calcRHRValue">—</div>
+        <div class="calc-rhr-window" id="calcRHRWindow" style="display:none;"></div>
       </div>
     </div>
-    <div class="calc-rhr-window" id="calcRHRWindow" style="display:none;text-align:center;"></div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
