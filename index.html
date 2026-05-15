@@ -1782,15 +1782,18 @@ async function loadFromGitHub() {
   ghFileSha = file.sha;
   try {
     const data = JSON.parse(atob(file.content.replace(/\n/g, '')));
-    readings = Array.isArray(data) ? data.map(r => ({ ...r, id: r.id ?? newId() })) : [];
+    const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
+    readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
+    if (!Array.isArray(data) && data.rhr) { rhrData = data.rhr; saveRHR(); }
     return true;
   } catch { return false; }
 }
 
 async function saveToGitHub() {
   if (!getGHToken()) return false;
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(readings, null, 2))));
+  const payload = { readings, rhr: rhrData };
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
   const res = await ghRequest('PUT', body);
