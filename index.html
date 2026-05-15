@@ -1601,7 +1601,7 @@ function runMonthlyCalc(allReadings, date, useMid, useEarly, overlay) {
 // ---------- RHR Import ----------
 function findLowestConsecutiveRHR(readings) {
   const MAX_GAP_MS = 5 * 60 * 1000;
-  const MIN_SPAN_MS = 10 * 60 * 1000;
+  const MIN_SPAN_MS = 9 * 60 * 1000;
   let bestAvg = Infinity;
   for (let i = 0; i < readings.length; i++) {
     let sum = readings[i].avg;
@@ -1619,7 +1619,7 @@ function findLowestConsecutiveRHR(readings) {
 
 function findRHRWindowDetail(readings) {
   const MAX_GAP_MS = 5 * 60 * 1000;
-  const MIN_SPAN_MS = 10 * 60 * 1000;
+  const MIN_SPAN_MS = 9 * 60 * 1000;
   let bestAvg = Infinity, bestI = -1, bestJ = -1;
   for (let i = 0; i < readings.length; i++) {
     let sum = readings[i].avg;
