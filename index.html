@@ -1184,7 +1184,7 @@ function parseJsonBlocks(text) {
     if (text[i] === '{') { if (depth === 0) start = i; depth++; }
     else if (text[i] === '}') { depth--; if (depth === 0 && start >= 0) { blocks.push(text.slice(start, i + 1)); start = -1; } }
   }
-  if (blocks.length >= 2) {
+  if (blocks.length >= 1) {
     try { return blocks.map(b => JSON.parse(b)); } catch(e) {}
   }
   throw new Error('Could not parse export data');
@@ -1419,20 +1419,24 @@ function findLowestConsecutiveRHR(readings) {
 }
 
 function importRHRFromJSON(json) {
-  const metrics = json?.data?.metrics;
-  if (!Array.isArray(metrics)) throw new Error('Invalid Health Auto Export format');
-  const metric = metrics.find(m => m.name === 'heart_rate');
-  if (!metric) throw new Error('No heart_rate data found in this export');
+  const metrics = json?.data?.metrics ?? json?.metrics;
+  if (!Array.isArray(metrics)) throw new Error('Invalid format — paste a Health Auto Export heart_rate JSON');
+  const metric = metrics.find(m =>
+    m.name === 'heart_rate' || m.name === 'Heart Rate' || m.name === 'heart_rate_bpm'
+  );
+  if (!metric) throw new Error(`No heart_rate data found — found: ${metrics.map(m => m.name).join(', ') || 'nothing'}`);
   const byDate = {};
   for (const r of metric.data) {
-    if (typeof r.Avg !== 'number') continue;
-    const s = r.date.trim();
+    const avg = typeof r.Avg === 'number' ? r.Avg : typeof r.avg === 'number' ? r.avg : null;
+    if (avg === null) continue;
+    const s = (r.date ?? r.start ?? '').trim();
+    if (!s) continue;
     const h = parseInt(s.slice(11, 13), 10);
     const m = parseInt(s.slice(14, 16), 10);
     if (h * 60 + m > 210) continue; // only 00:00–03:30
     const dateStr = s.slice(0, 10);
     const ts = parseTimestamp(r).getTime();
-    (byDate[dateStr] = byDate[dateStr] || []).push({ ts, avg: r.Avg });
+    (byDate[dateStr] = byDate[dateStr] || []).push({ ts, avg });
   }
   let count = 0;
   for (const [date, readings] of Object.entries(byDate)) {
