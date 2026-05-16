@@ -933,7 +933,13 @@ function setStatus(hrv) {
   else if (hrv >= ZONE_GOOD) { text = 'Good — all systems should be in order';             color = COLORS.green;  }
   else if (hrv >= ZONE_OK)   { text = 'OK — monitor RHR, also check trend direction';      color = COLORS.orange; }
   else                       { text = 'Low — consider reducing volume or rest';             color = COLORS.red;    }
-  $('statusDot').style.background = color;
+  const dot = $('statusDot');
+  dot.style.background = color;
+  const rhrDates = Object.keys(rhrData).sort();
+  const latestRHR = rhrDates.length ? rhrData[rhrDates.at(-1)] : null;
+  dot.style.boxShadow = latestRHR !== null
+    ? `0 0 0 2px var(--surface2), 0 0 0 5px ${rhrZoneColor(latestRHR)}`
+    : 'none';
   const txt = $('statusText');
   txt.textContent = text;
   txt.style.color = color;
