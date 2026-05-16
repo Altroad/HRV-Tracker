@@ -55,7 +55,7 @@
   .metric-anim-in  { animation:metricSlideIn  0.2s  ease-out forwards; }
 
   /* Status */
-  .status-bar { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:10px; }
+  .status-bar { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:10px; position:relative; }
   .status-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:var(--muted); }
   .status-text { font-size:13px; font-weight:500; }
   .status-subs { display:flex; flex-direction:column; align-items:flex-end; gap:3px; margin-left:auto; }
@@ -230,7 +230,7 @@
     <div class="status-sub" id="statusSub"></div>
     <div class="status-sub" id="statusSubRHR"></div>
   </div>
-  <button id="statusInfoBtn" onclick="showStatesModal()" title="View all states" style="flex-shrink:0;background:none;border:1px solid var(--border);color:var(--muted);width:22px;height:22px;border-radius:50%;font-size:11px;cursor:pointer;padding:0;line-height:1;margin-left:6px;">ⓘ</button>
+  <button id="statusInfoBtn" onclick="showStatesModal()" title="View all states" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:2px;line-height:1;opacity:0.7;">ⓘ</button>
 </div>
 
 <div class="zones" id="zonesPanel" onclick="flipMetrics()">
