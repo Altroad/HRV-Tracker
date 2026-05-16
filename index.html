@@ -359,8 +359,8 @@ const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
-const rhrZoneColor = rhr => { const g = Math.round(rhrBaseline*1.075), e = Math.round(rhrBaseline*1.15); return rhr <= rhrBaseline ? '#4caf50' : rhr <= g ? '#ffab00' : rhr <= e ? '#ff6d00' : '#f44336'; };
-const rhrLineColor = rhr => { if (rhr === null) return 'transparent'; const g = Math.round(rhrBaseline*1.075), e = Math.round(rhrBaseline*1.15); return rhr <= rhrBaseline ? 'rgba(76,175,80,0.65)' : rhr <= g ? 'rgba(255,171,0,0.65)' : rhr <= e ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)'; };
+const rhrZoneColor = rhr => rhr <= rhrBaseline+1 ? '#4caf50' : rhr <= rhrBaseline+4 ? '#ffab00' : rhr <= rhrBaseline+7 ? '#ff6d00' : '#f44336';
+const rhrLineColor = rhr => { if (rhr === null) return 'transparent'; return rhr <= rhrBaseline+1 ? 'rgba(76,175,80,0.65)' : rhr <= rhrBaseline+4 ? 'rgba(255,171,0,0.65)' : rhr <= rhrBaseline+7 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)'; };
 
 function loadRHR() {
   try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
@@ -1067,11 +1067,10 @@ function flipMetrics() {
       $('trendLabel').textContent = m.trendLabel;
       $('todayCard').classList.add('rhr-mode');
       // Zones — Excellent/Good/Elevated/High mapped to personal RHR baseline thresholds
-      const rG = Math.round(rhrBaseline*1.075), rE = Math.round(rhrBaseline*1.15);
-      $('zoneLabelHigh').textContent = 'Excellent'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = `≤${rhrBaseline}`;
-      $('zoneLabelGood').textContent = 'Good';      $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = `${rhrBaseline+1}–${rG}`;
-      $('zoneLabelOK').textContent   = 'Elevated';  $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = `${rG+1}–${rE}`;
-      $('zoneLabelLow').textContent  = 'High';      $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = `>${rE}`;
+      $('zoneLabelHigh').textContent = 'Excellent'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = `≤${rhrBaseline+1}`;
+      $('zoneLabelGood').textContent = 'Good';      $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = `${rhrBaseline+2}–${rhrBaseline+4}`;
+      $('zoneLabelOK').textContent   = 'Elevated';  $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = `${rhrBaseline+5}–${rhrBaseline+7}`;
+      $('zoneLabelLow').textContent  = 'High';      $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = `>${rhrBaseline+7}`;
     } else {
       updateMetrics();
       applyHRVZones();
@@ -1723,7 +1722,7 @@ function importRHRFromJSON(json) {
 function showRHRImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Import RHR Data</div>
-    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 9-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#4caf50">●</span> ≤${rhrBaseline} &nbsp;<span style="color:#ffab00">●</span> ${rhrBaseline+1}–${Math.round(rhrBaseline*1.075)} &nbsp;<span style="color:#ff6d00">●</span> ${Math.round(rhrBaseline*1.075)+1}–${Math.round(rhrBaseline*1.15)} &nbsp;<span style="color:#f44336">●</span> >${Math.round(rhrBaseline*1.15)}</div>
+    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 9-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#4caf50">●</span> ≤${rhrBaseline+1} &nbsp;<span style="color:#ffab00">●</span> ${rhrBaseline+2}–${rhrBaseline+4} &nbsp;<span style="color:#ff6d00">●</span> ${rhrBaseline+5}–${rhrBaseline+7} &nbsp;<span style="color:#f44336">●</span> >${rhrBaseline+7}</div>
     <textarea placeholder="Paste one or more JSON exports here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -2094,10 +2093,10 @@ function showInfoModal() {
       The app scans your Apple Watch heart rate between midnight and 3:30am and finds the lowest 10-minute consecutive window (gaps up to 5 minutes are bridged). That average is your RHR for the night.<br><br>
 
       <strong>Zones</strong> <span style="font-size:10px;color:var(--muted)">(relative to your 30-day RHR average of ${rhrBaseline}bpm)</span><br>
-      <span style="color:#4caf50">●</span> ≤${rhrBaseline} — Excellent &nbsp;
-      <span style="color:#ffab00">●</span> ${rhrBaseline+1}–${Math.round(rhrBaseline*1.075)} — Good &nbsp;
-      <span style="color:#ff6d00">●</span> ${Math.round(rhrBaseline*1.075)+1}–${Math.round(rhrBaseline*1.15)} — Elevated &nbsp;
-      <span style="color:#f44336">●</span> >${Math.round(rhrBaseline*1.15)} — High<br><br>
+      <span style="color:#4caf50">●</span> ≤${rhrBaseline+1} — Excellent &nbsp;
+      <span style="color:#ffab00">●</span> ${rhrBaseline+2}–${rhrBaseline+4} — Good &nbsp;
+      <span style="color:#ff6d00">●</span> ${rhrBaseline+5}–${rhrBaseline+7} — Elevated &nbsp;
+      <span style="color:#f44336">●</span> >${rhrBaseline+7} — High<br><br>
 
       <strong>Importing RHR</strong><br>
       Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV and RHR together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
