@@ -2089,10 +2089,10 @@ function showMenuModal() {
 // ---------- Info modal ----------
 function showStatesModal() {
   const zones = [
-    { hrv: 'High',  color: 'var(--accent)' },
-    { hrv: 'Good',  color: 'var(--green)'  },
-    { hrv: 'OK',    color: 'var(--orange)' },
-    { hrv: 'Low',   color: 'var(--red)'    },
+    { hrv: 'High',  color: '#00e5ff', border: '#00e5ff33' },
+    { hrv: 'Good',  color: '#4caf50', border: '#4caf5033' },
+    { hrv: 'OK',    color: '#ff9800', border: '#ff980033' },
+    { hrv: 'Low',   color: '#f44336', border: '#f4433633' },
   ];
   const rhrZones = [
     { label: 'Excellent', color: '#4caf50' },
@@ -2102,7 +2102,7 @@ function showStatesModal() {
   ];
   const rows = zones.map(h => `
     <div style="margin-bottom:20px;">
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${h.color};text-transform:uppercase;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid ${h.color}33;">HRV ${h.hrv}</div>
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${h.color};text-transform:uppercase;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid ${h.border};">HRV ${h.hrv}</div>
       ${rhrZones.map(r => `
         <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;">
           <span style="flex-shrink:0;font-size:10px;color:${r.color};font-family:var(--font-mono);width:82px;">RHR ${r.label}</span>
