@@ -926,13 +926,32 @@ function updateBaseline() {
   }
 }
 
+const STATUS_MESSAGES = {
+  'High,Excellent':  'Both systems optimally recovered — ideal physiological window.',
+  'High,Good':       'Strong autonomic recovery with minor cardiovascular stress — systems in good order.',
+  'High,Elevated':   'Contradictory signal — autonomic recovered but RHR elevated; suspect dehydration, heat, or early illness.',
+  'High,High':       'Rare conflict — high HRV with significantly elevated RHR; check for illness or dehydration.',
+  'Good,Excellent':  'Well recovered with strong cardiovascular efficiency.',
+  'Good,Good':       'Solid baseline state — body handling load well.',
+  'Good,Elevated':   'Mild cumulative stress emerging — monitor the trend over coming days.',
+  'Good,High':       'Cardiovascular strain despite adequate HRV — monitor sleep and hydration.',
+  'OK,Excellent':    'Autonomic fatigue present but cardiovascular system coping.',
+  'OK,Good':         'Moderate accumulated load — nervous system under pressure.',
+  'OK,Elevated':     'Significant dual-system stress — address sleep, nutrition, and hydration.',
+  'OK,High':         'Clear overreaching signal — both systems compromised.',
+  'Low,Excellent':   'Autonomic suppression despite cardiovascular efficiency — common in trained athletes under chronic load.',
+  'Low,Good':        'Nervous system significantly suppressed — overreaching likely.',
+  'Low,Elevated':    'Dual-system fatigue with compounding stress — monitor closely.',
+  'Low,High':        'Full alarm state — classic overtraining or acute illness signature; seek medical advice if it persists.',
+};
+
 function setStatus(hrv) {
   const vsB = hrv - BASELINE;
-  let text, color;
-  if      (hrv >= ZONE_HIGH) { text = 'High — an ideal state, try to stay in this zone';  color = COLORS.accent; }
-  else if (hrv >= ZONE_GOOD) { text = 'Good — all systems should be in order';             color = COLORS.green;  }
-  else if (hrv >= ZONE_OK)   { text = 'OK — monitor RHR, also check trend direction';      color = COLORS.orange; }
-  else                       { text = 'Low — consider reducing volume or rest';             color = COLORS.red;    }
+  let hrvZone, color;
+  if      (hrv >= ZONE_HIGH) { hrvZone = 'High'; color = COLORS.accent; }
+  else if (hrv >= ZONE_GOOD) { hrvZone = 'Good'; color = COLORS.green;  }
+  else if (hrv >= ZONE_OK)   { hrvZone = 'OK';   color = COLORS.orange; }
+  else                       { hrvZone = 'Low';  color = COLORS.red;    }
   const dot = $('statusDot');
   dot.style.background = color;
   const rhrDates = Object.keys(rhrData).sort();
@@ -940,10 +959,18 @@ function setStatus(hrv) {
   dot.style.boxShadow = latestRHR !== null
     ? `0 0 0 2px var(--surface2), 0 0 0 5px ${rhrZoneColor(latestRHR)}`
     : 'none';
+  let text;
+  if (latestRHR !== null) {
+    const rhrZone = latestRHR <= rhrBaseline+1 ? 'Excellent' : latestRHR <= rhrBaseline+4 ? 'Good' : latestRHR <= rhrBaseline+7 ? 'Elevated' : 'High';
+    text = STATUS_MESSAGES[`${hrvZone},${rhrZone}`];
+  } else {
+    const fallback = { High: 'High — autonomic system well recovered.', Good: 'Good — all systems should be in order.', OK: 'OK — monitor trend direction.', Low: 'Low — nervous system under pressure.' };
+    text = fallback[hrvZone];
+  }
   const txt = $('statusText');
   txt.textContent = text;
   txt.style.color = color;
-  $('statusSub').textContent = (vsB >= 0 ? '+' : '') + vsB + 'ms vs baseline';
+  $('statusSub').textContent = `HRV ${hrvZone} · ${(vsB >= 0 ? '+' : '') + vsB}ms vs baseline`;
 }
 
 function updateMetrics() {
