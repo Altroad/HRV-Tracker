@@ -910,12 +910,12 @@ function updateBaseline() {
   $('zoneGood').textContent = `${ZONE_GOOD}–${ZONE_HIGH - 1}`;
   $('zoneOK').textContent   = `${ZONE_OK}–${ZONE_GOOD - 1}`;
   $('zoneLow').textContent  = `<${ZONE_OK}`;
-  // RHR baseline: rolling 30-day average of nightly RHR readings
-  const rhrDates30 = Object.keys(rhrData).sort().slice(-30);
+  // RHR baseline: rolling 90-day average of nightly RHR readings
+  const rhrDates30 = Object.keys(rhrData).sort().slice(-90);
   rhrBaseline = rhrDates30.length ? Math.round(rhrDates30.reduce((a, d) => a + rhrData[d], 0) / rhrDates30.length) : 40;
   const rhrBadge = $('rhrBaselineBadge');
   if (rhrDates30.length) {
-    const rhrLabel = rhrDates30.length >= 30 ? '30d' : `${rhrDates30.length}d`;
+    const rhrLabel = rhrDates30.length >= 90 ? '3mo' : `${rhrDates30.length}d`;
     rhrBadge.textContent = `RHR ${rhrBaseline}bpm · ${rhrLabel}`;
     rhrBadge.style.color = '#4caf50';
     rhrBadge.style.borderColor = '#4caf5055';
@@ -2092,7 +2092,7 @@ function showInfoModal() {
       <strong>How RHR is calculated</strong><br>
       The app scans your Apple Watch heart rate between midnight and 3:30am and finds the lowest 10-minute consecutive window (gaps up to 5 minutes are bridged). That average is your RHR for the night.<br><br>
 
-      <strong>Zones</strong> <span style="font-size:10px;color:var(--muted)">(relative to your 30-day RHR average of ${rhrBaseline}bpm)</span><br>
+      <strong>Zones</strong> <span style="font-size:10px;color:var(--muted)">(relative to your 3-month RHR average of ${rhrBaseline}bpm)</span><br>
       <span style="color:#4caf50">●</span> ≤${rhrBaseline+1} — Excellent &nbsp;
       <span style="color:#ffab00">●</span> ${rhrBaseline+2}–${rhrBaseline+4} — Good &nbsp;
       <span style="color:#ff6d00">●</span> ${rhrBaseline+5}–${rhrBaseline+7} — Elevated &nbsp;
