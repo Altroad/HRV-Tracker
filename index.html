@@ -2101,8 +2101,8 @@ function showStatesModal() {
     { label: 'High',      color: '#f44336' },
   ];
   const rows = zones.map(h => `
-    <div style="margin-bottom:14px;">
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${h.color};text-transform:uppercase;margin-bottom:6px;">HRV ${h.hrv}</div>
+    <div style="margin-bottom:20px;">
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${h.color};text-transform:uppercase;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid ${h.color}33;">HRV ${h.hrv}</div>
       ${rhrZones.map(r => `
         <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;">
           <span style="flex-shrink:0;font-size:10px;color:${r.color};font-family:var(--font-mono);width:82px;">RHR ${r.label}</span>
