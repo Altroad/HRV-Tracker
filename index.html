@@ -325,7 +325,8 @@ const GH_OWNER = 'Altroad';
 const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
-const RHR_KEY     = 'hrv_rhr_v1';
+const RHR_KEY       = 'hrv_rhr_v1';
+const RHR_NOTES_KEY = 'hrv_rhr_notes_v1';
 const RHR_SCALE_MIN = 35, RHR_SCALE_MAX = 60;
 
 // ---------- Tags ----------
@@ -356,6 +357,7 @@ let metricsMode = 'hrv';
 let _rhrMetrics = null;
 let rhrBaseline = 40;
 let rhrData = {};
+let rhrNotes = {};
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -368,9 +370,11 @@ const rhrLineColor = rhr => { if (rhr === null) return 'transparent'; return rhr
 
 function loadRHR() {
   try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
+  try { const raw = localStorage.getItem(RHR_NOTES_KEY); if (raw) rhrNotes = JSON.parse(raw); } catch { rhrNotes = {}; }
 }
 function saveRHR() {
   try { localStorage.setItem(RHR_KEY, JSON.stringify(rhrData)); } catch {}
+  try { localStorage.setItem(RHR_NOTES_KEY, JSON.stringify(rhrNotes)); } catch {}
 }
 
 function showToast(msg) {
@@ -813,17 +817,23 @@ function renderHistoryList() {
     entries.forEach(r => {
       if (r.rhrOnly) {
         const d = new Date(r.date + 'T12:00:00');
+        const note = rhrNotes[r.date] || '';
+        const noteBtnClass = note ? 'note-btn has-note' : 'note-btn';
         html += `<div class="history-row" id="rhr-row-${r.date}">
           <div class="history-date">
             <span class="history-date-line">${DAY_NAMES[d.getDay()]} ${fmtDate(d)}</span>
             <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;">RHR only</span>
           </div>
           <div class="history-nums">
-            <span style="font-family:var(--font-display);font-size:17px;color:var(--muted)">—</span>
+            <span class="history-hrv" style="color:var(--muted)">—</span>
             <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
           </div>
           <div class="history-delta"></div>
+          <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
           <button class="delete-btn" data-rhr-date="${r.date}">✕</button>
+        </div>
+        <div class="note-row" id="note-row-rhr-${r.date}">
+          <textarea class="note-input" rows="2" placeholder="Add a note…" onblur="saveNote('rhr-${r.date}',this.value)">${note}</textarea>
         </div>`;
         return;
       }
@@ -914,6 +924,13 @@ function toggleNote(id) {
 }
 
 function saveNote(id, value) {
+  if (String(id).startsWith('rhr-')) {
+    const date = String(id).slice(4);
+    if (value.trim()) rhrNotes[date] = value.trim(); else delete rhrNotes[date];
+    saveRHR();
+    renderHistory();
+    return;
+  }
   const r = readings.find(r => String(r.id) === String(id));
   if (!r) return;
   r.note = value.trim() || undefined;
@@ -2009,14 +2026,14 @@ async function loadFromGitHub() {
     const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
     readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
-    if (!Array.isArray(data) && data.rhr) { rhrData = data.rhr; saveRHR(); }
+    if (!Array.isArray(data) && data.rhr) { rhrData = data.rhr; if (data.rhrNotes) rhrNotes = data.rhrNotes; saveRHR(); }
     return true;
   } catch { return false; }
 }
 
 async function saveToGitHub() {
   if (!getGHToken()) return false;
-  const payload = { readings, rhr: rhrData };
+  const payload = { readings, rhr: rhrData, rhrNotes };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
