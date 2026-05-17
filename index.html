@@ -735,7 +735,10 @@ function renderHistory() {
 
 function renderHistoryList() {
   const el = $('historyList');
-  if (!readings.length) { el.innerHTML = '<div class="empty-state">No readings yet</div>'; return; }
+  const rhrOnlyDates = !historyFilter
+    ? Object.keys(rhrData).filter(d => !readings.some(r => r.date === d))
+    : [];
+  if (!readings.length && !rhrOnlyDates.length) { el.innerHTML = '<div class="empty-state">No readings yet</div>'; return; }
 
   const allSorted = [...readings].sort((a, b) => {
     const d = new Date(b.date) - new Date(a.date);
@@ -743,7 +746,7 @@ function renderHistoryList() {
   });
 
   const filtered = historyFilter ? allSorted.filter(r => r.tag === historyFilter) : allSorted;
-  if (!filtered.length) { el.innerHTML = '<div class="empty-state">No entries with this tag</div>'; return; }
+  if (!filtered.length && !rhrOnlyDates.length) { el.innerHTML = '<div class="empty-state">No entries with this tag</div>'; return; }
 
   // Summary when filtering
   let summaryHtml = '';
@@ -767,6 +770,12 @@ function renderHistoryList() {
     const key = mon.toISOString().split('T')[0];
     if (!weekMap.has(key)) weekMap.set(key, { monday: mon, entries: [] });
     weekMap.get(key).entries.push(r);
+  }
+  for (const date of rhrOnlyDates) {
+    const mon = getWeekMonday(date);
+    const key = mon.toISOString().split('T')[0];
+    if (!weekMap.has(key)) weekMap.set(key, { monday: mon, entries: [] });
+    weekMap.get(key).entries.push({ rhrOnly: true, date, rhr: rhrData[date] });
   }
   const weeks = [...weekMap.entries()].sort((a, b) => new Date(b[0]) - new Date(a[0]));
 
@@ -800,7 +809,24 @@ function renderHistoryList() {
     </div>
     <div class="week-content ${collapsed}" id="week-${key}">`;
 
+    entries.sort((a, b) => b.date.localeCompare(a.date));
     entries.forEach(r => {
+      if (r.rhrOnly) {
+        const d = new Date(r.date + 'T12:00:00');
+        html += `<div class="history-row" id="rhr-row-${r.date}">
+          <div class="history-date">
+            <span class="history-date-line">${DAY_NAMES[d.getDay()]} ${fmtDate(d)}</span>
+            <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;">RHR only</span>
+          </div>
+          <div class="history-nums">
+            <span style="font-family:var(--font-display);font-size:17px;color:var(--muted)">—</span>
+            <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
+          </div>
+          <div class="history-delta"></div>
+          <button class="delete-btn" data-rhr-date="${r.date}">✕</button>
+        </div>`;
+        return;
+      }
       const delta = deltaMap.get(r.id);
       const dStr = delta === null ? '—' : (delta >= 0 ? `▲${Math.abs(delta)}` : `▼${Math.abs(delta)}`);
       const dColor = delta === null ? COLORS.muted : delta >= 0 ? COLORS.green : COLORS.red;
@@ -1187,9 +1213,8 @@ function handleRHRTap(el) {
 }
 
 function handleDeleteClick(btn) {
-  const id = btn.dataset.id;
   if (btn.classList.contains('confirming')) {
-    deleteReading(id);
+    btn.dataset.rhrDate ? deleteRHREntry(btn.dataset.rhrDate) : deleteReading(btn.dataset.id);
     return;
   }
   btn.classList.add('confirming');
