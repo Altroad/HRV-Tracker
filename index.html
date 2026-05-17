@@ -1374,7 +1374,7 @@ function runSlowWaveCalc(text, overlay) {
       if (!deepReadings.includes(r)) selected.push(r);
     }
 
-    if (selected.length < 3) throw new Error(`Only ${selected.length} reading(s) found across Deep + Core windows — need at least 3`);
+    if (selected.length < 3) throw new Error(`Only ${selected.length} reading(s) found across Deep + Core windows — need at least 3. (Sleep stages found: ${stages.length}, Deep: ${deepStages.length}, Core: ${coreStages.length}, HRV readings: ${allHRV.length})`);
 
     const sortedByQty = [...selected].sort((a, b) => a.qty - b.qty);
     const dropLow = sortedByQty[0], dropHigh = sortedByQty[sortedByQty.length - 1];
