@@ -2275,7 +2275,9 @@ async function init() {
     const rhr = e.target.closest('.history-rhr');
     if (rhr) { handleRHRTap(rhr); return; }
   });
-  $('inputDate').value = localStorage.getItem(DATE_KEY) || new Date().toISOString().split('T')[0];
+  const _now = new Date();
+  const _localToday = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+  $('inputDate').value = _localToday;
   $('inputDate').addEventListener('change', e => localStorage.setItem(DATE_KEY, e.target.value));
   updateSyncStatus();
   if (getGHToken()) {
