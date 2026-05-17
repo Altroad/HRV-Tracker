@@ -248,7 +248,7 @@
     </div>
   </div>
   <div class="chart-legend" style="margin-bottom:12px;flex-wrap:wrap;gap:10px 16px;">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><div id="rhrLegendLine" style="display:none;width:14px;border-top:2px dashed #4caf50;margin-left:2px;flex-shrink:0"></div><span id="trendLegendLabel">HRV Trend</span></div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
   </div>
@@ -649,6 +649,10 @@ function renderChart() {
   const rhrAxisWrap = $('rhrAxisWrap');
   if (rhrAxisWrap) rhrAxisWrap.style.display = hasRHR ? '' : 'none';
   if (hasRHR) drawRHRAxis();
+  const rhrLegendLine = $('rhrLegendLine');
+  const trendLegendLabel = $('trendLegendLabel');
+  if (rhrLegendLine) rhrLegendLine.style.display = hasRHR ? '' : 'none';
+  if (trendLegendLabel) trendLegendLabel.textContent = hasRHR ? 'HRV/RHR Trend' : 'HRV Trend';
 
   if (mainChart) { mainChart.destroy(); mainChart = null; }
 
