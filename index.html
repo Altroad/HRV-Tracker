@@ -251,7 +251,6 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
       <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
-      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:#4caf50"></div><div class="legend-dot" style="background:#ffab00;margin-left:1px"></div><div class="legend-dot" style="background:#ff6d00;margin-left:1px"></div><div class="legend-dot" style="background:#f44336;margin-left:1px"></div>RHR Halo</div>
   </div>
   <div class="chart-outer">
     <div class="y-axis-wrap"><canvas id="yAxis" width="28" height="260"></canvas></div>
@@ -633,8 +632,6 @@ function renderChart() {
   // Show/hide RHR axis and legend
   const rhrAxisWrap = $('rhrAxisWrap');
   if (rhrAxisWrap) rhrAxisWrap.style.display = hasRHR ? '' : 'none';
-  const rhrLegend = $('rhrLegendItem');
-  if (rhrLegend) rhrLegend.style.display = hasRHR ? '' : 'none';
   if (hasRHR) drawRHRAxis();
 
   if (mainChart) { mainChart.destroy(); mainChart = null; }
