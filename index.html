@@ -1218,6 +1218,8 @@ function deleteReading(id) {
 function deleteRHREntry(date) {
   delete rhrData[date];
   saveRHR();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToGitHub(), 800);
   render();
   showToast('RHR entry removed');
 }
