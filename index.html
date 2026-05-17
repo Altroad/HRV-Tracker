@@ -1345,7 +1345,7 @@ function runSlowWaveCalc(text, overlay) {
 
     const allHRV = hrvJsons.flatMap(j => extractHRVReadings(j));
     const sleepMetric = sleepJson.data.metrics.find(m => m.name === 'sleep_analysis');
-    const stages = sleepMetric.data.filter(s => s.source === 'Apple Watch');
+    const stages = sleepMetric.data.filter(s => s.source?.includes('Apple Watch'));
 
     const deepStages = stages.filter(s => s.value === 'Deep');
     const coreStages = stages.filter(s => s.value === 'Core');
