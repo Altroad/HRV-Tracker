@@ -454,6 +454,14 @@ function drawYAxis() {
     ctx.lineTo(28, y);
     ctx.stroke();
   }
+  ctx.save();
+  ctx.translate(8, padTop + dH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = '8px monospace';
+  ctx.fillStyle = 'rgba(160,180,192,0.4)';
+  ctx.textAlign = 'center';
+  ctx.fillText('HRV', 0, 0);
+  ctx.restore();
 }
 
 function drawRHRAxis() {
@@ -477,6 +485,14 @@ function drawRHRAxis() {
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(4, y); ctx.stroke();
   }
+  ctx.save();
+  ctx.translate(20, padTop + dH / 2);
+  ctx.rotate(Math.PI / 2);
+  ctx.font = '8px monospace';
+  ctx.fillStyle = 'rgba(160,180,192,0.4)';
+  ctx.textAlign = 'center';
+  ctx.fillText('RHR', 0, 0);
+  ctx.restore();
 }
 
 // ---------- Chart ----------
