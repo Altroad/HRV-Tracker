@@ -248,6 +248,7 @@
   <div class="status-subs">
     <div class="status-sub" id="statusSub"></div>
     <div class="status-sub" id="statusSubRHR"></div>
+    <div class="status-sub" id="statusSubTemp"></div>
   </div>
 </div>
 
@@ -1098,16 +1099,36 @@ function setStatus(hrv) {
   const rhrZone = latestRHR !== null
     ? (latestRHR <= rhrBaseline+1 ? 'Excellent' : latestRHR <= rhrBaseline+4 ? 'Good' : latestRHR <= rhrBaseline+7 ? 'Elevated' : 'High')
     : null;
+  const tempDates = Object.keys(tempData).sort();
+  const latestTemp = tempDates.length ? tempData[tempDates.at(-1)] : null;
+  const eb = getEffectiveBaseline();
+  const tempHigh = latestTemp !== null && eb !== null && (latestTemp - eb) > 0.5;
+
   const fallback = { High: 'High — autonomic system well recovered.', Good: 'Good — all systems should be in order.', OK: 'OK — monitor trend direction.', Low: 'Low — nervous system under pressure.' };
+  let message;
+  if (hrvZone === 'Low' && rhrZone === 'High' && tempHigh) {
+    message = 'Triple-system alarm — suppressed HRV, elevated RHR, and raised wrist temperature. Classic acute illness signature. Rest and monitor symptoms closely.';
+  } else {
+    message = rhrZone ? STATUS_MESSAGES[`${hrvZone},${rhrZone}`] : fallback[hrvZone];
+    if (tempHigh) message += ' Raised wrist temperature detected — monitor for early illness or systemic stress.';
+  }
   const txt = $('statusText');
-  txt.textContent = rhrZone ? STATUS_MESSAGES[`${hrvZone},${rhrZone}`] : fallback[hrvZone];
-  txt.style.color = color;
+  txt.textContent = message;
+  txt.style.color = tempHigh && hrvZone === 'Low' && rhrZone === 'High' ? COLORS.red : color;
   $('statusSub').textContent = `HRV ${hrvZone} · ${(vsB >= 0 ? '+' : '') + vsB}ms vs baseline`;
   if (rhrZone) {
     const rhrDelta = latestRHR - rhrBaseline;
     $('statusSubRHR').textContent = `RHR ${rhrZone} · ${latestRHR} bpm (${rhrDelta >= 0 ? '+' : ''}${rhrDelta} vs baseline)`;
   } else {
     $('statusSubRHR').textContent = '';
+  }
+  if (latestTemp !== null) {
+    const dev = eb !== null ? (latestTemp - eb) : null;
+    const devStr = dev !== null ? ` (${dev >= 0 ? '+' : ''}${dev.toFixed(2)}°)` : '';
+    $('statusSubTemp').textContent = `Temp ${latestTemp.toFixed(2)}°C${devStr}`;
+    $('statusSubTemp').style.color = tempHigh ? '#f44336' : dev !== null && dev < -0.5 ? '#64b5f6' : 'var(--muted)';
+  } else {
+    $('statusSubTemp').textContent = '';
   }
 }
 
