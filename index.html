@@ -662,7 +662,7 @@ function updateChartPopup(meta) {
       : '';
     metricsHtml += `<div class="chart-popup-metric">
       <div class="chart-popup-label">TEMP</div>
-      <div class="chart-popup-value" style="color:${tempZoneColor(temp)}">${temp.toFixed(1)}°</div>
+      <div class="chart-popup-value" style="color:${tempZoneColor(temp)}">${temp.toFixed(2)}°</div>
       ${devHtml}
     </div>`;
   }
@@ -1612,7 +1612,7 @@ function runSlowWaveCalc(text, overlay) {
     if (nightTemp !== null) {
       const date = $('inputDate').value;
       if (date) { tempData[date] = nightTemp; saveTemp(); }
-      $('calcTempValue').textContent = nightTemp.toFixed(1);
+      $('calcTempValue').textContent = nightTemp.toFixed(2);
       $('calcTempValue').style.color = tempZoneColor(nightTemp);
       if (tempBaseline !== null) {
         const dev = nightTemp - tempBaseline;
