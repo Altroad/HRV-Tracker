@@ -2337,7 +2337,7 @@ function showTempBaselineModal() {
     ? Object.keys(tempData).filter(d => d > tempBaselineSetDate).length
     : Object.keys(tempData).length;
   const statusHtml = isAuto
-    ? `<span style="color:#4caf50">Auto · rolling median of last 14 nights (${Object.keys(tempData).length} nights total)</span>`
+    ? `<span style="color:#4caf50">Auto · rolling median · <strong>${eb.toFixed(2)}°C</strong> (${Object.keys(tempData).length} nights)</span>`
     : eb !== null
       ? `<span style="color:#e67c8a">Manual · ${nightsAfter}/7 nights to auto</span>`
       : '<span style="color:var(--muted)">Not set</span>';
