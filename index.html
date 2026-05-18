@@ -1440,8 +1440,8 @@ function runSlowWaveCalc(text, overlay) {
       if (g < 30) smallGaps.push(g);
     }
     smallGaps.sort((a, b) => a - b);
-    const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 8;
-    const consecutiveThreshold = Math.ceil(typicalGap * 1.5);
+    const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 15;
+    const consecutiveThreshold = typicalGap + 1;
 
     // Build consecutive groups across all sleep readings
     const groups = [];
