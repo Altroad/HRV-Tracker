@@ -352,8 +352,9 @@ const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const RHR_KEY       = 'hrv_rhr_v1';
 const RHR_NOTES_KEY = 'hrv_rhr_notes_v1';
-const TEMP_KEY          = 'hrv_wrist_temp_v1';
-const TEMP_BASELINE_KEY = 'hrv_temp_baseline_v1';
+const TEMP_KEY               = 'hrv_wrist_temp_v1';
+const TEMP_BASELINE_KEY      = 'hrv_temp_baseline_v1';
+const TEMP_BASELINE_DATE_KEY = 'hrv_temp_baseline_date_v1';
 const RHR_SCALE_MIN = 35, RHR_SCALE_MAX = 60;
 
 // ---------- Tags ----------
@@ -390,6 +391,7 @@ let rhrData = {};
 let rhrNotes = {};
 let tempData = {};
 let tempBaseline = null;
+let tempBaselineSetDate = null;
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -408,18 +410,35 @@ function saveRHR() {
   try { localStorage.setItem(RHR_KEY, JSON.stringify(rhrData)); } catch {}
   try { localStorage.setItem(RHR_NOTES_KEY, JSON.stringify(rhrNotes)); } catch {}
 }
+function getRollingMedianBaseline() {
+  const vals = Object.entries(tempData)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-14).map(([, v]) => v).sort((a, b) => a - b);
+  if (!vals.length) return null;
+  const mid = Math.floor(vals.length / 2);
+  return vals.length % 2 === 0 ? (vals[mid - 1] + vals[mid]) / 2 : vals[mid];
+}
+function getEffectiveBaseline() {
+  const total = Object.keys(tempData).length;
+  if (tempBaselineSetDate === null) return total >= 7 ? getRollingMedianBaseline() : tempBaseline;
+  const nightsAfter = Object.keys(tempData).filter(d => d > tempBaselineSetDate).length;
+  return nightsAfter >= 7 ? getRollingMedianBaseline() : tempBaseline;
+}
 const tempZoneColor = temp => {
-  if (tempBaseline === null) return '#a0b4c0';
-  const dev = temp - tempBaseline;
+  const eb = getEffectiveBaseline();
+  if (eb === null) return '#a0b4c0';
+  const dev = temp - eb;
   return dev > 0.5 ? '#f44336' : dev < -0.5 ? '#64b5f6' : '#e67c8a';
 };
 function loadTemp() {
   try { const raw = localStorage.getItem(TEMP_KEY); if (raw) tempData = JSON.parse(raw); } catch { tempData = {}; }
   try { const raw = localStorage.getItem(TEMP_BASELINE_KEY); if (raw !== null) tempBaseline = parseFloat(raw) || null; } catch {}
+  try { const raw = localStorage.getItem(TEMP_BASELINE_DATE_KEY); if (raw) tempBaselineSetDate = raw; } catch {}
 }
 function saveTemp() {
   try { localStorage.setItem(TEMP_KEY, JSON.stringify(tempData)); } catch {}
   if (tempBaseline !== null) try { localStorage.setItem(TEMP_BASELINE_KEY, String(tempBaseline)); } catch {}
+  if (tempBaselineSetDate) try { localStorage.setItem(TEMP_BASELINE_DATE_KEY, tempBaselineSetDate); } catch {}
 }
 
 function showToast(msg) {
@@ -656,7 +675,7 @@ function updateChartPopup(meta) {
   }
 
   if (temp !== undefined) {
-    const dev = tempBaseline !== null ? temp - tempBaseline : null;
+    const dev = getEffectiveBaseline() !== null ? temp - getEffectiveBaseline() : null;
     const devHtml = dev !== null
       ? `<div class="chart-popup-sub" style="color:${tempZoneColor(temp)}">${dev >= 0 ? '+' : ''}${dev.toFixed(2)}°</div>`
       : '';
@@ -1330,7 +1349,7 @@ function openModal(innerHTML) {
 }
 
 function exportData() {
-  const payload = JSON.stringify({ readings, rhr: rhrData, temp: tempData, tempBaseline });
+  const payload = JSON.stringify({ readings, rhr: rhrData, temp: tempData, tempBaseline, tempBaselineSetDate });
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(payload)
       .then(() => showToast(`Copied ${readings.length} readings + RHR to clipboard`))
@@ -1407,6 +1426,7 @@ function doImport(text, overlay) {
     }
     if (!Array.isArray(parsed) && parsed.tempBaseline != null && tempBaseline === null) {
       tempBaseline = parsed.tempBaseline;
+      if (parsed.tempBaselineSetDate) tempBaselineSetDate = parsed.tempBaselineSetDate;
       saveTemp();
     }
 
@@ -1596,8 +1616,9 @@ function runSlowWaveCalc(text, overlay) {
       if (date) { tempData[date] = nightTemp; saveTemp(); }
       $('calcTempValue').textContent = nightTemp.toFixed(2);
       $('calcTempValue').style.color = tempZoneColor(nightTemp);
-      if (tempBaseline !== null) {
-        const dev = nightTemp - tempBaseline;
+      const _eb = getEffectiveBaseline();
+      if (_eb !== null) {
+        const dev = nightTemp - _eb;
         const sign = dev >= 0 ? '+' : '';
         $('calcTempDelta').textContent = `${sign}${dev.toFixed(2)}°`;
         $('calcTempDelta').style.color = tempZoneColor(nightTemp);
@@ -2196,14 +2217,14 @@ async function loadFromGitHub() {
     readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
     if (!Array.isArray(data) && data.rhr) { rhrData = data.rhr; if (data.rhrNotes) rhrNotes = data.rhrNotes; saveRHR(); }
-    if (!Array.isArray(data) && data.temp) { tempData = data.temp; if (data.tempBaseline != null) tempBaseline = data.tempBaseline; saveTemp(); }
+    if (!Array.isArray(data) && data.temp) { tempData = data.temp; if (data.tempBaseline != null) tempBaseline = data.tempBaseline; if (data.tempBaselineSetDate) tempBaselineSetDate = data.tempBaselineSetDate; saveTemp(); }
     return true;
   } catch { return false; }
 }
 
 async function saveToGitHub() {
   if (!getGHToken()) return false;
-  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline };
+  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -2306,10 +2327,24 @@ function showMenuModal() {
 }
 
 function showTempBaselineModal() {
+  const eb = getEffectiveBaseline();
+  const isAuto = eb !== null && (() => {
+    const total = Object.keys(tempData).length;
+    if (tempBaselineSetDate === null) return total >= 7;
+    return Object.keys(tempData).filter(d => d > tempBaselineSetDate).length >= 7;
+  })();
+  const nightsAfter = tempBaselineSetDate
+    ? Object.keys(tempData).filter(d => d > tempBaselineSetDate).length
+    : Object.keys(tempData).length;
+  const statusHtml = isAuto
+    ? `<span style="color:#4caf50">Auto · rolling median of last 14 nights (${Object.keys(tempData).length} nights total)</span>`
+    : eb !== null
+      ? `<span style="color:#e67c8a">Manual · ${nightsAfter}/7 nights to auto</span>`
+      : '<span style="color:var(--muted)">Not set</span>';
   const current = tempBaseline !== null ? tempBaseline.toFixed(2) : '';
   const overlay = openModal(`
     <div class="modal-title">Wrist Temp Baseline</div>
-    <div class="modal-desc">Enter your Apple-provided baseline wrist temperature in °C. Readings above +0.5° show red, below −0.5° show blue, within range show pink.<br><br>Current: ${current ? `<strong style="color:#e67c8a">${current}°C</strong>` : '<span style="color:var(--muted)">not set</span>'}</div>
+    <div class="modal-desc">Status: ${statusHtml}<br><br>Once 7 nights of data are logged after a manual entry, the baseline switches to a rolling median automatically. Entering a new value below resets that counter.<br><br>Readings above +0.5° show red, below −0.5° show blue, within range show pink.</div>
     <input id="tempBaselineInput" type="number" step="0.01" min="30" max="42" placeholder="e.g. 35.80" value="${current}" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;margin-bottom:12px;box-sizing:border-box;">
     <button class="modal-btn" id="saveTempBaseline">Save</button>
     <button class="modal-btn cancel" data-close>Cancel</button>
@@ -2318,9 +2353,10 @@ function showTempBaselineModal() {
     const val = parseFloat(overlay.querySelector('#tempBaselineInput').value);
     if (isNaN(val) || val < 30 || val > 42) { showToast('Enter a valid temperature (30–42°C)'); return; }
     tempBaseline = val;
+    tempBaselineSetDate = new Date().toISOString().split('T')[0];
     saveTemp();
     overlay.remove();
-    showToast('Temp baseline saved');
+    showToast('Temp baseline saved · auto in 7 nights');
     render();
   });
   overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
