@@ -1429,7 +1429,7 @@ function runSlowWaveCalc(text, overlay) {
     let curGroup = [sortedAll[0]];
     for (let i = 1; i < sortedAll.length; i++) {
       const gap = (parseTimestamp(sortedAll[i]).getTime() - parseTimestamp(sortedAll[i - 1]).getTime()) / 60000;
-      if (gap <= 6) curGroup.push(sortedAll[i]);
+      if (gap <= 8) curGroup.push(sortedAll[i]);
       else { groups.push(curGroup); curGroup = [sortedAll[i]]; }
     }
     groups.push(curGroup);
