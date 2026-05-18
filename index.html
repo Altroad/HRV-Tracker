@@ -260,7 +260,7 @@
 
 <div class="card">
   <div class="chart-header" style="margin-bottom:8px;">
-    <div class="chart-title">HRV/RHR Trend</div>
+    <div class="chart-title">HRV / RHR / Temp</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="btn14d" onclick="setChartRange(14)">14D</button>
       <button class="range-btn" id="btn60d" onclick="setChartRange(60)">60D</button>
@@ -297,7 +297,7 @@
 </div>
 
 <div class="card">
-  <div class="input-label">Log HRV &amp; RHR</div>
+  <div class="input-label">Log HRV, RHR &amp; Temp</div>
   <div class="input-row">
     <input type="date" id="inputDate" style="flex:2;min-width:0;">
     <input type="number" id="inputHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
@@ -1356,7 +1356,7 @@ function exportData() {
   const payload = JSON.stringify({ readings, rhr: rhrData, temp: tempData, tempBaseline, tempBaselineSetDate });
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(payload)
-      .then(() => showToast(`Copied ${readings.length} readings + RHR to clipboard`))
+      .then(() => showToast(`Copied ${readings.length} HRV · ${Object.keys(rhrData).length} RHR · ${Object.keys(tempData).length} Temp to clipboard`))
       .catch(() => showExportModal(payload));
   } else {
     showExportModal(payload);
@@ -1366,7 +1366,7 @@ function exportData() {
 function showExportModal(data) {
   const rhrCount = Object.keys(rhrData).length;
   const overlay = openModal(`
-    <div class="modal-title">Backup Data — ${readings.length} HRV · ${rhrCount} RHR</div>
+    <div class="modal-title">Backup Data — ${readings.length} HRV · ${rhrCount} RHR · ${Object.keys(tempData).length} Temp</div>
     <div class="modal-desc">Copy this text and save it somewhere safe. To restore later, tap Import and paste it back.</div>
     <textarea readonly></textarea>
     <button class="modal-btn" data-close>CLOSE</button>
@@ -1381,7 +1381,7 @@ function showExportModal(data) {
 function showImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Import Backup</div>
-    <div class="modal-desc">Paste your backup text below. Both HRV and RHR data will be restored. Only new entries will be added — existing data stays intact.</div>
+    <div class="modal-desc">Paste your backup text below. HRV, RHR, and Temp data will all be restored. Only new entries will be added — existing data stays intact.</div>
     <textarea placeholder="Paste backup JSON here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -2416,7 +2416,7 @@ function showInfoModal() {
       <strong>Step 3 — Trimmed mean</strong><br>
       The highest and lowest readings are dropped; the remaining values are averaged. Consecutive readings are grouped into a single bordered block — readings shown side by side share an unbroken recording window. Isolated readings appear as individual chips. Chips are colour-coded: <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red or pink = dropped.<br><br>
 
-      The heart rate export is used to calculate your RHR for that night — the lowest consecutive 10-minute window between midnight and 3:30am. Both HRV and RHR are pre-filled; press ADD to log them together.<br><br>
+      The heart rate export is used to calculate your RHR for that night — the lowest consecutive 10-minute window between midnight and 3:30am. The sleeping wrist temperature is also extracted if present. HRV and RHR are pre-filled into the inputs; Temp is stored automatically; press ADD to log them together.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">MANUAL SYNC</strong><br>
       For back-filling historical data. Paste one day's HRV export, two consecutive days', or a full monthly export. The date &amp; window picker lets you choose which night and capture window to score:<br><br>
@@ -2457,10 +2457,20 @@ function showInfoModal() {
       <span style="color:#f44336">●</span> >${rhrBaseline+7} — High<br><br>
 
       <strong>Importing RHR</strong><br>
-      Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV and RHR together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
+      Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV, RHR, and Temp together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
 
       <strong>Backup &amp; sync</strong><br>
-      RHR data is included in both the Export Backup and GitHub sync, so it is fully restored after a reinstall.
+      HRV, RHR, and Temp data are all included in the Export Backup and GitHub sync, so everything is fully restored after a reinstall.
+
+      <br><br><strong style="color:var(--accent);letter-spacing:1px;">WRIST TEMPERATURE</strong><br>
+      Apple Watch measures your skin temperature each night during sleep (available in Health Auto Export as <em>apple_sleeping_wrist_temperature</em>). The Overnight Capture extracts this automatically. The outer ring on each chart dot shows the temperature zone for that night:<br><br>
+
+      <span style="color:#64b5f6">●</span> <strong>Low</strong> — more than 0.5°C below baseline<br>
+      <span style="color:#e67c8a">●</span> <strong>Normal</strong> — within 0.5°C of baseline<br>
+      <span style="color:#f44336">●</span> <strong>High</strong> — more than 0.5°C above baseline<br><br>
+
+      <strong>Baseline</strong><br>
+      Set an initial baseline manually via ≡ → Set Temp Baseline (use the value from Apple Health). After 7 nights of captured data the app switches automatically to a rolling median of your last 14 nights, recalculated each capture. Entering a new manual value resets the 7-night counter. The current baseline and mode are shown in the Tools modal.
 
     </div>
     <button class="modal-btn" style="margin-top:12px;" data-close>CLOSE</button>
