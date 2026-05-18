@@ -2311,8 +2311,13 @@ async function loadFromGitHub() {
     const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
     readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
-    if (!Array.isArray(data) && data.rhr) { rhrData = data.rhr; if (data.rhrNotes) rhrNotes = data.rhrNotes; saveRHR(); }
-    if (!Array.isArray(data) && data.temp) { tempData = data.temp; if (data.tempBaseline != null) tempBaseline = data.tempBaseline; if (data.tempBaselineSetDate) tempBaselineSetDate = data.tempBaselineSetDate; saveTemp(); }
+    rhrData  = (!Array.isArray(data) && data.rhr)  ? data.rhr  : {};
+    rhrNotes = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
+    saveRHR();
+    tempData            = (!Array.isArray(data) && data.temp) ? data.temp : {};
+    tempBaseline        = (!Array.isArray(data) && data.tempBaseline != null) ? data.tempBaseline : null;
+    tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
+    saveTemp();
     return true;
   } catch { return false; }
 }
