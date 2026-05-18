@@ -134,7 +134,7 @@
   .calc-chip.core  { background:rgba(0,229,255,0.08); border:1px solid var(--accent); color:var(--accent); }
   .calc-chip.deep.dropped { color:#ff5252; border:1px solid rgba(255,82,82,0.5); background:rgba(255,82,82,0.12); }
   .calc-chip.core.dropped { color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
-  .calc-group { display:inline-flex; border:1px solid rgba(160,180,192,0.2); border-radius:6px; overflow:hidden; }
+  .calc-group { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; border:1px solid rgba(160,180,192,0.2); border-radius:6px; overflow:hidden; }
   .calc-cell { display:flex; flex-direction:column; align-items:center; padding:5px 10px; }
   .calc-cell + .calc-cell { border-left:1px solid rgba(160,180,192,0.12); }
   .calc-cell-t { font-family:var(--font-mono); font-size:9px; opacity:0.55; white-space:nowrap; }
