@@ -1432,39 +1432,31 @@ function runSlowWaveCalc(text, overlay) {
       .sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
     const deepSet = new Set(deepReadings);
 
-    // Auto-detect typical recording interval from inter-reading gaps < 30 min
     const sortedAll = [...allHRV].sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
-    const smallGaps = [];
-    for (let i = 1; i < sortedAll.length; i++) {
-      const g = (parseTimestamp(sortedAll[i]).getTime() - parseTimestamp(sortedAll[i - 1]).getTime()) / 60000;
-      if (g < 30) smallGaps.push(g);
-    }
-    smallGaps.sort((a, b) => a - b);
-    const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 32;
     const consecutiveThreshold = 20;
 
-    // Build consecutive groups across all sleep readings
-    const groups = [];
-    let curGroup = [sortedAll[0]];
-    for (let i = 1; i < sortedAll.length; i++) {
-      const gap = (parseTimestamp(sortedAll[i]).getTime() - parseTimestamp(sortedAll[i - 1]).getTime()) / 60000;
-      if (gap <= consecutiveThreshold) curGroup.push(sortedAll[i]);
-      else { groups.push(curGroup); curGroup = [sortedAll[i]]; }
+    // Build consecutive groups within ONLY Deep readings
+    const deepGroups = [];
+    if (deepReadings.length > 0) {
+      let curDeepGroup = [deepReadings[0]];
+      for (let i = 1; i < deepReadings.length; i++) {
+        const gap = (parseTimestamp(deepReadings[i]).getTime() - parseTimestamp(deepReadings[i - 1]).getTime()) / 60000;
+        if (gap <= consecutiveThreshold) curDeepGroup.push(deepReadings[i]);
+        else { deepGroups.push(curDeepGroup); curDeepGroup = [deepReadings[i]]; }
+      }
+      deepGroups.push(curDeepGroup);
     }
-    groups.push(curGroup);
 
-    // Longest consecutive group that contains at least one Deep reading
-    const anchorGroup = groups
-      .filter(g => g.some(r => deepSet.has(r)))
-      .sort((a, b) => b.length - a.length)[0] || [];
+    // Longest consecutive run of Deep readings → anchor
+    const longestDeepGroup = deepGroups.sort((a, b) => b.length - a.length)[0] || [];
 
-    // Take middle 3 from anchor group (avoids stage-transition edges)
+    // Take middle 3 (avoids stage-transition edges)
     let anchor = [];
-    if (anchorGroup.length >= 3) {
-      const mid = Math.floor((anchorGroup.length - 3) / 2);
-      anchor = anchorGroup.slice(mid, mid + 3);
+    if (longestDeepGroup.length >= 3) {
+      const mid = Math.floor((longestDeepGroup.length - 3) / 2);
+      anchor = longestDeepGroup.slice(mid, mid + 3);
     } else {
-      anchor = [...anchorGroup];
+      anchor = [...longestDeepGroup];
     }
 
     // Top up: remaining Deep readings first, then Core 11:30pm–2am
@@ -2261,7 +2253,7 @@ function showInfoModal() {
       The primary import method. Paste four Health Auto Export JSONs together: previous day HRV, morning HRV, sleep analysis, and heart rate. The algorithm prioritises consecutive readings from the most stable deep sleep period:<br><br>
 
       <strong>Step 1 — Deep Sleep Anchor</strong><br>
-      All overnight HRV readings are grouped into consecutive runs. The recording interval is detected from your export (Apple Watch records HRV every 15 minutes during sleep — a gap of more than 20 minutes signals a break in the run). The longest run containing at least one Deep sleep reading is identified. The middle 3 readings of that run are taken as the anchor — avoiding the stage-transition edges where the autonomic signal is less settled.<br><br>
+      Your Deep sleep readings are grouped into consecutive runs (Apple Watch records HRV every 15 minutes — a gap of more than 20 minutes signals a break). The longest consecutive run of Deep sleep readings is identified, and the middle 3 readings from that run are taken as the anchor. This guarantees the anchor is always from true deep sleep, not just mathematically near the middle of the night.<br><br>
 
       <strong>Step 2 — Top-up to 7</strong><br>
       Remaining Deep sleep readings are added first, then Core sleep readings between 11:30pm and 2:00am, until 7 readings are reached.<br><br>
