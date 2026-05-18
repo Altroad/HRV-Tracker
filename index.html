@@ -143,6 +143,8 @@
   .calc-cell.core { background:rgba(0,229,255,0.08); color:var(--accent); }
   .calc-cell.deep.dropped { color:#ff5252; background:rgba(255,82,82,0.12); }
   .calc-cell.core.dropped { color:#ef9a9a; background:rgba(244,67,54,0.08); }
+  .history-temp { font-family:var(--font-mono); font-size:11px; letter-spacing:0.5px; opacity:0.85; }
+  .calc-temp-delta { font-size:9px; font-family:var(--font-mono); letter-spacing:2px; margin-top:4px; }
 
   /* Heatmap */
   .heatmap-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
@@ -307,6 +309,11 @@
         <div class="calc-result-value" id="calcRHRValue">—</div>
         <div class="calc-rhr-window" id="calcRHRWindow" style="display:none;"></div>
       </div>
+      <div class="calc-metric" id="calcTempDisplay" style="display:none;">
+        <div class="calc-metric-label">TEMP</div>
+        <div class="calc-result-value" id="calcTempValue" style="font-size:36px;">—</div>
+        <div class="calc-temp-delta" id="calcTempDelta" style="display:none;"></div>
+      </div>
     </div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
@@ -336,6 +343,8 @@ const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const RHR_KEY       = 'hrv_rhr_v1';
 const RHR_NOTES_KEY = 'hrv_rhr_notes_v1';
+const TEMP_KEY          = 'hrv_wrist_temp_v1';
+const TEMP_BASELINE_KEY = 'hrv_temp_baseline_v1';
 const RHR_SCALE_MIN = 35, RHR_SCALE_MAX = 60;
 
 // ---------- Tags ----------
@@ -367,6 +376,8 @@ let _rhrMetrics = null;
 let rhrBaseline = 40;
 let rhrData = {};
 let rhrNotes = {};
+let tempData = {};
+let tempBaseline = null;
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
@@ -384,6 +395,19 @@ function loadRHR() {
 function saveRHR() {
   try { localStorage.setItem(RHR_KEY, JSON.stringify(rhrData)); } catch {}
   try { localStorage.setItem(RHR_NOTES_KEY, JSON.stringify(rhrNotes)); } catch {}
+}
+const tempZoneColor = temp => {
+  if (tempBaseline === null) return '#a0b4c0';
+  const dev = temp - tempBaseline;
+  return dev > 0.5 ? '#f44336' : dev < -0.5 ? '#64b5f6' : '#e67c8a';
+};
+function loadTemp() {
+  try { const raw = localStorage.getItem(TEMP_KEY); if (raw) tempData = JSON.parse(raw); } catch { tempData = {}; }
+  try { const raw = localStorage.getItem(TEMP_BASELINE_KEY); if (raw !== null) tempBaseline = parseFloat(raw) || null; } catch {}
+}
+function saveTemp() {
+  try { localStorage.setItem(TEMP_KEY, JSON.stringify(tempData)); } catch {}
+  if (tempBaseline !== null) try { localStorage.setItem(TEMP_BASELINE_KEY, String(tempBaseline)); } catch {}
 }
 
 function showToast(msg) {
@@ -525,7 +549,7 @@ function sizeChartCanvas(n) {
   return canvas;
 }
 
-function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
+function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDate) {
   return {
     id: 'customPoints',
     afterDatasetsDraw(chart) {
@@ -535,13 +559,24 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
 
       meta.data.forEach((pt, i) => {
         const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
-        // RHR halo — stroke ring with gap (matches tap-selection ring style)
+        // RHR halo
         if (rhr !== undefined) {
           ctx.save();
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, pr + 3, 0, Math.PI * 2);
           ctx.strokeStyle = rhrZoneColor(rhr);
           ctx.lineWidth = 4;
+          ctx.stroke();
+          ctx.restore();
+        }
+        // Temp halo (outermost ring)
+        const temp = tempByDate ? tempByDate[sortedDates[i]] : undefined;
+        if (temp !== undefined) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pr + 10, 0, Math.PI * 2);
+          ctx.strokeStyle = tempZoneColor(temp);
+          ctx.lineWidth = 3;
           ctx.stroke();
           ctx.restore();
         }
@@ -553,7 +588,7 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate) {
         ctx.fill();
         if (tappedIdx === i) {
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + (rhr !== undefined ? 7 : 4), 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, pr + (temp !== undefined ? 14 : rhr !== undefined ? 7 : 4), 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -696,7 +731,7 @@ function renderChart() {
 
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    plugins: [buildPointsPlugin(values, pr, canvas, sortedDates, rhrData)],
+    plugins: [buildPointsPlugin(values, pr, canvas, sortedDates, rhrData, tempData)],
     data: { labels, datasets },
     options: {
       responsive: false, animation: false,
@@ -874,6 +909,10 @@ function renderHistoryList() {
       const rhrSpan = rhrVal !== undefined
         ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>`
         : '';
+      const tempVal = tempData[r.date];
+      const tempSpan = tempVal !== undefined
+        ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}">${tempVal.toFixed(1)}°</span>`
+        : '';
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
         : `<button class="note-btn" onclick="toggleNote('${r.id}')">✎</button>`;
@@ -887,7 +926,7 @@ function renderHistoryList() {
         </div>
         <div class="history-nums">
           <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
-          ${rhrSpan}
+          ${rhrSpan}${tempSpan}
         </div>
         <div class="history-delta" style="color:${dColor}">${dStr}</div>
         ${noteIcon}
@@ -1218,6 +1257,8 @@ function addEntry() {
 }
 
 function deleteReading(id) {
+  const r = readings.find(r => String(r.id) === String(id));
+  if (r) { delete tempData[r.date]; saveTemp(); }
   readings = readings.filter(r => String(r.id) !== String(id));
   save();
   render();
@@ -1226,7 +1267,9 @@ function deleteReading(id) {
 
 function deleteRHREntry(date) {
   delete rhrData[date];
+  delete tempData[date];
   saveRHR();
+  saveTemp();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToGitHub(), 800);
   render();
@@ -1282,7 +1325,7 @@ function openModal(innerHTML) {
 }
 
 function exportData() {
-  const payload = JSON.stringify({ readings, rhr: rhrData });
+  const payload = JSON.stringify({ readings, rhr: rhrData, temp: tempData, tempBaseline });
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(payload)
       .then(() => showToast(`Copied ${readings.length} readings + RHR to clipboard`))
@@ -1350,11 +1393,24 @@ function doImport(text, overlay) {
       if (rhrAdded) saveRHR();
     }
 
+    let tempAdded = 0;
+    if (!Array.isArray(parsed) && parsed.temp) {
+      for (const [date, val] of Object.entries(parsed.temp)) {
+        if (!(date in tempData)) { tempData[date] = val; tempAdded++; }
+      }
+      if (tempAdded) saveTemp();
+    }
+    if (!Array.isArray(parsed) && parsed.tempBaseline != null && tempBaseline === null) {
+      tempBaseline = parsed.tempBaseline;
+      saveTemp();
+    }
+
     overlay.remove();
     render();
     const parts = [];
     if (added) parts.push(`${added} HRV`);
     if (rhrAdded) parts.push(`${rhrAdded} RHR`);
+    if (tempAdded) parts.push(`${tempAdded} Temp`);
     const skipped = valid.length - added;
     showToast(parts.length ? `Added: ${parts.join(' + ')}${skipped ? ` · ${skipped} skipped` : ''}` : 'Nothing new to import');
   } catch {
@@ -1490,6 +1546,14 @@ function runSlowWaveCalc(text, overlay) {
     const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
     const statLabel = `${selected.length} readings`;
 
+    // Extract wrist temperature if present
+    const tempBlock = blocks.find(b => b?.data?.metrics?.some(m => m.name === 'apple_sleeping_wrist_temperature'));
+    let nightTemp = null;
+    if (tempBlock) {
+      const tm = tempBlock.data.metrics.find(m => m.name === 'apple_sleeping_wrist_temperature');
+      if (tm?.data?.length) nightTemp = tm.data[0].qty;
+    }
+
     // Try to extract RHR from heart_rate block if present
     const hrBlock = blocks.find(b => {
       const mx = b?.data?.metrics ?? b?.metrics;
@@ -1520,6 +1584,26 @@ function runSlowWaveCalc(text, overlay) {
     } else {
       $('calcRHRDisplay').style.display = 'none';
       $('calcRHRWindow').style.display = 'none';
+    }
+
+    if (nightTemp !== null) {
+      const date = $('inputDate').value;
+      if (date) { tempData[date] = nightTemp; saveTemp(); }
+      $('calcTempValue').textContent = nightTemp.toFixed(1);
+      $('calcTempValue').style.color = tempZoneColor(nightTemp);
+      if (tempBaseline !== null) {
+        const dev = nightTemp - tempBaseline;
+        const sign = dev >= 0 ? '+' : '';
+        $('calcTempDelta').textContent = `${sign}${dev.toFixed(2)}°`;
+        $('calcTempDelta').style.color = tempZoneColor(nightTemp);
+        $('calcTempDelta').style.display = '';
+      } else {
+        $('calcTempDelta').style.display = 'none';
+      }
+      $('calcTempDisplay').style.display = '';
+    } else {
+      $('calcTempDisplay').style.display = 'none';
+      $('calcTempDelta').style.display = 'none';
     }
 
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
@@ -2107,13 +2191,14 @@ async function loadFromGitHub() {
     readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
     if (!Array.isArray(data) && data.rhr) { rhrData = data.rhr; if (data.rhrNotes) rhrNotes = data.rhrNotes; saveRHR(); }
+    if (!Array.isArray(data) && data.temp) { tempData = data.temp; if (data.tempBaseline != null) tempBaseline = data.tempBaseline; saveTemp(); }
     return true;
   } catch { return false; }
 }
 
 async function saveToGitHub() {
   if (!getGHToken()) return false;
-  const payload = { readings, rhr: rhrData, rhrNotes };
+  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -2204,12 +2289,35 @@ function showMenuModal() {
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export Backup</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import Backup</button>
     <button class="modal-btn" id="menuRHR" style="text-align:left;">Import RHR Data</button>
+    <button class="modal-btn" id="menuTemp" style="text-align:left;">Set Temp Baseline</button>
     <button class="modal-btn cancel" data-close>Close</button>
   `);
   overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportData(); });
   overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportModal(); });
   overlay.querySelector('#menuRHR').addEventListener('click',    () => { overlay.remove(); showRHRImportModal(); });
+  overlay.querySelector('#menuTemp').addEventListener('click',   () => { overlay.remove(); showTempBaselineModal(); });
+  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+}
+
+function showTempBaselineModal() {
+  const current = tempBaseline !== null ? tempBaseline.toFixed(2) : '';
+  const overlay = openModal(`
+    <div class="modal-title">Wrist Temp Baseline</div>
+    <div class="modal-desc">Enter your Apple-provided baseline wrist temperature in °C. Readings above +0.5° show red, below −0.5° show blue, within range show pink.<br><br>Current: ${current ? `<strong style="color:#e67c8a">${current}°C</strong>` : '<span style="color:var(--muted)">not set</span>'}</div>
+    <input id="tempBaselineInput" type="number" step="0.01" min="30" max="42" placeholder="e.g. 35.80" value="${current}" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;margin-bottom:12px;box-sizing:border-box;">
+    <button class="modal-btn" id="saveTempBaseline">Save</button>
+    <button class="modal-btn cancel" data-close>Cancel</button>
+  `);
+  overlay.querySelector('#saveTempBaseline').addEventListener('click', () => {
+    const val = parseFloat(overlay.querySelector('#tempBaselineInput').value);
+    if (isNaN(val) || val < 30 || val > 42) { showToast('Enter a valid temperature (30–42°C)'); return; }
+    tempBaseline = val;
+    saveTemp();
+    overlay.remove();
+    showToast('Temp baseline saved');
+    render();
+  });
   overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
 }
 
@@ -2349,6 +2457,7 @@ async function init() {
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
   loadRHR();
+  loadTemp();
   $('historyList').addEventListener('click', e => {
     const btn = e.target.closest('.delete-btn');
     if (btn) { handleDeleteClick(btn); return; }
