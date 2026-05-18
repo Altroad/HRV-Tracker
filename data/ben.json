@@ -13,11 +13,17 @@
       "hrv": 46,
       "note": "6pm gym + Can of coke with dinner / late caffeine",
       "tag": "<100TSS"
+    },
+    {
+      "id": 11,
+      "date": "2026-05-18",
+      "hrv": 61
     }
   ],
   "rhr": {
     "2026-05-17": 48,
-    "2026-05-19": 45
+    "2026-05-19": 45,
+    "2026-05-18": 41
   },
   "rhrNotes": {},
   "temp": {
