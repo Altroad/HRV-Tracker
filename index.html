@@ -1259,9 +1259,16 @@ function applyHRVZones() {
 
 function flipMetrics() {
   const cycle = ['hrv', 'rhr', 'temp'];
-  const nextMode = cycle[(cycle.indexOf(metricsMode) + 1) % 3];
-  if (nextMode === 'rhr'  && !_rhrMetrics)  { showToast('No RHR data yet');  return; }
-  if (nextMode === 'temp' && !_tempMetrics) { showToast('No temp data yet'); return; }
+  const currentIdx = cycle.indexOf(metricsMode);
+  let nextMode = null;
+  for (let i = 1; i < cycle.length; i++) {
+    const candidate = cycle[(currentIdx + i) % cycle.length];
+    if (candidate === 'rhr'  && !_rhrMetrics)  { showToast('No RHR data yet');  continue; }
+    if (candidate === 'temp' && !_tempMetrics) { showToast('No temp data yet'); continue; }
+    nextMode = candidate;
+    break;
+  }
+  if (!nextMode) return;
 
   const animEls = ['latestHRV','latestUnit','hrvDelta',
                    'avg3d','avg3Unit','avg3dDelta',
