@@ -1421,20 +1421,50 @@ function runSlowWaveCalc(text, overlay) {
     const deepReadings = allHRV
       .filter(r => inAnyStage(r, deepStages))
       .sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
-
-    const coreWindow = allHRV.filter(r => {
-      const { h, m } = readingLocalHM(r);
-      const mins = h * 60 + m;
-      return (mins >= 23 * 60 + 30 || mins < 2 * 60) && inAnyStage(r, coreStages);
-    }).sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
-
     const deepSet = new Set(deepReadings);
 
-    const needed = 7;
-    const selected = [...deepReadings];
+    // Build consecutive groups across all sleep readings (gap ≤ 6 min)
+    const sortedAll = [...allHRV].sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
+    const groups = [];
+    let curGroup = [sortedAll[0]];
+    for (let i = 1; i < sortedAll.length; i++) {
+      const gap = (parseTimestamp(sortedAll[i]).getTime() - parseTimestamp(sortedAll[i - 1]).getTime()) / 60000;
+      if (gap <= 6) curGroup.push(sortedAll[i]);
+      else { groups.push(curGroup); curGroup = [sortedAll[i]]; }
+    }
+    groups.push(curGroup);
+
+    // Longest consecutive group that contains at least one Deep reading
+    const anchorGroup = groups
+      .filter(g => g.some(r => deepSet.has(r)))
+      .sort((a, b) => b.length - a.length)[0] || [];
+
+    // Take middle 3 from anchor group (avoids stage-transition edges)
+    let anchor = [];
+    if (anchorGroup.length >= 3) {
+      const mid = Math.floor((anchorGroup.length - 3) / 2);
+      anchor = anchorGroup.slice(mid, mid + 3);
+    } else {
+      anchor = [...anchorGroup];
+    }
+
+    // Top up: remaining Deep readings first, then Core 11:30pm–2am
+    const anchorSet = new Set(anchor);
+    const remainingDeep = sortedAll.filter(r => deepSet.has(r) && !anchorSet.has(r));
+    const coreWindow = sortedAll.filter(r => {
+      const { h, m } = readingLocalHM(r);
+      const mins = h * 60 + m;
+      return (mins >= 23 * 60 + 30 || mins < 2 * 60) && inAnyStage(r, coreStages) && !anchorSet.has(r);
+    });
+
+    const selected = [...anchor];
+    for (const r of remainingDeep) {
+      if (selected.length >= 7) break;
+      selected.push(r);
+    }
     for (const r of coreWindow) {
-      if (selected.length >= needed) break;
-      if (!deepReadings.includes(r)) selected.push(r);
+      if (selected.length >= 7) break;
+      if (!anchorSet.has(r) && !remainingDeep.includes(r)) selected.push(r);
     }
 
     if (selected.length < 3) {
@@ -1466,7 +1496,7 @@ function runSlowWaveCalc(text, overlay) {
     const panel = $('calcResult');
     $('calcValue').textContent = avg;
     $('calcValue').style.color = colorForHRV(avg);
-    $('calcLabel').textContent = `Overnight Capture · Deep + Core 11:30pm–2:00am · ${statLabel}`;
+    $('calcLabel').textContent = `Overnight Capture · Deep anchor + top-up · ${statLabel}`;
 
     if (rhrResult) {
       $('calcRHRValue').textContent = rhrResult.rhr;
