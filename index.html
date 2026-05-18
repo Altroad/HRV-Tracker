@@ -2258,15 +2258,16 @@ function showInfoModal() {
     <div class="modal-desc" style="line-height:1.8;max-height:65vh;overflow-y:auto;padding-right:4px;">
 
       <strong style="color:var(--accent);letter-spacing:1px;">SLOW WAVE SYNC</strong><br>
-      The primary import method. Paste four Health Auto Export JSONs together: previous day HRV, morning HRV, sleep analysis, and heart rate. The app matches HRV readings against your Apple Watch sleep stages in priority order:<br><br>
+      The primary import method. Paste four Health Auto Export JSONs together: previous day HRV, morning HRV, sleep analysis, and heart rate. The algorithm prioritises consecutive readings from the most stable deep sleep period:<br><br>
 
-      <strong>Priority 1 — Deep Sleep HRV</strong><br>
-      HRV readings that fall inside a Deep (slow wave) sleep segment. Collected first, any time of night.<br><br>
+      <strong>Step 1 — Deep Sleep Anchor</strong><br>
+      All overnight HRV readings are grouped into consecutive runs (gaps ≤ ~1.5× your watch's typical recording interval). The longest run containing at least one Deep sleep reading is identified. The middle 3 readings of that run are taken as the anchor — avoiding the stage-transition edges where the autonomic signal is less settled.<br><br>
 
-      <strong>Priority 2 — Core Sleep HRV · 11:30pm – 2:00am</strong><br>
-      HRV readings during Core sleep within the early overnight window. Added until a total of 7 readings are reached.<br><br>
+      <strong>Step 2 — Top-up to 7</strong><br>
+      Remaining Deep sleep readings are added first, then Core sleep readings between 11:30pm and 2:00am, until 7 readings are reached.<br><br>
 
-      Once 7 readings are collected the trimmed mean is applied — highest and lowest are dropped, the remaining 5 are averaged. Chips are colour-coded: <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red or pink = dropped.<br><br>
+      <strong>Step 3 — Trimmed mean</strong><br>
+      The highest and lowest readings are dropped; the remaining values are averaged. Consecutive readings are grouped into a single bordered block — readings shown side by side share an unbroken recording window. Isolated readings appear as individual chips. Chips are colour-coded: <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red or pink = dropped.<br><br>
 
       The heart rate export is used to calculate your RHR for that night — the lowest consecutive 10-minute window between midnight and 3:30am. Both HRV and RHR are pre-filled; press ADD to log them together.<br><br>
 
