@@ -135,7 +135,7 @@
   .calc-chip.deep.dropped { color:#ff5252; border:1px solid rgba(255,82,82,0.5); background:rgba(255,82,82,0.12); }
   .calc-chip.core.dropped { color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
   .calc-group { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; width:100%; border:1px solid rgba(160,180,192,0.2); border-radius:6px; overflow:hidden; }
-  .calc-cell { display:flex; flex-direction:column; align-items:center; padding:4px 6px; }
+  .calc-cell { display:flex; flex-direction:column; align-items:center; padding:4px 10px; }
   .calc-cell + .calc-cell { border-left:1px solid rgba(160,180,192,0.12); }
   .calc-cell-t { font-family:var(--font-mono); font-size:9px; opacity:0.55; white-space:nowrap; }
   .calc-cell-v { font-family:var(--font-mono); font-size:13px; font-weight:600; }
@@ -1441,7 +1441,7 @@ function runSlowWaveCalc(text, overlay) {
     }
     smallGaps.sort((a, b) => a - b);
     const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 32;
-    const consecutiveThreshold = typicalGap + 1;
+    const consecutiveThreshold = 20;
 
     // Build consecutive groups across all sleep readings
     const groups = [];
@@ -2261,7 +2261,7 @@ function showInfoModal() {
       The primary import method. Paste four Health Auto Export JSONs together: previous day HRV, morning HRV, sleep analysis, and heart rate. The algorithm prioritises consecutive readings from the most stable deep sleep period:<br><br>
 
       <strong>Step 1 — Deep Sleep Anchor</strong><br>
-      All overnight HRV readings are grouped into consecutive runs. The recording interval is detected from your export (Apple Watch records HRV every 15 minutes during sleep — a gap of more than 16 minutes signals a break in the run). The longest run containing at least one Deep sleep reading is identified. The middle 3 readings of that run are taken as the anchor — avoiding the stage-transition edges where the autonomic signal is less settled.<br><br>
+      All overnight HRV readings are grouped into consecutive runs. The recording interval is detected from your export (Apple Watch records HRV every 15 minutes during sleep — a gap of more than 20 minutes signals a break in the run). The longest run containing at least one Deep sleep reading is identified. The middle 3 readings of that run are taken as the anchor — avoiding the stage-transition edges where the autonomic signal is less settled.<br><br>
 
       <strong>Step 2 — Top-up to 7</strong><br>
       Remaining Deep sleep readings are added first, then Core sleep readings between 11:30pm and 2:00am, until 7 readings are reached.<br><br>
