@@ -42,6 +42,7 @@
   .today-card .metric-value { font-size:34px; }
   .today-card::after { content:''; position:absolute; bottom:10px; right:12px; width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:0.35; transition:background 0.3s, opacity 0.3s; }
   .today-card.rhr-mode::after { background:var(--accent); opacity:0.7; }
+  .today-card.temp-mode::after { background:#e67c8a; opacity:0.7; }
 
   .metric { text-align:center; overflow:hidden; }
   .metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:6px; }
@@ -395,6 +396,7 @@ let historyFilter = null;
 let heatmapMode = 'hrv';
 let metricsMode = 'hrv';
 let _rhrMetrics = null;
+let _tempMetrics = null;
 let rhrBaseline = 40;
 let rhrData = {};
 let rhrNotes = {};
@@ -1212,10 +1214,33 @@ function updateMetrics() {
     _rhrMetrics = null;
   }
 
-  // If currently in RHR mode, reset to HRV on data update
-  if (metricsMode === 'rhr') {
+  // Compute temp metrics
+  const tempDates = Object.keys(tempData).sort();
+  if (tempDates.length) {
+    const latestT = tempData[tempDates.at(-1)];
+    const last7  = tempDates.slice(-7);
+    const prev7  = tempDates.slice(-14, -7);
+    const avg7T  = last7.reduce((a, d) => a + tempData[d], 0) / last7.length;
+    const prev7T = prev7.length ? prev7.reduce((a, d) => a + tempData[d], 0) / prev7.length : null;
+    const eb = getEffectiveBaseline();
+    const latestDev = eb !== null ? latestT - eb : null;
+    const diff = prev7T !== null ? avg7T - prev7T : null;
+    const trend      = diff === null || Math.abs(diff) <= 0.1 ? '→' : diff > 0 ? '↑' : '↓';
+    const trendColor = diff === null || Math.abs(diff) <= 0.1 ? COLORS.orange : diff > 0 ? '#f44336' : '#64b5f6';
+    const trendLbl   = diff === null || Math.abs(diff) <= 0.1 ? 'stable' : diff > 0 ? 'rising' : 'falling';
+    _tempMetrics = { latest: latestT, latestDev, avg7: avg7T, avg7Count: last7.length,
+                     prev7: prev7T, prev7Count: prev7.length, eb, trend, trendColor, trendLbl };
+  } else {
+    _tempMetrics = null;
+  }
+
+  // If currently in RHR or Temp mode, reset to HRV on data update
+  if (metricsMode === 'rhr' || metricsMode === 'temp') {
     metricsMode = 'hrv';
-    $('todayCard').classList.remove('rhr-mode');
+    $('todayCard').classList.remove('rhr-mode', 'temp-mode');
+    $('latestLabel').textContent = 'Latest';
+    $('avg3Label').textContent = '3D Avg';
+    $('avg7Label').textContent = '7D Avg';
     $('latestUnit').textContent = 'ms';
     $('avg3Unit').textContent = 'ms';
     $('avg7Unit').textContent = 'ms';
@@ -1233,8 +1258,10 @@ function applyHRVZones() {
 }
 
 function flipMetrics() {
-  const nextMode = metricsMode === 'hrv' ? 'rhr' : 'hrv';
-  if (nextMode === 'rhr' && !_rhrMetrics) { showToast('No RHR data yet'); return; }
+  const cycle = ['hrv', 'rhr', 'temp'];
+  const nextMode = cycle[(cycle.indexOf(metricsMode) + 1) % 3];
+  if (nextMode === 'rhr'  && !_rhrMetrics)  { showToast('No RHR data yet');  return; }
+  if (nextMode === 'temp' && !_tempMetrics) { showToast('No temp data yet'); return; }
 
   const animEls = ['latestHRV','latestUnit','hrvDelta',
                    'avg3d','avg3Unit','avg3dDelta',
@@ -1252,24 +1279,67 @@ function flipMetrics() {
 
     if (nextMode === 'rhr') {
       const m = _rhrMetrics;
+      $('latestLabel').textContent = 'Latest';
       $('latestHRV').textContent = m.latest;       $('latestHRV').style.color = m.latestColor;
       $('latestUnit').textContent = 'bpm';
       $('hrvDelta').textContent = m.latestDelta;    $('hrvDelta').style.color = m.latestDeltaColor;
+      $('avg3Label').textContent = '3D Avg';
       $('avg3d').textContent = m.avg3;              $('avg3d').style.color = m.avg3Color;
       $('avg3Unit').textContent = 'bpm';
       $('avg3dDelta').textContent = m.avg3Delta;    $('avg3dDelta').style.color = 'var(--muted)';
+      $('avg7Label').textContent = '7D Avg';
       $('avg7d').textContent = m.avg7;              $('avg7d').style.color = m.avg7Color;
       $('avg7Unit').textContent = 'bpm';
       $('avg7dDelta').textContent = m.avg7Delta;    $('avg7dDelta').style.color = 'var(--muted)';
       $('trendValue').textContent = m.trend;        $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLabel;
+      $('todayCard').classList.remove('temp-mode');
       $('todayCard').classList.add('rhr-mode');
-      // Zones — Excellent/Good/Elevated/High mapped to personal RHR baseline thresholds
       $('zoneLabelHigh').textContent = 'Excellent'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = `≤${rhrBaseline+1}`;
       $('zoneLabelGood').textContent = 'Good';      $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = `${rhrBaseline+2}–${rhrBaseline+4}`;
       $('zoneLabelOK').textContent   = 'Elevated';  $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = `${rhrBaseline+5}–${rhrBaseline+7}`;
       $('zoneLabelLow').textContent  = 'High';      $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = `>${rhrBaseline+7}`;
+
+    } else if (nextMode === 'temp') {
+      const m = _tempMetrics;
+      $('latestLabel').textContent = 'Tonight';
+      $('latestHRV').textContent = m.latest.toFixed(2); $('latestHRV').style.color = tempZoneColor(m.latest);
+      $('latestUnit').textContent = '°C';
+      if (m.latestDev !== null) {
+        $('hrvDelta').textContent = (m.latestDev >= 0 ? '+' : '') + m.latestDev.toFixed(2) + '° vs baseline';
+        $('hrvDelta').style.color = tempZoneColor(m.latest);
+      } else {
+        $('hrvDelta').textContent = 'no baseline set'; $('hrvDelta').style.color = COLORS.muted;
+      }
+      $('avg3Label').textContent = '7 Night';
+      $('avg3d').textContent = m.avg7.toFixed(2); $('avg3d').style.color = tempZoneColor(m.avg7);
+      $('avg3Unit').textContent = '°C';
+      $('avg3dDelta').textContent = m.avg7Count + ' night avg'; $('avg3dDelta').style.color = 'var(--muted)';
+      $('avg7Label').textContent = 'Prev 7';
+      if (m.prev7 !== null) {
+        $('avg7d').textContent = m.prev7.toFixed(2); $('avg7d').style.color = tempZoneColor(m.prev7);
+        $('avg7Unit').textContent = '°C';
+        $('avg7dDelta').textContent = m.prev7Count + ' night avg'; $('avg7dDelta').style.color = 'var(--muted)';
+      } else {
+        $('avg7d').textContent = '—'; $('avg7d').style.color = COLORS.muted;
+        $('avg7Unit').textContent = ''; $('avg7dDelta').textContent = 'not enough data'; $('avg7dDelta').style.color = COLORS.muted;
+      }
+      $('trendValue').textContent = m.trend; $('trendValue').style.color = m.trendColor;
+      $('trendLabel').textContent = m.trendLbl;
+      $('todayCard').classList.remove('rhr-mode');
+      $('todayCard').classList.add('temp-mode');
+      $('zoneLabelHigh').textContent = 'Low';    $('zoneHigh').style.color = '#64b5f6'; $('zoneHigh').textContent = '<−0.5°';
+      $('zoneLabelGood').textContent = 'Normal'; $('zoneGood').style.color = '#e67c8a'; $('zoneGood').textContent = '±0.5°';
+      $('zoneLabelOK').textContent   = 'High';   $('zoneOK').style.color   = '#f44336'; $('zoneOK').textContent   = '>+0.5°';
+      $('zoneLabelLow').textContent  = 'Base';
+      $('zoneLow').style.color = 'var(--muted)';
+      $('zoneLow').textContent = m.eb !== null ? m.eb.toFixed(2) + '°' : '—';
+
     } else {
+      $('todayCard').classList.remove('rhr-mode', 'temp-mode');
+      $('latestLabel').textContent = 'Latest';
+      $('avg3Label').textContent = '3D Avg';
+      $('avg7Label').textContent = '7D Avg';
       updateMetrics();
       applyHRVZones();
     }
