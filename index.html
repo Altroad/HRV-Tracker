@@ -127,7 +127,6 @@
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; }
-  .calc-connector { width:14px; height:2px; background:repeating-linear-gradient(90deg,rgba(160,180,192,0.5) 0,rgba(160,180,192,0.5) 3px,transparent 3px,transparent 6px); flex-shrink:0; align-self:center; border-radius:1px; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 8px; border-radius:4px; background:var(--border); color:var(--muted); }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
   .calc-chip.dropped { color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
@@ -135,6 +134,13 @@
   .calc-chip.core  { background:rgba(0,229,255,0.08); border:1px solid var(--accent); color:var(--accent); }
   .calc-chip.deep.dropped { color:#ff5252; border:1px solid rgba(255,82,82,0.5); background:rgba(255,82,82,0.12); }
   .calc-chip.core.dropped { color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
+  .calc-group { display:inline-flex; border:1px solid rgba(160,180,192,0.2); border-radius:6px; overflow:hidden; }
+  .calc-cell { font-family:var(--font-mono); font-size:11px; padding:4px 8px; }
+  .calc-cell + .calc-cell { border-left:1px solid rgba(160,180,192,0.12); }
+  .calc-cell.deep { background:rgba(13,71,161,0.25); color:#90caf9; }
+  .calc-cell.core { background:rgba(0,229,255,0.08); color:var(--accent); }
+  .calc-cell.deep.dropped { color:#ff5252; background:rgba(255,82,82,0.12); }
+  .calc-cell.core.dropped { color:#ef9a9a; background:rgba(244,67,54,0.08); }
 
   /* Heatmap */
   .heatmap-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
@@ -1523,21 +1529,36 @@ function runSlowWaveCalc(text, overlay) {
     }
 
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
-    let chipsHtml = '';
-    for (let i = 0; i < selected.length; i++) {
-      const r = selected[i];
-      if (i > 0) {
-        const gap = (parseTimestamp(r).getTime() - parseTimestamp(selected[i - 1]).getTime()) / 60000;
-        if (gap <= consecutiveThreshold) chipsHtml += '<div class="calc-connector"></div>';
-      }
+
+    // Group consecutive readings into render groups
+    const renderGroups = [[selected[0]]];
+    for (let i = 1; i < selected.length; i++) {
+      const gap = (parseTimestamp(selected[i]).getTime() - parseTimestamp(selected[i - 1]).getTime()) / 60000;
+      if (gap <= consecutiveThreshold) renderGroups[renderGroups.length - 1].push(selected[i]);
+      else renderGroups.push([selected[i]]);
+    }
+
+    const chipHtml = r => {
       const qty = Math.round(r.qty);
       const isDropped = droppedSet.has(r);
-      const isDeep = deepSet.has(r);
-      const stageCls = isDeep ? 'deep' : 'core';
+      const stageCls = deepSet.has(r) ? 'deep' : 'core';
       const droppedCls = isDropped ? ' dropped' : '';
       const { h, m } = readingLocalHM(r);
-      const t = `${h}:${String(m).padStart(2,'0')}`;
-      chipsHtml += `<div class="calc-chip ${stageCls}${droppedCls}">${t} · ${qty}</div>`;
+      return { t: `${h}:${String(m).padStart(2,'0')}`, qty, stageCls, droppedCls };
+    };
+
+    let chipsHtml = '';
+    for (const group of renderGroups) {
+      if (group.length === 1) {
+        const { t, qty, stageCls, droppedCls } = chipHtml(group[0]);
+        chipsHtml += `<div class="calc-chip ${stageCls}${droppedCls}">${t} · ${qty}</div>`;
+      } else {
+        const cells = group.map(r => {
+          const { t, qty, stageCls, droppedCls } = chipHtml(r);
+          return `<div class="calc-cell ${stageCls}${droppedCls}">${t} · ${qty}</div>`;
+        }).join('');
+        chipsHtml += `<div class="calc-group">${cells}</div>`;
+      }
     }
     $('calcReadings').innerHTML = chipsHtml;
     $('inputHRV').value = avg;
