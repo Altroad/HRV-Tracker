@@ -347,7 +347,7 @@ const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
 const DATE_KEY    = 'hrv_last_date';
-const CHART = { minV: 20, maxV: 150, height: 260, range: 14 };
+const CHART = { minV: 20, maxV: 150, height: 260 };
 const COLORS = { accent:'#00e5ff', green:'#4caf50', orange:'#ff9800', red:'#f44336', muted:'#4a6070', surface:'#0e1419' };
 const GH_OWNER = 'Altroad';
 const GH_REPO  = 'HRV-Tracker';
@@ -382,7 +382,6 @@ let currentPtW = 0;
 let tappedIdx = null;
 let chartSortedDates = [];
 let chartValues = [];
-let chartPR = 8;
 let nextId = 1;
 let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
@@ -423,10 +422,9 @@ function getRollingMedianBaseline() {
   return vals.length % 2 === 0 ? (vals[mid - 1] + vals[mid]) / 2 : vals[mid];
 }
 function getEffectiveBaseline() {
-  const total = Object.keys(tempData).length;
-  if (tempBaselineSetDate === null) return total >= 7 ? getRollingMedianBaseline() : tempBaseline;
-  const nightsAfter = Object.keys(tempData).filter(d => d > tempBaselineSetDate).length;
-  return nightsAfter >= 7 ? getRollingMedianBaseline() : tempBaseline;
+  const keys = Object.keys(tempData);
+  const count = tempBaselineSetDate === null ? keys.length : keys.filter(d => d > tempBaselineSetDate).length;
+  return count >= 7 ? getRollingMedianBaseline() : tempBaseline;
 }
 const tempZoneColor = temp => {
   const eb = getEffectiveBaseline();
@@ -733,7 +731,6 @@ function renderChart() {
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
   const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
-  chartPR = pr;
 
   const datasets = [
     { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
@@ -799,8 +796,8 @@ function fmtWeekRange(monday) {
 }
 
 function toggleWeek(key) {
-  const content = document.getElementById('week-' + key);
-  const chev = document.getElementById('chev-' + key);
+  const content = $('week-' + key);
+  const chev = $('chev-' + key);
   const collapsed = content.classList.toggle('collapsed');
   chev.textContent = collapsed ? '▶' : '▼';
 }
@@ -1098,20 +1095,15 @@ function setStatus(hrv) {
   dot.style.boxShadow = latestRHR !== null
     ? `0 0 0 2px var(--surface2), 0 0 0 5px ${rhrZoneColor(latestRHR)}`
     : 'none';
-  let text;
-  if (latestRHR !== null) {
-    const rhrZone = latestRHR <= rhrBaseline+1 ? 'Excellent' : latestRHR <= rhrBaseline+4 ? 'Good' : latestRHR <= rhrBaseline+7 ? 'Elevated' : 'High';
-    text = STATUS_MESSAGES[`${hrvZone},${rhrZone}`];
-  } else {
-    const fallback = { High: 'High — autonomic system well recovered.', Good: 'Good — all systems should be in order.', OK: 'OK — monitor trend direction.', Low: 'Low — nervous system under pressure.' };
-    text = fallback[hrvZone];
-  }
+  const rhrZone = latestRHR !== null
+    ? (latestRHR <= rhrBaseline+1 ? 'Excellent' : latestRHR <= rhrBaseline+4 ? 'Good' : latestRHR <= rhrBaseline+7 ? 'Elevated' : 'High')
+    : null;
+  const fallback = { High: 'High — autonomic system well recovered.', Good: 'Good — all systems should be in order.', OK: 'OK — monitor trend direction.', Low: 'Low — nervous system under pressure.' };
   const txt = $('statusText');
-  txt.textContent = text;
+  txt.textContent = rhrZone ? STATUS_MESSAGES[`${hrvZone},${rhrZone}`] : fallback[hrvZone];
   txt.style.color = color;
   $('statusSub').textContent = `HRV ${hrvZone} · ${(vsB >= 0 ? '+' : '') + vsB}ms vs baseline`;
-  if (latestRHR !== null) {
-    const rhrZone = latestRHR <= rhrBaseline+1 ? 'Excellent' : latestRHR <= rhrBaseline+4 ? 'Good' : latestRHR <= rhrBaseline+7 ? 'Elevated' : 'High';
+  if (rhrZone) {
     const rhrDelta = latestRHR - rhrBaseline;
     $('statusSubRHR').textContent = `RHR ${rhrZone} · ${latestRHR} bpm (${rhrDelta >= 0 ? '+' : ''}${rhrDelta} vs baseline)`;
   } else {
@@ -2334,16 +2326,11 @@ function showMenuModal() {
 
 function showTempBaselineModal() {
   const eb = getEffectiveBaseline();
-  const isAuto = eb !== null && (() => {
-    const total = Object.keys(tempData).length;
-    if (tempBaselineSetDate === null) return total >= 7;
-    return Object.keys(tempData).filter(d => d > tempBaselineSetDate).length >= 7;
-  })();
-  const nightsAfter = tempBaselineSetDate
-    ? Object.keys(tempData).filter(d => d > tempBaselineSetDate).length
-    : Object.keys(tempData).length;
+  const tempKeys = Object.keys(tempData);
+  const nightsAfter = tempBaselineSetDate ? tempKeys.filter(d => d > tempBaselineSetDate).length : tempKeys.length;
+  const isAuto = eb !== null && nightsAfter >= 7;
   const statusHtml = isAuto
-    ? `<span style="color:#4caf50">Auto · rolling median · <strong>${eb.toFixed(2)}°C</strong> (${Object.keys(tempData).length} nights)</span>`
+    ? `<span style="color:#4caf50">Auto · rolling median · <strong>${eb.toFixed(2)}°C</strong> (${tempKeys.length} nights)</span>`
     : eb !== null
       ? `<span style="color:#e67c8a">Manual · ${nightsAfter}/7 nights to auto</span>`
       : '<span style="color:var(--muted)">Not set</span>';
