@@ -27,7 +27,8 @@
     {
       "id": 10,
       "date": "2026-05-19",
-      "hrv": 46
+      "hrv": 46,
+      "note": "Low sleep duration"
     }
   ],
   "rhr": {
