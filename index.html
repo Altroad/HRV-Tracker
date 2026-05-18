@@ -366,6 +366,7 @@ const TEMP_KEY               = 'hrv_wrist_temp_v1';
 const TEMP_BASELINE_KEY      = 'hrv_temp_baseline_v1';
 const TEMP_BASELINE_DATE_KEY = 'hrv_temp_baseline_date_v1';
 const LAST_RESULT_KEY        = 'hrv_last_result_v1';
+const getLastResultKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_last_result_${u}_v1` : LAST_RESULT_KEY; };
 const RHR_SCALE_MIN = 35, RHR_SCALE_MAX = 60;
 
 // ---------- Tags ----------
@@ -2404,6 +2405,8 @@ function showSyncModal() {
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
     readings = [];
+    $('calcResult').classList.remove('show');
+    $('resultsBtn').disabled = true;
     overlay.remove();
     updateSyncStatus();
     showToast('Connecting to GitHub...');
@@ -2642,13 +2645,13 @@ function saveCalcResult() {
     tempDeltaColor: $('calcTempDelta').style.color,
     tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
   };
-  localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(s));
+  localStorage.setItem(getLastResultKey(), JSON.stringify(s));
   const rb = $('resultsBtn');
   if (rb) rb.disabled = false;
 }
 
 function restoreCalcResult() {
-  const raw = localStorage.getItem(LAST_RESULT_KEY);
+  const raw = localStorage.getItem(getLastResultKey());
   if (!raw) return;
   try {
     const s = JSON.parse(raw);
