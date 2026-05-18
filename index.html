@@ -1424,13 +1424,23 @@ function runSlowWaveCalc(text, overlay) {
       .sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
     const deepSet = new Set(deepReadings);
 
-    // Build consecutive groups across all sleep readings (gap ≤ 6 min)
+    // Auto-detect typical recording interval from inter-reading gaps < 30 min
     const sortedAll = [...allHRV].sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
+    const smallGaps = [];
+    for (let i = 1; i < sortedAll.length; i++) {
+      const g = (parseTimestamp(sortedAll[i]).getTime() - parseTimestamp(sortedAll[i - 1]).getTime()) / 60000;
+      if (g < 30) smallGaps.push(g);
+    }
+    smallGaps.sort((a, b) => a - b);
+    const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 8;
+    const consecutiveThreshold = Math.ceil(typicalGap * 1.5);
+
+    // Build consecutive groups across all sleep readings
     const groups = [];
     let curGroup = [sortedAll[0]];
     for (let i = 1; i < sortedAll.length; i++) {
       const gap = (parseTimestamp(sortedAll[i]).getTime() - parseTimestamp(sortedAll[i - 1]).getTime()) / 60000;
-      if (gap <= 8) curGroup.push(sortedAll[i]);
+      if (gap <= consecutiveThreshold) curGroup.push(sortedAll[i]);
       else { groups.push(curGroup); curGroup = [sortedAll[i]]; }
     }
     groups.push(curGroup);
@@ -1518,7 +1528,7 @@ function runSlowWaveCalc(text, overlay) {
       const r = selected[i];
       if (i > 0) {
         const gap = (parseTimestamp(r).getTime() - parseTimestamp(selected[i - 1]).getTime()) / 60000;
-        if (gap <= 8) chipsHtml += '<div class="calc-connector"></div>';
+        if (gap <= consecutiveThreshold) chipsHtml += '<div class="calc-connector"></div>';
       }
       const qty = Math.round(r.qty);
       const isDropped = droppedSet.has(r);
