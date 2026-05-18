@@ -130,7 +130,7 @@
   .calc-result-values { display:flex; align-items:flex-start; justify-content:center; gap:24px; }
   .calc-metric { display:flex; flex-direction:column; align-items:center; }
   .calc-metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
-  .calc-result-value { font-family:var(--font-display); font-size:48px; letter-spacing:2px; text-align:center; line-height:1; }
+  .calc-result-value { font-family:var(--font-display); font-size:38px; letter-spacing:2px; text-align:center; line-height:1; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; }
@@ -305,7 +305,10 @@
     <button class="btn-primary" id="addBtn" style="padding:0 12px;">ADD</button>
   </div>
   <div class="backup-row">
-    <button class="btn-secondary" id="slowWaveBtn">Overnight Capture</button>
+    <div style="display:flex;gap:2px;flex:1;">
+      <button class="btn-secondary" id="slowWaveBtn" style="flex:17;border-radius:6px 0 0 6px;">Overnight Capture</button>
+      <button class="btn-secondary" id="resultsBtn" style="flex:3;border-radius:0 6px 6px 0;" disabled>Results</button>
+    </div>
   </div>
   <div class="calc-result" id="calcResult">
     <div class="calc-result-values">
@@ -355,6 +358,7 @@ const RHR_NOTES_KEY = 'hrv_rhr_notes_v1';
 const TEMP_KEY               = 'hrv_wrist_temp_v1';
 const TEMP_BASELINE_KEY      = 'hrv_temp_baseline_v1';
 const TEMP_BASELINE_DATE_KEY = 'hrv_temp_baseline_date_v1';
+const LAST_RESULT_KEY        = 'hrv_last_result_v1';
 const RHR_SCALE_MIN = 35, RHR_SCALE_MAX = 60;
 
 // ---------- Tags ----------
@@ -1668,6 +1672,7 @@ function runSlowWaveCalc(text, overlay) {
     $('inputHRV').value = avg;
     panel.classList.add('show');
     $('calcAnotherBtn').style.display = 'none';
+    saveCalcResult();
   } catch(e) {
     showToast(e.message || 'Calculation error');
   }
@@ -1765,6 +1770,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   $('inputHRV').value = avg;
   panel.classList.add('show');
   $('calcAnotherBtn').style.display = lastMonthlyData ? '' : 'none';
+  saveCalcResult();
 }
 
 function openMonthlyPickerAgain() {
@@ -2490,10 +2496,69 @@ function showInfoModal() {
 })();
 
 // ---------- Init ----------
+function saveCalcResult() {
+  const s = {
+    hrv: $('calcValue').textContent,
+    hrvColor: $('calcValue').style.color,
+    label: $('calcLabel').textContent,
+    readings: $('calcReadings').innerHTML,
+    rhrVisible: $('calcRHRDisplay').style.display !== 'none',
+    rhr: $('calcRHRValue').textContent,
+    rhrColor: $('calcRHRValue').style.color,
+    rhrWindow: $('calcRHRWindow').textContent,
+    rhrWindowVisible: $('calcRHRWindow').style.display !== 'none',
+    tempVisible: $('calcTempDisplay').style.display !== 'none',
+    temp: $('calcTempValue').textContent,
+    tempColor: $('calcTempValue').style.color,
+    tempDelta: $('calcTempDelta').textContent,
+    tempDeltaColor: $('calcTempDelta').style.color,
+    tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
+  };
+  localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(s));
+  const rb = $('resultsBtn');
+  if (rb) rb.disabled = false;
+}
+
+function restoreCalcResult() {
+  const raw = localStorage.getItem(LAST_RESULT_KEY);
+  if (!raw) return;
+  try {
+    const s = JSON.parse(raw);
+    $('calcValue').textContent = s.hrv;
+    $('calcValue').style.color = s.hrvColor;
+    $('calcLabel').textContent = s.label;
+    $('calcReadings').innerHTML = s.readings;
+    $('calcRHRDisplay').style.display = s.rhrVisible ? '' : 'none';
+    $('calcRHRValue').textContent = s.rhr;
+    $('calcRHRValue').style.color = s.rhrColor;
+    $('calcRHRWindow').textContent = s.rhrWindow;
+    $('calcRHRWindow').style.display = s.rhrWindowVisible ? '' : 'none';
+    $('calcTempDisplay').style.display = s.tempVisible ? '' : 'none';
+    $('calcTempValue').textContent = s.temp;
+    $('calcTempValue').style.color = s.tempColor;
+    $('calcTempDelta').textContent = s.tempDelta;
+    $('calcTempDelta').style.color = s.tempDeltaColor;
+    $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
+    $('calcAnotherBtn').style.display = 'none';
+    const rb = $('resultsBtn');
+    if (rb) rb.disabled = false;
+  } catch(e) {}
+}
+
 async function init() {
   drawYAxis();
+  restoreCalcResult();
   $('addBtn').addEventListener('click', addEntry);
   $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
+  $('resultsBtn').addEventListener('click', () => {
+    const panel = $('calcResult');
+    if (panel.classList.contains('show')) {
+      panel.classList.remove('show');
+    } else {
+      panel.classList.add('show');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  });
   $('menuBtn').addEventListener('click', showMenuModal);
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
