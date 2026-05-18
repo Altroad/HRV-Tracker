@@ -12,6 +12,11 @@
       "hrv": 57,
       "note": "First day of data from the algorithm.",
       "tag": "Rest"
+    },
+    {
+      "id": 8,
+      "date": "2026-05-18",
+      "hrv": 94
     }
   ],
   "rhr": {
