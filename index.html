@@ -590,24 +590,24 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
 
       meta.data.forEach((pt, i) => {
         const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
-        // RHR halo
+        // RHR halo — center pr+4, lw4: inner edge pr+2 (2px gap from HRV dot)
         if (rhr !== undefined) {
           ctx.save();
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + 3, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
           ctx.strokeStyle = rhrZoneColor(rhr);
           ctx.lineWidth = 4;
           ctx.stroke();
           ctx.restore();
         }
-        // Temp halo (outermost ring)
+        // Temp halo — center pr+10, lw4: inner edge pr+8 (2px gap from RHR outer)
         const temp = tempByDate ? tempByDate[sortedDates[i]] : undefined;
         if (temp !== undefined) {
           ctx.save();
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, pr + 10, 0, Math.PI * 2);
           ctx.strokeStyle = tempZoneColor(temp);
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 4;
           ctx.stroke();
           ctx.restore();
         }
@@ -619,7 +619,7 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
         ctx.fill();
         if (tappedIdx === i) {
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + (temp !== undefined ? 14 : rhr !== undefined ? 7 : 4), 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, pr + (temp !== undefined ? 14 : rhr !== undefined ? 8 : 4), 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
