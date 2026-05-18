@@ -2396,31 +2396,41 @@ function showStatesModal() {
     { label: 'Elevated',  color: '#ff6d00' },
     { label: 'High',      color: '#f44336' },
   ];
-  const rows = zones.map(h => {
-    const rhrRows = rhrZones.map(r => `
+  const tempRow = `
+    <div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px;opacity:0.6;">
+      <span style="flex-shrink:0;font-size:10px;color:#f44336;font-family:var(--font-mono);width:82px;margin-top:2px;">+ Temp High</span>
+      <span style="font-size:12px;color:#a0b4c0;line-height:1.5;">Raised wrist temperature detected — monitor for early illness or systemic stress.</span>
+    </div>`;
+  const rows = zones.map(h => `
+    <div style="margin-bottom:20px;">
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${h.color};text-transform:uppercase;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid ${h.border};">HRV ${h.hrv}</div>
+      ${rhrZones.map(r => `
       <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;">
         <span style="flex-shrink:0;font-size:10px;color:${r.color};font-family:var(--font-mono);width:82px;margin-top:2px;">RHR ${r.label}</span>
         <span style="font-size:12px;color:#a0b4c0;line-height:1.5;">${STATUS_MESSAGES[`${h.hrv},${r.label}`]}</span>
-      </div>`).join('');
-    const tempRow = h.hrv === 'Low'
-      ? `<div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px;">
-          <span style="flex-shrink:0;font-size:10px;color:#f44336;font-family:var(--font-mono);width:82px;margin-top:2px;">+ Temp High</span>
-          <span style="font-size:12px;color:#f44336;line-height:1.5;">Triple-system alarm — suppressed HRV, elevated RHR, and raised wrist temperature. Classic acute illness signature. Rest and monitor symptoms closely.</span>
-        </div>`
-      : `<div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px;opacity:0.6;">
-          <span style="flex-shrink:0;font-size:10px;color:#f44336;font-family:var(--font-mono);width:82px;margin-top:2px;">+ Temp High</span>
-          <span style="font-size:12px;color:#a0b4c0;line-height:1.5;">Raised wrist temperature detected — monitor for early illness or systemic stress.</span>
-        </div>`;
-    return `
-    <div style="margin-bottom:20px;">
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${h.color};text-transform:uppercase;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid ${h.border};">HRV ${h.hrv}</div>
-      ${rhrRows}${tempRow}
+      </div>`).join('')}${tempRow}
+    </div>`).join('');
+  const tripleAlarm = `
+    <div style="margin-bottom:20px;padding:12px;background:rgba(244,67,54,0.07);border:1px solid rgba(244,67,54,0.3);border-radius:8px;">
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:#f44336;text-transform:uppercase;padding-bottom:6px;margin-bottom:10px;border-bottom:1px solid rgba(244,67,54,0.2);">Triple System Alarm</div>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;">
+        <span style="flex-shrink:0;font-size:10px;color:#f44336;font-family:var(--font-mono);width:82px;margin-top:2px;">HRV Low</span>
+        <span style="font-size:12px;color:#f44336;line-height:1.5;opacity:0.8;">+</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;">
+        <span style="flex-shrink:0;font-size:10px;color:#f44336;font-family:var(--font-mono);width:82px;margin-top:2px;">RHR High</span>
+        <span style="font-size:12px;color:#f44336;line-height:1.5;opacity:0.8;">+</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;">
+        <span style="flex-shrink:0;font-size:10px;color:#f44336;font-family:var(--font-mono);width:82px;margin-top:2px;">Temp High</span>
+        <span style="font-size:12px;color:#f44336;line-height:1.5;opacity:0.8;"></span>
+      </div>
+      <span style="font-size:12px;color:#f44336;line-height:1.5;">Triple-system alarm — suppressed HRV, elevated RHR, and raised wrist temperature. Classic acute illness signature. Rest and monitor symptoms closely.</span>
     </div>`;
-  }).join('');
   openModal(`
     <div class="modal-title">Status Reference</div>
     <div style="font-size:11px;color:var(--muted);margin-top:-8px;">All HRV × RHR combinations · <span style="color:#f44336">+ Temp High</span> per category</div>
-    <div style="max-height:65vh;overflow-y:auto;padding-right:4px;margin-top:4px;">${rows}</div>
+    <div style="max-height:65vh;overflow-y:auto;padding-right:4px;margin-top:4px;">${rows}${tripleAlarm}</div>
     <button class="modal-btn cancel" onclick="this.closest('.modal-overlay').remove()">Close</button>
   `);
 }
