@@ -1440,7 +1440,7 @@ function runSlowWaveCalc(text, overlay) {
       if (g < 30) smallGaps.push(g);
     }
     smallGaps.sort((a, b) => a - b);
-    const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 15;
+    const typicalGap = smallGaps.length ? smallGaps[Math.floor(smallGaps.length / 2)] : 30;
     const consecutiveThreshold = typicalGap + 1;
 
     // Build consecutive groups across all sleep readings
@@ -2261,7 +2261,7 @@ function showInfoModal() {
       The primary import method. Paste four Health Auto Export JSONs together: previous day HRV, morning HRV, sleep analysis, and heart rate. The algorithm prioritises consecutive readings from the most stable deep sleep period:<br><br>
 
       <strong>Step 1 — Deep Sleep Anchor</strong><br>
-      All overnight HRV readings are grouped into consecutive runs using the recording interval detected from your export. The longest run containing at least one Deep sleep reading is identified. The middle 3 readings of that run are taken as the anchor — avoiding the stage-transition edges where the autonomic signal is less settled.<br><br>
+      All overnight HRV readings are grouped into consecutive runs. The recording interval is detected from your export (Apple Watch records HRV every 15 minutes during sleep — a gap of more than 16 minutes signals a break in the run). The longest run containing at least one Deep sleep reading is identified. The middle 3 readings of that run are taken as the anchor — avoiding the stage-transition edges where the autonomic signal is less settled.<br><br>
 
       <strong>Step 2 — Top-up to 7</strong><br>
       Remaining Deep sleep readings are added first, then Core sleep readings between 11:30pm and 2:00am, until 7 readings are reached.<br><br>
