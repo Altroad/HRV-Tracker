@@ -77,11 +77,19 @@
   .chart-legend { display:flex; gap:8px; align-items:center; }
   .legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-family:var(--font-mono); }
   .legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; display:block; }
-  .chart-outer { display:flex; }
+  .chart-outer { display:flex; position:relative; }
   .y-axis-wrap, .rhr-axis-wrap { flex-shrink:0; width:28px; height:260px; background:var(--surface); }
   .chart-scroll-area { flex:1; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; height:260px; }
   .chart-scroll-area::-webkit-scrollbar { display:none; }
   .chart-inner { height:260px; }
+  .chart-popup { position:absolute; z-index:20; background:var(--surface); border:1px solid; border-radius:10px; padding:10px 0 12px; pointer-events:none; box-shadow:0 6px 28px rgba(0,0,0,0.6); }
+  .chart-popup-date { font-family:var(--font-mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); text-align:center; margin-bottom:8px; padding:0 14px; }
+  .chart-popup-metrics { display:flex; }
+  .chart-popup-metric { display:flex; flex-direction:column; align-items:center; padding:0 14px; }
+  .chart-popup-metric + .chart-popup-metric { border-left:1px solid var(--border); }
+  .chart-popup-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+  .chart-popup-value { font-family:var(--font-display); font-size:34px; letter-spacing:1px; line-height:1; }
+  .chart-popup-sub { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; margin-top:4px; }
 
   /* Input */
   .input-row { display:flex; gap:8px; align-items:center; }
@@ -272,6 +280,7 @@
       </div>
     </div>
     <div class="rhr-axis-wrap" id="rhrAxisWrap" style="display:none"><canvas id="rhrAxis" width="28" height="260"></canvas></div>
+    <div id="chartPopup" class="chart-popup" style="display:none"></div>
   </div>
 </div>
 
@@ -366,6 +375,9 @@ let ZONE_HIGH = 97, ZONE_GOOD = 84, ZONE_OK = 70;
 let mainChart = null;
 let currentPtW = 0;
 let tappedIdx = null;
+let chartSortedDates = [];
+let chartValues = [];
+let chartPR = 8;
 let nextId = 1;
 let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
@@ -596,57 +608,6 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
         ctx.restore();
       });
 
-      if (tappedIdx === null || !meta.data[tappedIdx]) return;
-      const pt = meta.data[tappedIdx];
-      const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[tappedIdx]] : undefined;
-      const hrvText = `${Math.round(values[tappedIdx])}ms`;
-      const rhrNum  = rhr !== undefined ? `${rhr}` : null;
-      const BIG = 'bold 42px "Bebas Neue", sans-serif';
-      const SML = 'bold 21px "Bebas Neue", sans-serif';
-      ctx.save();
-      ctx.font = BIG;
-      const w1 = ctx.measureText(hrvText).width;
-      let wHeart = 0, wNum = 0;
-      if (rhrNum) {
-        ctx.font = SML; wHeart = ctx.measureText('♥').width;
-        ctx.font = BIG; wNum   = ctx.measureText(rhrNum).width;
-      }
-      const PAD = 14, GAP = 7;
-      const bw = w1 + (rhrNum ? GAP + wHeart + wNum : 0) + PAD * 2;
-      const bh = 54;
-      const dpr = window.devicePixelRatio || 1;
-      const maxX = canvas.width / dpr - bw - 4;
-      const bx = Math.max(4, Math.min(maxX, pt.x - bw / 2));
-      const aboveY = pt.y - pr - 68;
-      const by = aboveY < 4 ? pt.y + pr + 14 : aboveY;
-      const rad = 6;
-      ctx.fillStyle = COLORS.surface;
-      ctx.strokeStyle = rhr !== undefined ? rhrZoneColor(rhr) : colorForHRV(values[tappedIdx]);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(bx + rad, by);
-      ctx.arcTo(bx + bw, by, bx + bw, by + bh, rad);
-      ctx.arcTo(bx + bw, by + bh, bx, by + bh, rad);
-      ctx.arcTo(bx, by + bh, bx, by, rad);
-      ctx.arcTo(bx, by, bx + bw, by, rad);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.textBaseline = 'middle';
-      const my = by + bh / 2 + 2;
-      ctx.font = BIG;
-      ctx.fillStyle = colorForHRV(values[tappedIdx]);
-      ctx.textAlign = 'left';
-      ctx.fillText(hrvText, bx + PAD, my);
-      if (rhrNum) {
-        const rx = bx + PAD + w1 + GAP;
-        ctx.font = SML;
-        ctx.fillStyle = rhrZoneColor(rhr);
-        ctx.fillText('♥', rx, my + 2);
-        ctx.font = BIG;
-        ctx.fillText(rhrNum, rx + wHeart, my);
-      }
-      ctx.restore();
     }
   };
 }
@@ -656,8 +617,7 @@ function attachChartTapHandler(canvas) {
     const meta = mainChart?.getDatasetMeta(0);
     if (!meta) return;
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width) / dpr;
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width) / (window.devicePixelRatio || 1);
     let closest = -1, dist = Infinity;
     meta.data.forEach((pt, i) => {
       const d = Math.abs(pt.x - x);
@@ -665,7 +625,70 @@ function attachChartTapHandler(canvas) {
     });
     tappedIdx = (closest >= 0 && dist < 40 && tappedIdx !== closest) ? closest : null;
     mainChart.update('none');
+    updateChartPopup(meta);
   };
+}
+
+function updateChartPopup(meta) {
+  const popup = $('chartPopup');
+  if (!popup) return;
+  if (tappedIdx === null || !meta?.data[tappedIdx]) { popup.style.display = 'none'; return; }
+
+  const pt = meta.data[tappedIdx];
+  const date = chartSortedDates[tappedIdx];
+  const hrv  = Math.round(chartValues[tappedIdx]);
+  const rhr  = rhrData[date];
+  const temp = tempData[date];
+
+  const d = new Date(date + 'T12:00:00');
+  const dateLabel = `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTHS_LONG[d.getMonth()]}`;
+
+  let metricsHtml = `<div class="chart-popup-metric">
+    <div class="chart-popup-label">HRV</div>
+    <div class="chart-popup-value" style="color:${colorForHRV(hrv)}">${hrv}</div>
+  </div>`;
+
+  if (rhr !== undefined) {
+    metricsHtml += `<div class="chart-popup-metric">
+      <div class="chart-popup-label">RHR</div>
+      <div class="chart-popup-value" style="color:${rhrZoneColor(rhr)}">${rhr}</div>
+    </div>`;
+  }
+
+  if (temp !== undefined) {
+    const dev = tempBaseline !== null ? temp - tempBaseline : null;
+    const devHtml = dev !== null
+      ? `<div class="chart-popup-sub" style="color:${tempZoneColor(temp)}">${dev >= 0 ? '+' : ''}${dev.toFixed(2)}°</div>`
+      : '';
+    metricsHtml += `<div class="chart-popup-metric">
+      <div class="chart-popup-label">TEMP</div>
+      <div class="chart-popup-value" style="color:${tempZoneColor(temp)}">${temp.toFixed(1)}°</div>
+      ${devHtml}
+    </div>`;
+  }
+
+  popup.innerHTML = `<div class="chart-popup-date">${dateLabel}</div>
+    <div class="chart-popup-metrics">${metricsHtml}</div>`;
+  popup.style.borderColor = colorForHRV(hrv);
+  popup.style.display = '';
+
+  // Position relative to chart-outer
+  const scroll = $('chartScroll');
+  const Y_AXIS_W = 28;
+  const dotX = Y_AXIS_W + pt.x - scroll.scrollLeft;
+  const dotY = pt.y;
+  const halo = chartPR + 14;
+  const pw = popup.offsetWidth;
+  const ph = popup.offsetHeight;
+  const outerW = scroll.parentElement.offsetWidth;
+
+  let left = Math.round(dotX - pw / 2);
+  left = Math.max(0, Math.min(outerW - pw, left));
+  let top = Math.round(dotY - halo - ph - 8);
+  if (top < 0) top = Math.round(dotY + halo + 8);
+
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
 }
 
 function scrollChartToEnd(n) {
@@ -687,8 +710,11 @@ function renderChart() {
   const baselineArr = sorted.map(() => BASELINE);
 
   const sortedDates = sorted.map(r => r.date);
+  chartSortedDates = sortedDates;
+  chartValues = values;
   const rhrValues = sortedDates.map(d => rhrData[d] !== undefined ? rhrData[d] : null);
   const hasRHR = rhrValues.some(v => v !== null);
+  const popup = $('chartPopup'); if (popup) popup.style.display = 'none'; tappedIdx = null;
 
   // Show/hide RHR axis and legend
   const rhrAxisWrap = $('rhrAxisWrap');
@@ -702,6 +728,7 @@ function renderChart() {
   const canvas = sizeChartCanvas(n);
   const labels = sorted.map(r => fmtDate(new Date(r.date)));
   const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
+  chartPR = pr;
 
   const datasets = [
     { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
@@ -909,10 +936,6 @@ function renderHistoryList() {
       const rhrSpan = rhrVal !== undefined
         ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>`
         : '';
-      const tempVal = tempData[r.date];
-      const tempSpan = tempVal !== undefined
-        ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}">${tempVal.toFixed(1)}°</span>`
-        : '';
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
         : `<button class="note-btn" onclick="toggleNote('${r.id}')">✎</button>`;
@@ -926,7 +949,7 @@ function renderHistoryList() {
         </div>
         <div class="history-nums">
           <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
-          ${rhrSpan}${tempSpan}
+          ${rhrSpan}
         </div>
         <div class="history-delta" style="color:${dColor}">${dStr}</div>
         ${noteIcon}
