@@ -2746,11 +2746,11 @@ function showInfoModal() {
       <strong>How RHR is calculated</strong><br>
       The app scans your Apple Watch heart rate between midnight and 3:30am and finds the lowest 10-minute consecutive window (gaps up to 5 minutes are bridged). That average is your RHR for the night.<br><br>
 
-      <strong>Zones</strong> <span style="font-size:10px;color:var(--muted)">(relative to your 3-month RHR average of ${rhrBaseline}bpm)</span><br>
-      <span style="color:#4caf50">●</span> ≤${rhrBaseline+1} — Excellent &nbsp;
-      <span style="color:#ffab00">●</span> ${rhrBaseline+2}–${rhrBaseline+4} — Good &nbsp;
-      <span style="color:#ff6d00">●</span> ${rhrBaseline+5}–${rhrBaseline+7} — Elevated &nbsp;
-      <span style="color:#f44336">●</span> >${rhrBaseline+7} — High<br><br>
+      <strong>Zones</strong> <span style="font-size:10px;color:var(--muted)">(relative to each user's 3-month RHR average)</span><br>
+      <span style="color:#4caf50">●</span> Baseline or below — Excellent &nbsp;
+      <span style="color:#ffab00">●</span> +2 to +4 — Good &nbsp;
+      <span style="color:#ff6d00">●</span> +5 to +7 — Elevated &nbsp;
+      <span style="color:#f44336">●</span> +8 or above — High<br><br>
 
       <strong>Importing RHR</strong><br>
       Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV, RHR, and Temp together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
