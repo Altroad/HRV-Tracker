@@ -2731,6 +2731,53 @@ async function init() {
     load();
   }
   render();
+  if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
+    autoImport();
+  }
+}
+
+async function autoImport() {
+  showToast('Reading clipboard…');
+  let text;
+  try {
+    text = await navigator.clipboard.readText();
+  } catch(e) {
+    if (e.name === 'NotAllowedError' || e.name === 'SecurityError') {
+      showAutoImportBanner();
+      return;
+    }
+    showToast('Clipboard error: ' + (e.message || 'unknown'));
+    return;
+  }
+  if (!text || !text.trim()) { showToast('Clipboard is empty — run your Shortcut first'); return; }
+  const fakeOverlay = { remove: () => {} };
+  runSlowWaveCalc(text, fakeOverlay);
+  if ($('calcResult').classList.contains('show')) {
+    showToast('Import complete');
+    setTimeout(() => $('calcResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  }
+}
+
+function showAutoImportBanner() {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--accent);color:#fff;padding:14px 28px;border-radius:12px;font-family:var(--font-mono);font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+  banner.textContent = 'Tap to Import from Clipboard';
+  banner.onclick = async () => {
+    banner.remove();
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || !text.trim()) { showToast('Clipboard is empty — run your Shortcut first'); return; }
+      const fakeOverlay = { remove: () => {} };
+      runSlowWaveCalc(text, fakeOverlay);
+      if ($('calcResult').classList.contains('show')) {
+        showToast('Import complete');
+        setTimeout(() => $('calcResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      }
+    } catch(e) {
+      showToast('Clipboard error: ' + (e.message || 'unknown'));
+    }
+  };
+  document.body.appendChild(banner);
 }
 
 init();
