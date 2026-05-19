@@ -583,7 +583,7 @@ function drawRHRAxis() {
 // ---------- Chart ----------
 function sizeChartCanvas(n) {
   const visibleW = $('chartScroll').clientWidth || 280;
-  const useSparse = chartRange > 14 && n < chartRange;
+  const useSparse = chartRange > 14 && n < 14;
   let totalW;
   if (chartRange <= 14 || useSparse) {
     currentPtW = Math.floor(visibleW / 14);
