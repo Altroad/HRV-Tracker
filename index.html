@@ -114,8 +114,10 @@
   .backup-row { display:flex; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
 
   /* History */
-  .history-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); gap:10px; }
+  .history-row { position:relative; overflow:hidden; border-bottom:1px solid var(--border); }
   .history-row:last-child { border-bottom:none; }
+  .row-content { display:flex; align-items:center; padding:10px 0; gap:10px; background:var(--surface); position:relative; z-index:1; will-change:transform; transition:transform 0.25s ease; }
+  .row-delete-bg { position:absolute; right:0; top:0; bottom:0; width:72px; background:var(--red); display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-family:var(--font-mono); letter-spacing:1px; cursor:pointer; user-select:none; }
   .history-date { font-size:11px; color:var(--muted); font-family:var(--font-mono); flex:1; display:flex; flex-direction:column; gap:3px; }
   .history-date-line { white-space:nowrap; }
   .history-nums { display:flex; align-items:baseline; gap:5px; flex-shrink:0; }
@@ -925,17 +927,19 @@ function renderHistoryList() {
         const note = rhrNotes[r.date] || '';
         const noteBtnClass = note ? 'note-btn has-note' : 'note-btn';
         html += `<div class="history-row" id="rhr-row-${r.date}">
-          <div class="history-date">
-            <span class="history-date-line">${DAY_NAMES[d.getDay()]} ${fmtDate(d)}</span>
-            <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;">RHR only</span>
+          <div class="row-delete-bg" data-delete-rhr="${r.date}">DELETE</div>
+          <div class="row-content">
+            <div class="history-date">
+              <span class="history-date-line">${DAY_NAMES[d.getDay()]} ${fmtDate(d)}</span>
+              <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;">RHR only</span>
+            </div>
+            <div class="history-nums">
+              <span class="history-hrv" style="color:var(--muted)">—</span>
+              <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
+            </div>
+            <div class="history-delta"></div>
+            <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
           </div>
-          <div class="history-nums">
-            <span class="history-hrv" style="color:var(--muted)">—</span>
-            <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
-          </div>
-          <div class="history-delta"></div>
-          <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
-          <button class="delete-btn" data-rhr-date="${r.date}">✕</button>
         </div>
         <div class="note-row" id="note-row-rhr-${r.date}">
           <textarea class="note-input" rows="2" placeholder="Add a note…" onblur="saveNote('rhr-${r.date}',this.value)">${note}</textarea>
@@ -961,17 +965,19 @@ function renderHistoryList() {
         <textarea class="note-input" rows="2" placeholder="Add a note…" onblur="saveNote('${r.id}',this.value)">${r.note || ''}</textarea>
       </div>`;
       html += `<div class="history-row" id="row-${r.id}">
-        <div class="history-date">
-          <span class="history-date-line">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</span>
-          ${tagHtml}
+        <div class="row-delete-bg" data-delete-id="${r.id}">DELETE</div>
+        <div class="row-content">
+          <div class="history-date">
+            <span class="history-date-line">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</span>
+            ${tagHtml}
+          </div>
+          <div class="history-nums">
+            <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
+            ${rhrSpan}
+          </div>
+          <div class="history-delta" style="color:${dColor}">${dStr}</div>
+          ${noteIcon}
         </div>
-        <div class="history-nums">
-          <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
-          ${rhrSpan}
-        </div>
-        <div class="history-delta" style="color:${dColor}">${dStr}</div>
-        ${noteIcon}
-        <button class="delete-btn" data-id="${r.id}">✕</button>
       </div>${noteRow}`;
     });
     html += '</div>';
@@ -2716,12 +2722,35 @@ async function init() {
   loadRHR();
   loadTemp();
   $('historyList').addEventListener('click', e => {
-    const btn = e.target.closest('.delete-btn');
-    if (btn) { handleDeleteClick(btn); return; }
+    const deleteBg = e.target.closest('.row-delete-bg');
+    if (deleteBg) {
+      const row = deleteBg.closest('.history-row');
+      const content = row.querySelector('.row-content');
+      const rhrDate = deleteBg.dataset.deleteRhr;
+      const readingId = deleteBg.dataset.deleteId;
+      const overlay = openModal(`
+        <div class="modal-title">Delete this reading?</div>
+        <div class="modal-desc">This cannot be undone.</div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" data-cancel>CANCEL</button>
+          <button class="modal-btn" style="background:var(--red);border-color:var(--red);" data-confirm>DELETE</button>
+        </div>
+      `);
+      overlay.querySelector('[data-cancel]').addEventListener('click', () => {
+        overlay.remove();
+        if (content) { content.style.transition = ''; content.style.transform = ''; }
+      });
+      overlay.querySelector('[data-confirm]').addEventListener('click', () => {
+        overlay.remove();
+        if (rhrDate) deleteRHREntry(rhrDate); else deleteReading(readingId);
+      });
+      return;
+    }
     if (e.target.closest('.history-hrv')) return;
     const rhr = e.target.closest('.history-rhr');
     if (rhr) { handleRHRTap(rhr); return; }
   });
+  setupSwipeToDelete();
   const _now = new Date();
   const _localToday = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
   $('inputDate').value = sessionStorage.getItem(DATE_KEY) || _localToday;
@@ -2758,9 +2787,62 @@ function runAutoImportText(text) {
   const fakeOverlay = { remove: () => {} };
   runSlowWaveCalc(text, fakeOverlay);
   if ($('calcResult').classList.contains('show')) {
-    showToast('Import complete');
+    addEntry();
     setTimeout(() => $('calcResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   }
+}
+
+function setupSwipeToDelete() {
+  const list = $('historyList');
+  let startX, startY, el, startOffset, isHoriz;
+
+  function closeAllRows(except) {
+    list.querySelectorAll('.row-content').forEach(c => {
+      if (c !== except && c.style.transform) { c.style.transition = ''; c.style.transform = ''; }
+    });
+  }
+
+  list.addEventListener('touchstart', e => {
+    const row = e.target.closest('.history-row');
+    el = row ? row.querySelector('.row-content') : null;
+    if (!el) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startOffset = parseFloat(el.style.transform.match(/-?\d+/)?.[0] || 0);
+    isHoriz = null;
+  }, { passive: true });
+
+  list.addEventListener('touchmove', e => {
+    if (!el) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (isHoriz === null) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      isHoriz = Math.abs(dx) > Math.abs(dy);
+    }
+    if (!isHoriz) { el = null; return; }
+    e.preventDefault();
+    const offset = Math.max(-72, Math.min(0, startOffset + dx));
+    el.style.transition = 'none';
+    el.style.transform = offset < 0 ? `translateX(${offset}px)` : '';
+  }, { passive: false });
+
+  list.addEventListener('touchend', () => {
+    if (!el) return;
+    const offset = parseFloat(el.style.transform.match(/-?\d+/)?.[0] || 0);
+    el.style.transition = '';
+    if (offset < -36) {
+      el.style.transform = 'translateX(-72px)';
+      closeAllRows(el);
+    } else {
+      el.style.transform = '';
+    }
+    el = null;
+  }, { passive: true });
+
+  document.addEventListener('touchstart', e => {
+    if (!e.target.closest('#historyList')) closeAllRows(null);
+  }, { passive: true });
 }
 
 async function autoImport() {
