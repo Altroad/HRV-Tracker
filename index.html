@@ -1411,7 +1411,10 @@ function addEntry() {
 
 function deleteReading(id) {
   const r = readings.find(r => String(r.id) === String(id));
-  if (r) { delete tempData[r.date]; saveTemp(); }
+  if (r) {
+    delete tempData[r.date]; saveTemp();
+    delete rhrData[r.date];  saveRHR();
+  }
   readings = readings.filter(r => String(r.id) !== String(id));
   save();
   render();
