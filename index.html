@@ -583,9 +583,10 @@ function drawRHRAxis() {
 // ---------- Chart ----------
 function sizeChartCanvas(n) {
   const visibleW = $('chartScroll').clientWidth || 280;
+  const useSparse = chartRange > 14 && n < chartRange;
   let totalW;
-  if (chartRange <= 14) {
-    currentPtW = Math.floor(visibleW / chartRange);
+  if (chartRange <= 14 || useSparse) {
+    currentPtW = Math.floor(visibleW / 14);
     totalW = n * currentPtW;
   } else {
     currentPtW = visibleW / Math.max(1, n);
@@ -723,11 +724,12 @@ function renderChart() {
   const allValues = allSorted.map(r => r.hrv);
   const allRolling = rollingAverage(allValues, chartRange <= 14 ? 7 : 14);
 
-  // 14D: show all data on scrollable canvas; 60D: slice to last chartRange
-  const sorted = chartRange <= 14 ? allSorted : allSorted.slice(-chartRange);
+  // 14D: show all data scrollable; 60D: slice to last chartRange; sparse 60D: treat like 14D
+  const isSparse = chartRange > 14 && allSorted.length < chartRange;
+  const sorted = (chartRange <= 14 || isSparse) ? allSorted : allSorted.slice(-chartRange);
   const n = sorted.length;
-  const values = chartRange <= 14 ? allValues : allValues.slice(-chartRange);
-  const rollingAvg = chartRange <= 14 ? allRolling : allRolling.slice(-chartRange);
+  const values = (chartRange <= 14 || isSparse) ? allValues : allValues.slice(-chartRange);
+  const rollingAvg = (chartRange <= 14 || isSparse) ? allRolling : allRolling.slice(-chartRange);
   const baselineArr = sorted.map(() => BASELINE);
 
   const sortedDates = sorted.map(r => r.date);
@@ -751,12 +753,12 @@ function renderChart() {
   const pr = Math.max(4, Math.min(20, Math.floor(currentPtW / 2)));
 
   const datasets = [
-    { data: values, borderColor: chartRange <= 14 ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: chartRange <= 14 ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
+    { data: values, borderColor: (chartRange <= 14 || isSparse) ? COLORS.accent : 'rgba(160,180,192,0.35)', borderWidth: (chartRange <= 14 || isSparse) ? 2.25 : 1.1, pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0.3 },
     { data: baselineArr, borderColor: 'rgba(255,255,255,0.85)', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false },
     { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
   ];
   const chartScales = {
-    x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: chartRange <= 14
+    x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: (chartRange <= 14 || isSparse)
       ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
       : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
           autoSkip: false,
@@ -789,7 +791,7 @@ function renderChart() {
   });
 
   attachChartTapHandler(canvas);
-  if (chartRange <= 14) requestAnimationFrame(() => scrollChartToEnd(n));
+  if (chartRange <= 14 || isSparse) requestAnimationFrame(() => scrollChartToEnd(n));
 }
 
 // ---------- History list ----------
