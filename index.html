@@ -128,7 +128,7 @@
   .history-metric-temp { width:46px; }
   .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
   .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
-  .history-temp { font-family:var(--font-display); font-size:17px; cursor:pointer; }
+  .history-temp { font-family:var(--font-display); font-size:22px; cursor:pointer; }
   .history-rhr-heart { font-size:4px; vertical-align:middle; }
   .history-rhr.confirming, .history-hrv.confirming, .history-temp.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
   .delete-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.5; }
@@ -956,7 +956,7 @@ function renderHistoryList() {
               </div>
               <div class="history-metric history-metric-temp">
                 <div class="history-metric-delta" style="color:${rhrOTempVal !== undefined ? tempZoneColor(rhrOTempVal) : ''}">${rhrOTempDStr}</div>
-                ${rhrOTempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(rhrOTempVal)}" data-date="${r.date}">${Math.floor(rhrOTempVal)}<span style="font-size:11px">.${rhrOTempVal.toFixed(2).split('.')[1]}°</span></span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+                ${rhrOTempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(rhrOTempVal)}" data-date="${r.date}">${Math.floor(rhrOTempVal)}<span style="font-size:12px">.${rhrOTempVal.toFixed(2).split('.')[1]}°</span></span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
               </div>
             </div>
             <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
@@ -1006,7 +1006,7 @@ function renderHistoryList() {
             </div>
             <div class="history-metric history-metric-temp">
               <div class="history-metric-delta" style="color:${tempVal !== undefined ? tempZoneColor(tempVal) : ''}">${tempDStr}</div>
-              ${tempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}" data-date="${r.date}">${Math.floor(tempVal)}<span style="font-size:11px">.${tempVal.toFixed(2).split('.')[1]}°</span></span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+              ${tempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}" data-date="${r.date}">${Math.floor(tempVal)}<span style="font-size:12px">.${tempVal.toFixed(2).split('.')[1]}°</span></span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
             </div>
           </div>
           ${noteIcon}
