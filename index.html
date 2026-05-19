@@ -120,9 +120,12 @@
   .row-delete-bg { position:absolute; right:0; top:0; bottom:0; width:72px; background:var(--red); display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-family:var(--font-mono); letter-spacing:1px; cursor:pointer; user-select:none; }
   .history-date { font-size:11px; color:var(--muted); font-family:var(--font-mono); flex:1; display:flex; flex-direction:column; gap:3px; }
   .history-date-line { white-space:nowrap; }
-  .history-metrics { display:flex; gap:12px; align-items:flex-end; flex-shrink:0; }
+  .history-metrics { display:flex; gap:8px; align-items:flex-end; flex-shrink:0; }
   .history-metric { display:flex; flex-direction:column; align-items:center; gap:1px; }
   .history-metric-delta { font-size:9px; font-family:var(--font-mono); line-height:1; min-height:11px; letter-spacing:0; }
+  .history-metric-hrv { width:36px; }
+  .history-metric-rhr { width:42px; }
+  .history-metric-temp { width:56px; }
   .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
   .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
   .history-temp { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
@@ -183,7 +186,7 @@
   .tag-chip { display:inline-block; font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:10px; cursor:pointer; flex-shrink:0; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
   .tag-empty { font-family:var(--font-mono); font-size:10px; color:var(--border); cursor:pointer; padding:2px 4px; flex-shrink:0; }
   .tag-empty:hover, .tag-empty:active { color:var(--muted); }
-  .note-btn { background:none; border:none; font-size:13px; cursor:pointer; padding:2px 4px; flex-shrink:0; opacity:0.35; }
+  .note-btn { background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; flex-shrink:0; opacity:0.35; }
   .note-btn.has-note { opacity:1; }
   .note-row { padding:4px 0 8px 0; display:none; }
   .note-row.open { display:block; }
@@ -943,14 +946,18 @@ function renderHistoryList() {
               <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;">RHR only</span>
             </div>
             <div class="history-metrics">
-              <div class="history-metric">
+              <div class="history-metric history-metric-hrv">
+                <div class="history-metric-delta"></div>
+                <span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>
+              </div>
+              <div class="history-metric history-metric-rhr">
                 <div class="history-metric-delta" style="color:${rhrZoneColor(r.rhr)}">${rhrDStr}</div>
                 <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
               </div>
-              ${rhrOTempVal !== undefined ? `<div class="history-metric">
-                <div class="history-metric-delta" style="color:${tempZoneColor(rhrOTempVal)}">${rhrOTempDStr}</div>
-                <span class="history-temp" style="color:${tempZoneColor(rhrOTempVal)}" data-date="${r.date}">${rhrOTempVal.toFixed(2)}°</span>
-              </div>` : ''}
+              <div class="history-metric history-metric-temp">
+                <div class="history-metric-delta" style="color:${rhrOTempVal !== undefined ? tempZoneColor(rhrOTempVal) : ''}">${rhrOTempDStr}</div>
+                ${rhrOTempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(rhrOTempVal)}" data-date="${r.date}">${rhrOTempVal.toFixed(2)}°</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+              </div>
             </div>
             <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
           </div>
@@ -989,18 +996,18 @@ function renderHistoryList() {
             ${tagHtml}
           </div>
           <div class="history-metrics">
-            <div class="history-metric">
+            <div class="history-metric history-metric-hrv">
               <div class="history-metric-delta" style="color:${dColor}">${dStr}</div>
               <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
             </div>
-            ${rhrVal !== undefined ? `<div class="history-metric">
-              <div class="history-metric-delta" style="color:${rhrZoneColor(rhrVal)}">${rhrDStr}</div>
-              <span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>
-            </div>` : ''}
-            ${tempVal !== undefined ? `<div class="history-metric">
-              <div class="history-metric-delta" style="color:${tempZoneColor(tempVal)}">${tempDStr}</div>
-              <span class="history-temp" style="color:${tempZoneColor(tempVal)}" data-date="${r.date}">${tempVal.toFixed(2)}°</span>
-            </div>` : ''}
+            <div class="history-metric history-metric-rhr">
+              <div class="history-metric-delta" style="color:${rhrVal !== undefined ? rhrZoneColor(rhrVal) : ''}">${rhrDStr}</div>
+              ${rhrVal !== undefined ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+            </div>
+            <div class="history-metric history-metric-temp">
+              <div class="history-metric-delta" style="color:${tempVal !== undefined ? tempZoneColor(tempVal) : ''}">${tempDStr}</div>
+              ${tempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}" data-date="${r.date}">${tempVal.toFixed(2)}°</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+            </div>
           </div>
           ${noteIcon}
         </div>
