@@ -123,10 +123,11 @@
   .history-metrics { display:flex; gap:12px; align-items:flex-end; flex-shrink:0; }
   .history-metric { display:flex; flex-direction:column; align-items:center; gap:1px; }
   .history-metric-delta { font-size:9px; font-family:var(--font-mono); line-height:1; min-height:11px; letter-spacing:0; }
-  .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; }
+  .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
   .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
+  .history-temp { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
   .history-rhr-heart { font-size:4px; vertical-align:middle; }
-  .history-rhr.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
+  .history-rhr.confirming, .history-hrv.confirming, .history-temp.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
   .delete-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.5; }
   .delete-btn.confirming { color:var(--red); opacity:1; font-size:10px; font-family:monospace; letter-spacing:1px; border:1px solid rgba(244,67,54,0.4); border-radius:4px; padding:3px 7px; }
   .empty-state { text-align:center; padding:30px; color:var(--muted); font-size:13px; font-family:var(--font-mono); }
@@ -933,7 +934,7 @@ function renderHistoryList() {
         const rhrOTempVal = tempData[r.date];
         const rhrOEb = getEffectiveBaseline();
         const rhrOTempDelta = (rhrOTempVal !== undefined && rhrOEb !== null) ? (rhrOTempVal - rhrOEb) : null;
-        const rhrOTempDStr = rhrOTempDelta !== null ? ((rhrOTempDelta >= 0 ? '+' : '') + rhrOTempDelta.toFixed(1) + '°') : '';
+        const rhrOTempDStr = rhrOTempDelta !== null ? ((rhrOTempDelta >= 0 ? '+' : '') + rhrOTempDelta.toFixed(2) + '°') : '';
         html += `<div class="history-row" id="rhr-row-${r.date}">
           <div class="row-delete-bg" data-delete-rhr="${r.date}">DELETE</div>
           <div class="row-content">
@@ -948,7 +949,7 @@ function renderHistoryList() {
               </div>
               ${rhrOTempVal !== undefined ? `<div class="history-metric">
                 <div class="history-metric-delta" style="color:${tempZoneColor(rhrOTempVal)}">${rhrOTempDStr}</div>
-                <span style="font-family:var(--font-display);font-size:17px;letter-spacing:1px;color:${tempZoneColor(rhrOTempVal)}">${rhrOTempVal.toFixed(1)}°</span>
+                <span class="history-temp" style="color:${tempZoneColor(rhrOTempVal)}" data-date="${r.date}">${rhrOTempVal.toFixed(2)}°</span>
               </div>` : ''}
             </div>
             <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
@@ -973,7 +974,7 @@ function renderHistoryList() {
       const tempVal = tempData[r.date];
       const eb = getEffectiveBaseline();
       const tempDelta = (tempVal !== undefined && eb !== null) ? tempVal - eb : null;
-      const tempDStr = tempDelta !== null ? ((tempDelta >= 0 ? '+' : '') + tempDelta.toFixed(1) + '°') : '';
+      const tempDStr = tempDelta !== null ? ((tempDelta >= 0 ? '+' : '') + tempDelta.toFixed(2) + '°') : '';
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
         : `<button class="note-btn" onclick="toggleNote('${r.id}')">✎</button>`;
@@ -998,7 +999,7 @@ function renderHistoryList() {
             </div>` : ''}
             ${tempVal !== undefined ? `<div class="history-metric">
               <div class="history-metric-delta" style="color:${tempZoneColor(tempVal)}">${tempDStr}</div>
-              <span style="font-family:var(--font-display);font-size:17px;letter-spacing:1px;color:${tempZoneColor(tempVal)}">${tempVal.toFixed(1)}°</span>
+              <span class="history-temp" style="color:${tempZoneColor(tempVal)}" data-date="${r.date}">${tempVal.toFixed(2)}°</span>
             </div>` : ''}
           </div>
           ${noteIcon}
@@ -1456,7 +1457,7 @@ function deleteRHREntry(date) {
 }
 
 function clearNumConfirming() {
-  document.querySelectorAll('.history-rhr.confirming').forEach(el => {
+  document.querySelectorAll('.history-rhr.confirming, .history-hrv.confirming, .history-temp.confirming').forEach(el => {
     el.classList.remove('confirming');
     if (el.dataset.orig) el.innerHTML = el.dataset.orig;
   });
@@ -1473,8 +1474,38 @@ function armConfirm(el) {
     }
   }, 3000);
 }
+function deleteHRVOnly(id) {
+  readings = readings.filter(r => String(r.id) !== String(id));
+  save();
+  render();
+  showToast('HRV removed');
+}
+function deleteRHROnly(date) {
+  delete rhrData[date];
+  saveRHR();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToGitHub(), 800);
+  render();
+  showToast('RHR removed');
+}
+function deleteTempOnly(date) {
+  delete tempData[date];
+  saveTemp();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToGitHub(), 800);
+  render();
+  showToast('Temp removed');
+}
+function handleHRVTap(el) {
+  if (el.classList.contains('confirming')) { deleteHRVOnly(el.dataset.id); return; }
+  armConfirm(el);
+}
 function handleRHRTap(el) {
-  if (el.classList.contains('confirming')) { deleteRHREntry(el.dataset.date); return; }
+  if (el.classList.contains('confirming')) { deleteRHROnly(el.dataset.date); return; }
+  armConfirm(el);
+}
+function handleTempTap(el) {
+  if (el.classList.contains('confirming')) { deleteTempOnly(el.dataset.date); return; }
   armConfirm(el);
 }
 
@@ -2966,9 +2997,12 @@ async function init() {
       });
       return;
     }
-    if (e.target.closest('.history-hrv')) return;
+    const hrv = e.target.closest('.history-hrv');
+    if (hrv) { handleHRVTap(hrv); return; }
     const rhr = e.target.closest('.history-rhr');
     if (rhr) { handleRHRTap(rhr); return; }
+    const temp = e.target.closest('.history-temp');
+    if (temp) { handleTempTap(temp); return; }
   });
   setupSwipeToDelete();
   const _now = new Date();
