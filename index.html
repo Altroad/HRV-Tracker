@@ -120,12 +120,13 @@
   .row-delete-bg { position:absolute; right:0; top:0; bottom:0; width:72px; background:var(--red); display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-family:var(--font-mono); letter-spacing:1px; cursor:pointer; user-select:none; }
   .history-date { font-size:11px; color:var(--muted); font-family:var(--font-mono); flex:1; display:flex; flex-direction:column; gap:3px; }
   .history-date-line { white-space:nowrap; }
-  .history-nums { display:flex; align-items:baseline; gap:5px; flex-shrink:0; }
+  .history-metrics { display:flex; gap:12px; align-items:flex-end; flex-shrink:0; }
+  .history-metric { display:flex; flex-direction:column; align-items:center; gap:1px; }
+  .history-metric-delta { font-size:9px; font-family:var(--font-mono); line-height:1; min-height:11px; letter-spacing:0; }
   .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; }
   .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
   .history-rhr-heart { font-size:4px; vertical-align:middle; }
   .history-rhr.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
-  .history-delta { font-size:11px; font-family:var(--font-mono); width:36px; text-align:right; flex-shrink:0; }
   .delete-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.5; }
   .delete-btn.confirming { color:var(--red); opacity:1; font-size:10px; font-family:monospace; letter-spacing:1px; border:1px solid rgba(244,67,54,0.4); border-radius:4px; padding:3px 7px; }
   .empty-state { text-align:center; padding:30px; color:var(--muted); font-size:13px; font-family:var(--font-mono); }
@@ -927,6 +928,12 @@ function renderHistoryList() {
         const d = new Date(r.date + 'T12:00:00');
         const note = rhrNotes[r.date] || '';
         const noteBtnClass = note ? 'note-btn has-note' : 'note-btn';
+        const rhrD = r.rhr - rhrBaseline;
+        const rhrDStr = rhrD === 0 ? '' : rhrD > 0 ? `▲${rhrD}` : `▼${Math.abs(rhrD)}`;
+        const rhrOTempVal = tempData[r.date];
+        const rhrOEb = getEffectiveBaseline();
+        const rhrOTempDelta = (rhrOTempVal !== undefined && rhrOEb !== null) ? (rhrOTempVal - rhrOEb) : null;
+        const rhrOTempDStr = rhrOTempDelta !== null ? ((rhrOTempDelta >= 0 ? '+' : '') + rhrOTempDelta.toFixed(1) + '°') : '';
         html += `<div class="history-row" id="rhr-row-${r.date}">
           <div class="row-delete-bg" data-delete-rhr="${r.date}">DELETE</div>
           <div class="row-content">
@@ -934,11 +941,16 @@ function renderHistoryList() {
               <span class="history-date-line">${DAY_NAMES[d.getDay()]} ${fmtDate(d)}</span>
               <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono);letter-spacing:1px;">RHR only</span>
             </div>
-            <div class="history-nums">
-              <span class="history-hrv" style="color:var(--muted)">—</span>
-              <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
+            <div class="history-metrics">
+              <div class="history-metric">
+                <div class="history-metric-delta" style="color:${rhrZoneColor(r.rhr)}">${rhrDStr}</div>
+                <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
+              </div>
+              ${rhrOTempVal !== undefined ? `<div class="history-metric">
+                <div class="history-metric-delta" style="color:${tempZoneColor(rhrOTempVal)}">${rhrOTempDStr}</div>
+                <span style="font-family:var(--font-display);font-size:17px;letter-spacing:1px;color:${tempZoneColor(rhrOTempVal)}">${rhrOTempVal.toFixed(1)}°</span>
+              </div>` : ''}
             </div>
-            <div class="history-delta"></div>
             <button class="${noteBtnClass}" onclick="toggleNote('rhr-${r.date}')" title="${note.replace(/"/g,'&quot;')}">✎</button>
           </div>
         </div>
@@ -948,7 +960,7 @@ function renderHistoryList() {
         return;
       }
       const delta = deltaMap.get(r.id);
-      const dStr = delta === null ? '—' : (delta >= 0 ? `▲${Math.abs(delta)}` : `▼${Math.abs(delta)}`);
+      const dStr = (!delta) ? '' : (delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`);
       const dColor = delta === null ? COLORS.muted : delta >= 0 ? COLORS.green : COLORS.red;
       const color = colorForHRV(r.hrv);
       const tagColor = r.tag ? TAG_MAP[r.tag] : null;
@@ -956,9 +968,12 @@ function renderHistoryList() {
         ? `<span class="tag-chip" style="border-color:${tagColor};color:${tagColor};align-self:flex-start;" onclick="openTagPicker(event,'${r.id}')">${r.tag.toUpperCase()}</span>`
         : `<span class="tag-empty" onclick="openTagPicker(event,'${r.id}')">＋</span>`;
       const rhrVal = rhrData[r.date];
-      const rhrSpan = rhrVal !== undefined
-        ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>`
-        : '';
+      const rhrD = rhrVal !== undefined ? rhrVal - rhrBaseline : null;
+      const rhrDStr = rhrD === null || rhrD === 0 ? '' : rhrD > 0 ? `▲${rhrD}` : `▼${Math.abs(rhrD)}`;
+      const tempVal = tempData[r.date];
+      const eb = getEffectiveBaseline();
+      const tempDelta = (tempVal !== undefined && eb !== null) ? tempVal - eb : null;
+      const tempDStr = tempDelta !== null ? ((tempDelta >= 0 ? '+' : '') + tempDelta.toFixed(1) + '°') : '';
       const noteIcon = r.note
         ? `<button class="note-btn has-note" onclick="toggleNote('${r.id}')" title="${r.note.replace(/"/g,'&quot;')}">✎</button>`
         : `<button class="note-btn" onclick="toggleNote('${r.id}')">✎</button>`;
@@ -972,11 +987,20 @@ function renderHistoryList() {
             <span class="history-date-line">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</span>
             ${tagHtml}
           </div>
-          <div class="history-nums">
-            <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
-            ${rhrSpan}
+          <div class="history-metrics">
+            <div class="history-metric">
+              <div class="history-metric-delta" style="color:${dColor}">${dStr}</div>
+              <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
+            </div>
+            ${rhrVal !== undefined ? `<div class="history-metric">
+              <div class="history-metric-delta" style="color:${rhrZoneColor(rhrVal)}">${rhrDStr}</div>
+              <span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>
+            </div>` : ''}
+            ${tempVal !== undefined ? `<div class="history-metric">
+              <div class="history-metric-delta" style="color:${tempZoneColor(tempVal)}">${tempDStr}</div>
+              <span style="font-family:var(--font-display);font-size:17px;letter-spacing:1px;color:${tempZoneColor(tempVal)}">${tempVal.toFixed(1)}°</span>
+            </div>` : ''}
           </div>
-          <div class="history-delta" style="color:${dColor}">${dStr}</div>
           ${noteIcon}
         </div>
       </div>${noteRow}`;
