@@ -2623,6 +2623,7 @@ function showLogModal() {
       <input type="date" id="logDate" value="${today}" style="flex:2;min-width:0;">
       <input type="number" id="logHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
       <input type="number" id="logRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+      <input type="number" id="logTemp" placeholder="Temp" min="30" max="42" step="0.01" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
     </div>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -2631,9 +2632,17 @@ function showLogModal() {
   `);
   overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
   overlay.querySelector('[data-add]').addEventListener('click', () => {
-    $('inputDate').value = overlay.querySelector('#logDate').value;
-    $('inputHRV').value  = overlay.querySelector('#logHRV').value;
-    $('inputRHR').value  = overlay.querySelector('#logRHR').value;
+    const date  = overlay.querySelector('#logDate').value;
+    const hrv   = overlay.querySelector('#logHRV').value;
+    const rhr   = overlay.querySelector('#logRHR').value;
+    const temp  = parseFloat(overlay.querySelector('#logTemp').value);
+    $('inputDate').value = date;
+    $('inputHRV').value  = hrv;
+    $('inputRHR').value  = rhr;
+    if (!isNaN(temp) && temp > 30 && temp < 42 && date) {
+      tempData[date] = temp;
+      saveTemp();
+    }
     overlay.remove();
     addEntry();
   });
