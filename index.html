@@ -2636,15 +2636,23 @@ function showLogModal() {
     const hrv   = overlay.querySelector('#logHRV').value;
     const rhr   = overlay.querySelector('#logRHR').value;
     const temp  = parseFloat(overlay.querySelector('#logTemp').value);
-    $('inputDate').value = date;
-    $('inputHRV').value  = hrv;
-    $('inputRHR').value  = rhr;
-    if (!isNaN(temp) && temp > 30 && temp < 42 && date) {
-      tempData[date] = temp;
-      saveTemp();
-    }
+    const hasTemp = !isNaN(temp) && temp > 30 && temp < 42 && date;
+    const hasHRVorRHR = hrv || rhr;
+    if (!date) { showToast('Select a date'); return; }
+    if (!hasHRVorRHR && !hasTemp) { showToast('Enter at least one value'); return; }
+    if (hasTemp) { tempData[date] = temp; saveTemp(); }
     overlay.remove();
-    addEntry();
+    if (hasHRVorRHR) {
+      $('inputDate').value = date;
+      $('inputHRV').value  = hrv;
+      $('inputRHR').value  = rhr;
+      addEntry();
+    } else {
+      render();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveToGitHub(), 800);
+      showToast(`Logged Temp ${temp.toFixed(2)}°`);
+    }
   });
   setTimeout(() => overlay.querySelector('#logHRV').focus(), 50);
 }
