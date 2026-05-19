@@ -725,7 +725,7 @@ function renderChart() {
   const allRolling = rollingAverage(allValues, chartRange <= 14 ? 7 : 14);
 
   // 14D: show all data scrollable; 60D: slice to last chartRange; sparse 60D: treat like 14D
-  const isSparse = chartRange > 14 && allSorted.length < chartRange;
+  const isSparse = chartRange > 14 && allSorted.length < 14;
   const sorted = (chartRange <= 14 || isSparse) ? allSorted : allSorted.slice(-chartRange);
   const n = sorted.length;
   const values = (chartRange <= 14 || isSparse) ? allValues : allValues.slice(-chartRange);
