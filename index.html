@@ -1570,6 +1570,153 @@ function doImport(text, overlay) {
   }
 }
 
+// ---------- CSV Export / Import ----------
+function buildCSV() {
+  const hrvByDate = {};
+  for (const r of readings) {
+    (hrvByDate[r.date] = hrvByDate[r.date] || []).push(r);
+  }
+  const allDates = [...new Set([
+    ...readings.map(r => r.date),
+    ...Object.keys(rhrData),
+    ...Object.keys(tempData)
+  ])].sort().reverse();
+
+  const escField = v => (v == null || v === '') ? '' : String(v).includes(',') || String(v).includes('"') || String(v).includes('\n')
+    ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+
+  const rows = ['date,hrv,rhr,temp,note,tag'];
+  for (const date of allDates) {
+    const dayReadings = hrvByDate[date] || [null];
+    for (const r of dayReadings) {
+      rows.push([
+        date,
+        r ? Math.round(r.hrv) : '',
+        rhrData[date] !== undefined ? rhrData[date] : '',
+        tempData[date] !== undefined ? tempData[date].toFixed(2) : '',
+        escField(r?.note || ''),
+        escField(r?.tag || '')
+      ].join(','));
+    }
+  }
+  return rows.join('\n');
+}
+
+async function exportCSV() {
+  const csv = buildCSV();
+  const file = new File([csv], 'vitals.csv', { type: 'text/csv' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; } catch(e) {}
+  }
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(csv)
+      .then(() => showToast(`CSV copied — ${readings.length} HRV · ${Object.keys(rhrData).length} RHR · ${Object.keys(tempData).length} Temp`))
+      .catch(() => showCSVModal(csv));
+  } else {
+    showCSVModal(csv);
+  }
+}
+
+function showCSVModal(csv) {
+  const overlay = openModal(`
+    <div class="modal-title">Export CSV</div>
+    <div class="modal-desc">Copy and save this somewhere safe.</div>
+    <textarea readonly style="font-size:11px;height:160px;"></textarea>
+    <button class="modal-btn" data-close>CLOSE</button>
+  `);
+  const ta = overlay.querySelector('textarea');
+  ta.value = csv;
+  ta.addEventListener('click', () => ta.select());
+  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+  setTimeout(() => { ta.focus(); ta.select(); }, 100);
+}
+
+function parseCSVLine(line) {
+  const fields = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (line[i] === ',' && !inQ) {
+      fields.push(cur); cur = '';
+    } else {
+      cur += line[i];
+    }
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function showImportCSVModal() {
+  const overlay = openModal(`
+    <div class="modal-title">Import CSV</div>
+    <div class="modal-desc">Paste a previously exported CSV. Existing entries are preserved — only new data is added.</div>
+    <textarea placeholder="Paste CSV here…" style="font-size:11px;height:140px;"></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-import>IMPORT</button>
+    </div>
+  `);
+  const ta = overlay.querySelector('textarea');
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-import]').addEventListener('click', () => doImportCSV(ta.value, overlay));
+}
+
+function doImportCSV(text, overlay) {
+  try {
+    const lines = text.trim().split(/\r?\n/);
+    let start = 0;
+    if (lines[0].toLowerCase().startsWith('date')) start = 1;
+
+    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, skipped = 0;
+
+    for (let i = start; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const [dateStr, hrvStr, rhrStr, tempStr, note, tag] = parseCSVLine(line);
+      const date = (dateStr || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+
+      const hrv = parseFloat(hrvStr);
+      if (!isNaN(hrv) && hrv >= 20 && hrv <= 220) {
+        const rounded = Math.round(hrv);
+        if (!readings.some(r => r.date === date && Math.round(r.hrv) === rounded)) {
+          const entry = { id: nextId++, date, hrv: rounded };
+          if (note?.trim()) entry.note = note.trim();
+          if (tag?.trim())  entry.tag  = tag.trim();
+          readings.push(entry);
+          hrvAdded++;
+        } else { skipped++; }
+      }
+
+      const rhr = parseFloat(rhrStr);
+      if (!isNaN(rhr) && rhr >= 25 && rhr <= 120 && !(date in rhrData)) {
+        rhrData[date] = Math.round(rhr); rhrAdded++;
+      }
+
+      const temp = parseFloat(tempStr);
+      if (!isNaN(temp) && temp > 30 && temp < 42 && !(date in tempData)) {
+        tempData[date] = temp; tempAdded++;
+      }
+    }
+
+    if (hrvAdded)  save();
+    if (rhrAdded)  saveRHR();
+    if (tempAdded) saveTemp();
+    overlay.remove();
+    render();
+
+    const parts = [];
+    if (hrvAdded)  parts.push(`${hrvAdded} HRV`);
+    if (rhrAdded)  parts.push(`${rhrAdded} RHR`);
+    if (tempAdded) parts.push(`${tempAdded} Temp`);
+    showToast(parts.length ? `Added: ${parts.join(' + ')}${skipped ? ` · ${skipped} skipped` : ''}` : 'Nothing new to import');
+  } catch {
+    showToast('Could not parse CSV');
+  }
+}
+
 // ---------- HRV Calculator ----------
 function showCalcModal() {
   const overlay = openModal(`
@@ -2448,15 +2595,15 @@ function showMenuModal() {
   const overlay = openModal(`
     <div class="modal-title">Tools</div>
     <button class="modal-btn" id="menuCalc" style="text-align:left;">Manual Sync</button>
-    <button class="modal-btn" id="menuExport" style="text-align:left;">Export Backup</button>
-    <button class="modal-btn" id="menuImport" style="text-align:left;">Import Backup</button>
+    <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
+    <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
     <button class="modal-btn" id="menuRHR" style="text-align:left;">Import RHR Data</button>
     <button class="modal-btn" id="menuTemp" style="text-align:left;">Set Temp Baseline</button>
     <button class="modal-btn cancel" data-close>Close</button>
   `);
   overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
-  overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportData(); });
-  overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportModal(); });
+  overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
+  overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportCSVModal(); });
   overlay.querySelector('#menuRHR').addEventListener('click',    () => { overlay.remove(); showRHRImportModal(); });
   overlay.querySelector('#menuTemp').addEventListener('click',   () => { overlay.remove(); showTempBaselineModal(); });
   overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
