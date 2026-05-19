@@ -210,9 +210,10 @@
 
 <div class="header-top">
   <h1>Vitals</h1>
-  <div style="display:flex;gap:8px;margin-top:6px;justify-content:center;flex-wrap:wrap;">
-    <div id="baselineBadge" style="font-family:var(--font-mono);font-size:13px;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 14px;border-radius:6px;letter-spacing:1px;">HRV —ms</div>
-    <div id="rhrBaselineBadge" style="font-family:var(--font-mono);font-size:13px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 14px;border-radius:6px;letter-spacing:1px;">RHR —</div>
+  <div style="display:flex;gap:6px;margin-top:6px;justify-content:center;flex-wrap:wrap;">
+    <div id="baselineBadge"    style="font-family:var(--font-mono);font-size:11px;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:6px;letter-spacing:0;">HRV —</div>
+    <div id="rhrBaselineBadge" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:6px;letter-spacing:0;">RHR —</div>
+    <div id="tempBaselineBadge" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:6px;letter-spacing:0;">Tmp —°</div>
   </div>
   <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:4px;" id="appVersion">v2026-05-15.1</div>
   <button class="menu-btn" id="menuBtn">≡</button>
@@ -1045,8 +1046,8 @@ function updateBaseline() {
     const pool = readings.filter(r => new Date(r.date) >= cutoff);
     const src = pool.length > 0 ? pool : readings;
     BASELINE = Math.round(src.reduce((a, b) => a + b.hrv, 0) / src.length);
-    const label = pool.length > 0 ? '12mo' : `${readings.length}d`;
-    $('baselineBadge').textContent = `HRV ${BASELINE}ms · ${label}`;
+    const label = pool.length > 0 ? '12m' : `${readings.length}d`;
+    $('baselineBadge').textContent = `HRV ${BASELINE} · ${label}`;
   }
   ZONE_HIGH = Math.round(BASELINE * 1.10);
   ZONE_GOOD = Math.round(BASELINE * 0.95);
@@ -1060,14 +1061,27 @@ function updateBaseline() {
   rhrBaseline = rhrDates30.length ? Math.round(rhrDates30.reduce((a, d) => a + rhrData[d], 0) / rhrDates30.length) : 40;
   const rhrBadge = $('rhrBaselineBadge');
   if (rhrDates30.length) {
-    const rhrLabel = rhrDates30.length >= 90 ? '3mo' : `${rhrDates30.length}d`;
-    rhrBadge.textContent = `RHR ${rhrBaseline}bpm · ${rhrLabel}`;
+    const rhrLabel = rhrDates30.length >= 90 ? '3m' : `${rhrDates30.length}d`;
+    rhrBadge.textContent = `RHR ${rhrBaseline} · ${rhrLabel}`;
     rhrBadge.style.color = '#4caf50';
     rhrBadge.style.borderColor = '#4caf5055';
   } else {
     rhrBadge.textContent = 'RHR —';
     rhrBadge.style.color = 'var(--muted)';
     rhrBadge.style.borderColor = 'var(--border)';
+  }
+  const tempBadge = $('tempBaselineBadge');
+  const tempDatesAll = Object.keys(tempData).sort();
+  if (tempDatesAll.length) {
+    const latestT = tempData[tempDatesAll.at(-1)];
+    const tc = tempZoneColor(latestT);
+    tempBadge.textContent = `Tmp ${latestT.toFixed(2)}° · ${tempDatesAll.length}d`;
+    tempBadge.style.color = tc;
+    tempBadge.style.borderColor = tc + '55';
+  } else {
+    tempBadge.textContent = 'Tmp —°';
+    tempBadge.style.color = 'var(--muted)';
+    tempBadge.style.borderColor = 'var(--border)';
   }
 }
 
