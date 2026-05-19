@@ -312,12 +312,11 @@
 </div>
 
 <div class="card">
-  <div class="input-label">Log HRV, RHR &amp; Temp</div>
-  <div class="input-row">
-    <input type="date" id="inputDate" style="flex:2;min-width:0;">
-    <input type="number" id="inputHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
-    <input type="number" id="inputRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
-    <button class="btn-primary" id="addBtn" style="padding:0 12px;">ADD</button>
+  <div style="display:none;">
+    <input type="date" id="inputDate">
+    <input type="number" id="inputHRV" min="20" max="220">
+    <input type="number" id="inputRHR" min="25" max="120">
+    <button id="addBtn"></button>
   </div>
   <div class="backup-row">
     <div style="display:flex;gap:2px;flex:1;">
@@ -2599,19 +2598,46 @@ function showSyncModal() {
 function showMenuModal() {
   const overlay = openModal(`
     <div class="modal-title">Tools</div>
-    <button class="modal-btn" id="menuCalc" style="text-align:left;">Manual Sync</button>
+    <button class="modal-btn" id="menuLog"    style="text-align:left;">Log Reading</button>
+    <button class="modal-btn" id="menuCalc"   style="text-align:left;">Manual Sync</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
-    <button class="modal-btn" id="menuRHR" style="text-align:left;">Import RHR Data</button>
-    <button class="modal-btn" id="menuTemp" style="text-align:left;">Set Temp Baseline</button>
+    <button class="modal-btn" id="menuRHR"    style="text-align:left;">Import RHR Data</button>
+    <button class="modal-btn" id="menuTemp"   style="text-align:left;">Set Temp Baseline</button>
     <button class="modal-btn cancel" data-close>Close</button>
   `);
+  overlay.querySelector('#menuLog').addEventListener('click',    () => { overlay.remove(); showLogModal(); });
   overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
   overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportCSVModal(); });
   overlay.querySelector('#menuRHR').addEventListener('click',    () => { overlay.remove(); showRHRImportModal(); });
   overlay.querySelector('#menuTemp').addEventListener('click',   () => { overlay.remove(); showTempBaselineModal(); });
   overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+}
+
+function showLogModal() {
+  const today = $('inputDate').value;
+  const overlay = openModal(`
+    <div class="modal-title">Log Reading</div>
+    <div class="input-row" style="gap:8px;">
+      <input type="date" id="logDate" value="${today}" style="flex:2;min-width:0;">
+      <input type="number" id="logHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+      <input type="number" id="logRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-add>ADD</button>
+    </div>
+  `);
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-add]').addEventListener('click', () => {
+    $('inputDate').value = overlay.querySelector('#logDate').value;
+    $('inputHRV').value  = overlay.querySelector('#logHRV').value;
+    $('inputRHR').value  = overlay.querySelector('#logRHR').value;
+    overlay.remove();
+    addEntry();
+  });
+  setTimeout(() => overlay.querySelector('#logHRV').focus(), 50);
 }
 
 function showTempBaselineModal() {
@@ -2849,6 +2875,7 @@ function restoreCalcResult() {
     $('calcTempDelta').style.color = s.tempDeltaColor;
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
     $('calcAnotherBtn').style.display = 'none';
+    $('calcResult').classList.add('show');
     const rb = $('resultsBtn');
     if (rb) rb.disabled = false;
   } catch(e) {}
