@@ -1,4 +1,4 @@
-const CACHE = 'vitals-v3';
+const CACHE = 'vitals-v4';
 const ASSETS = [
   '/HRV-Tracker/',
   '/HRV-Tracker/index.html',
