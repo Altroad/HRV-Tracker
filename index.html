@@ -2732,6 +2732,7 @@ async function init() {
   }
   render();
   if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
+    history.replaceState(null, '', window.location.pathname);
     autoImport();
   }
 }
