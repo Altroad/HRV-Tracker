@@ -398,6 +398,11 @@
       "hrv": 82,
       "tag": "<100TSS",
       "note": "Doi attempt #2. Almost 300w for 32 min. Last 5 min at 320 av."
+    },
+    {
+      "id": 157,
+      "date": "2026-05-20",
+      "hrv": 82
     }
   ],
   "rhr": {
@@ -421,5 +426,6 @@
     "2026-05-20": 36.417274475097656
   },
   "tempBaseline": 36.45,
-  "tempBaselineSetDate": "2026-05-18"
+  "tempBaselineSetDate": "2026-05-18",
+  "lastResult": "{\"hrv\":\"82\",\"hrvColor\":\"rgb(0, 229, 255)\",\"label\":\"Overnight Capture · Deep anchor + top-up · 7 readings\",\"readings\":\"<div class=\\\"calc-group\\\" style=\\\"--ncells:6\\\"><div class=\\\"calc-cell deep\\\"><span class=\\\"calc-cell-t\\\">23:37</span><span class=\\\"calc-cell-v\\\">56</span></div><div class=\\\"calc-cell deep dropped\\\"><span class=\\\"calc-cell-t\\\">23:52</span><span class=\\\"calc-cell-v\\\">56</span></div><div class=\\\"calc-cell core\\\"><span class=\\\"calc-cell-t\\\">0:07</span><span class=\\\"calc-cell-v\\\">88</span></div><div class=\\\"calc-cell core dropped\\\"><span class=\\\"calc-cell-t\\\">0:22</span><span class=\\\"calc-cell-v\\\">144</span></div><div class=\\\"calc-cell core\\\"><span class=\\\"calc-cell-t\\\">0:38</span><span class=\\\"calc-cell-v\\\">93</span></div><div class=\\\"calc-cell core\\\"><span class=\\\"calc-cell-t\\\">0:52</span><span class=\\\"calc-cell-v\\\">115</span></div></div><div class=\\\"calc-chip deep\\\">2:52 · <strong>60</strong></div>\",\"rhrVisible\":true,\"rhr\":\"39\",\"rhrColor\":\"rgb(76, 175, 80)\",\"rhrWindow\":\"1:17–1:28\",\"rhrWindowVisible\":true,\"tempVisible\":true,\"temp\":\"36.42\",\"tempColor\":\"rgb(230, 124, 138)\",\"tempDelta\":\"-0.03°\",\"tempDeltaColor\":\"rgb(230, 124, 138)\",\"tempDeltaVisible\":true}"
 }
