@@ -2581,7 +2581,7 @@ async function loadFromGitHub() {
     tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
     saveTemp();
     if (!Array.isArray(data) && data.lastResult && !localStorage.getItem(getLastResultKey())) {
-      localStorage.setItem(getLastResultKey(), typeof data.lastResult === 'string' ? data.lastResult : JSON.stringify(data.lastResult));
+      try { localStorage.setItem(getLastResultKey(), JSON.stringify(data.lastResult)); } catch {}
     }
     return true;
   } catch { return false; }
@@ -2589,7 +2589,8 @@ async function loadFromGitHub() {
 
 async function saveToGitHub() {
   if (!getGHToken()) return false;
-  const lastResult = localStorage.getItem(getLastResultKey());
+  const lastResultRaw = localStorage.getItem(getLastResultKey());
+  const lastResult = lastResultRaw ? (() => { try { return JSON.parse(lastResultRaw); } catch { return null; } })() : null;
   const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
