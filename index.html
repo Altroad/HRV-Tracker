@@ -1810,8 +1810,8 @@ function showSlowWaveModal() {
     </div>
   `);
   const ta = overlay.querySelector('textarea');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => { window.scrollTo(0, savedScroll); overlay.remove(); });
-  overlay.querySelector('[data-calc]').addEventListener('click', () => { window.scrollTo(0, savedScroll); runSlowWaveCalc(ta.value, overlay); });
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => { overlay.remove(); setTimeout(() => window.scrollTo(0, savedScroll), 100); });
+  overlay.querySelector('[data-calc]').addEventListener('click', () => { runSlowWaveCalc(ta.value, overlay); setTimeout(() => window.scrollTo(0, savedScroll), 100); });
 }
 
 function parseSleepTs(str) {
@@ -3127,17 +3127,17 @@ function showPasteImportModal() {
     </div>
   `);
   const ta = overlay.querySelector('#autoImportTA');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => { window.scrollTo(0, savedScroll); overlay.remove(); });
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => { overlay.remove(); setTimeout(() => window.scrollTo(0, savedScroll), 100); });
   overlay.querySelector('[data-apply]').addEventListener('click', () => {
-    window.scrollTo(0, savedScroll);
     overlay.remove();
     runAutoImportText(ta.value);
+    setTimeout(() => window.scrollTo(0, savedScroll), 100);
   });
   ta.addEventListener('paste', e => {
     setTimeout(() => {
-      window.scrollTo(0, savedScroll);
       overlay.remove();
       runAutoImportText(ta.value);
+      setTimeout(() => window.scrollTo(0, savedScroll), 100);
     }, 50);
   });
   setTimeout(() => ta.focus(), 50);
