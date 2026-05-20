@@ -1802,7 +1802,7 @@ function showSlowWaveModal() {
   const savedScroll = window.pageYOffset || document.documentElement.scrollTop;
   const overlay = openModal(`
     <div class="modal-title">Overnight Capture</div>
-    <div class="modal-desc">Paste all four exports together: previous day HRV, morning HRV, sleep analysis, and heart rate.</div>
+    <div class="modal-desc" id="swModalDesc">Paste all four exports together: previous day HRV, morning HRV, sleep analysis, and heart rate.</div>
     <textarea placeholder="Paste all 4 JSON blocks here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -1810,8 +1810,20 @@ function showSlowWaveModal() {
     </div>
   `);
   const ta = overlay.querySelector('textarea');
+  const desc = overlay.querySelector('#swModalDesc');
+  ta.addEventListener('input', () => { desc.textContent = `${ta.value.length} chars pasted — tap CALCULATE`; desc.style.color = 'var(--accent)'; });
   overlay.querySelector('[data-cancel]').addEventListener('click', () => { overlay.remove(); setTimeout(() => window.scrollTo(0, savedScroll), 100); });
-  overlay.querySelector('[data-calc]').addEventListener('click', () => { runSlowWaveCalc(ta.value, overlay); setTimeout(() => window.scrollTo(0, savedScroll), 100); });
+  overlay.querySelector('[data-calc]').addEventListener('click', () => {
+    if (!ta.value.trim()) { desc.textContent = 'Nothing pasted yet — paste your exports first'; desc.style.color = 'var(--red)'; return; }
+    desc.textContent = `Processing ${ta.value.length} chars…`; desc.style.color = 'var(--muted)';
+    runSlowWaveCalc(ta.value, overlay);
+    if (!$('calcResult').classList.contains('show')) {
+      desc.textContent = `Failed (${ta.value.length} chars) — check data has all 4 exports`;
+      desc.style.color = 'var(--red)';
+    } else {
+      setTimeout(() => window.scrollTo(0, savedScroll), 300);
+    }
+  });
 }
 
 function parseSleepTs(str) {
