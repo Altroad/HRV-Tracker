@@ -3135,7 +3135,7 @@ async function runAutoImportText(text) {
   clearTimeout(saveTimer);
   saveToGitHub();
   const fab = $('importFab');
-  if (fab) fab.style.display = 'none';
+  if (fab) { fab.style.opacity = '0'; setTimeout(() => { fab.style.display = 'none'; }, 600); }
   setTimeout(() => {
     const el = $('calcResult');
     window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - 12));
