@@ -2560,16 +2560,13 @@ async function ghRequest(method, body) {
   try { return await fetch(url, opts); } catch(e) { console.error('ghRequest:', e); return null; }
 }
 
-// Repairs Latin-1 mojibake (e.g. Â· → ·) that arises when UTF-8 bytes are
-// misread as Latin-1 characters. Skips strings that already contain chars
-// above U+00FF — those are genuine Unicode and would be corrupted by the
-// byte reinterpretation (Uint8Array wraps values > 255).
 function decodeMojibake(v) {
   if (typeof v !== 'string') return v;
-  if ([...v].some(c => c.charCodeAt(0) > 255)) return v;
+  // Chars > U+00FF are already correct Unicode; Uint8Array would wrap them, corrupting the string.
+  for (let i = 0; i < v.length; i++) if (v.charCodeAt(i) > 255) return v;
   try {
     const bytes = Uint8Array.from(v, c => c.charCodeAt(0));
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes); // throws if already-correct non-ASCII
   } catch { return v; }
 }
 
@@ -2597,8 +2594,7 @@ async function loadFromGitHub() {
     saveTemp();
     if (!Array.isArray(data) && data.lastResult) {
       try {
-        const lr = data.lastResult;
-        const fixed = Object.fromEntries(Object.entries(lr).map(([k, v]) => [k, decodeMojibake(v)]));
+        const fixed = Object.fromEntries(Object.entries(data.lastResult).map(([k, v]) => [k, decodeMojibake(v)]));
         localStorage.setItem(getLastResultKey(), JSON.stringify(fixed));
       } catch {}
     }
@@ -2609,7 +2605,8 @@ async function loadFromGitHub() {
 async function saveToGitHub() {
   if (!getGHToken()) return false;
   const lastResultRaw = localStorage.getItem(getLastResultKey());
-  const lastResult = lastResultRaw ? (() => { try { return JSON.parse(lastResultRaw); } catch { return null; } })() : null;
+  let lastResult = null;
+  if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
   const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
@@ -3094,7 +3091,7 @@ function runAutoImportText(text) {
 
 function setupSwipeToDelete() {
   const list = $('historyList');
-  let startX, startY, el, startOffset, isHoriz;
+  let startX, startY, el, elBg, startOffset, isHoriz;
 
   function closeAllRows(except) {
     list.querySelectorAll('.row-content').forEach(c => {
@@ -3110,6 +3107,7 @@ function setupSwipeToDelete() {
     const row = e.target.closest('.history-row');
     el = row ? row.querySelector('.row-content') : null;
     if (!el) return;
+    elBg = row.querySelector('.row-delete-bg');
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     startOffset = parseFloat(el.style.transform.match(/-?\d+/)?.[0] || 0);
@@ -3123,10 +3121,7 @@ function setupSwipeToDelete() {
     if (isHoriz === null) {
       if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
       isHoriz = Math.abs(dx) > Math.abs(dy);
-      if (isHoriz) {
-        const bg = el.parentElement.querySelector('.row-delete-bg');
-        if (bg) bg.style.opacity = '1';
-      }
+      if (isHoriz && elBg) elBg.style.opacity = '1';
     }
     if (!isHoriz) { el = null; return; }
     e.preventDefault();
@@ -3144,8 +3139,7 @@ function setupSwipeToDelete() {
       closeAllRows(el);
     } else {
       el.style.transform = '';
-      const bg = el.parentElement.querySelector('.row-delete-bg');
-      if (bg) bg.style.opacity = '';
+      if (elBg) elBg.style.opacity = '';
     }
     el = null;
   }, { passive: true });
