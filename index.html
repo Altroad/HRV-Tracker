@@ -2970,7 +2970,8 @@ async function init() {
       panel.classList.remove('show');
     } else {
       panel.classList.add('show');
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const top = panel.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 20;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
   });
   $('menuBtn').addEventListener('click', showMenuModal);
@@ -3048,7 +3049,11 @@ function runAutoImportText(text) {
   runSlowWaveCalc(text, fakeOverlay);
   if ($('calcResult').classList.contains('show')) {
     addEntry();
-    setTimeout(() => $('calcResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    setTimeout(() => {
+      const el = $('calcResult');
+      const top = el.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 20;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 300);
   }
 }
 
