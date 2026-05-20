@@ -24,18 +24,43 @@
       "date": "2026-05-20",
       "hrv": 79,
       "tag": "100-200TSS"
+    },
+    {
+      "id": 16,
+      "date": "2026-05-21",
+      "hrv": 63
     }
   ],
   "rhr": {
     "2026-05-17": 48,
     "2026-05-18": 41,
     "2026-05-19": 45,
-    "2026-05-20": 42
+    "2026-05-20": 42,
+    "2026-05-21": 42
   },
   "rhrNotes": {},
   "temp": {
-    "2026-05-20": 34.78376007080078
+    "2026-05-20": 34.78376007080078,
+    "2026-05-21": 35.642250061035156
   },
   "tempBaseline": 36.45,
-  "tempBaselineSetDate": "2026-05-18"
+  "tempBaselineSetDate": "2026-05-18",
+  "lastResult": {
+    "savedAt": "2026-05-21",
+    "hrv": "63",
+    "hrvColor": "rgb(76, 175, 80)",
+    "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">23:37</span><span class=\"calc-cell-v\">30</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:52</span><span class=\"calc-cell-v\">72</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:07</span><span class=\"calc-cell-v\">81</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:22</span><span class=\"calc-cell-v\">117</span></div></div><div class=\"calc-group\" style=\"--ncells:3\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">1:52</span><span class=\"calc-cell-v\">48</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">2:07</span><span class=\"calc-cell-v\">66</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">2:22</span><span class=\"calc-cell-v\">49</span></div></div>",
+    "rhrVisible": true,
+    "rhr": "42",
+    "rhrColor": "rgb(76, 175, 80)",
+    "rhrWindow": "1:13–1:22",
+    "rhrWindowVisible": true,
+    "tempVisible": true,
+    "temp": "35.64",
+    "tempColor": "rgb(100, 181, 246)",
+    "tempDelta": "-0.81°",
+    "tempDeltaColor": "rgb(100, 181, 246)",
+    "tempDeltaVisible": true
+  }
 }
