@@ -1799,6 +1799,7 @@ function showCalcModal() {
 }
 
 function showSlowWaveModal() {
+  const savedScroll = window.pageYOffset || document.documentElement.scrollTop;
   const overlay = openModal(`
     <div class="modal-title">Overnight Capture</div>
     <div class="modal-desc">Paste all four exports together: previous day HRV, morning HRV, sleep analysis, and heart rate.</div>
@@ -1809,8 +1810,8 @@ function showSlowWaveModal() {
     </div>
   `);
   const ta = overlay.querySelector('textarea');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('[data-calc]').addEventListener('click', () => runSlowWaveCalc(ta.value, overlay));
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => { window.scrollTo(0, savedScroll); overlay.remove(); });
+  overlay.querySelector('[data-calc]').addEventListener('click', () => { window.scrollTo(0, savedScroll); runSlowWaveCalc(ta.value, overlay); });
 }
 
 function parseSleepTs(str) {
@@ -3115,6 +3116,7 @@ async function autoImport() {
 }
 
 function showPasteImportModal() {
+  const savedScroll = window.pageYOffset || document.documentElement.scrollTop;
   const overlay = openModal(`
     <div class="modal-title">Paste to Import</div>
     <div class="modal-desc">Tap the field below, then tap <strong>Paste</strong>.</div>
@@ -3125,13 +3127,15 @@ function showPasteImportModal() {
     </div>
   `);
   const ta = overlay.querySelector('#autoImportTA');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => { window.scrollTo(0, savedScroll); overlay.remove(); });
   overlay.querySelector('[data-apply]').addEventListener('click', () => {
+    window.scrollTo(0, savedScroll);
     overlay.remove();
     runAutoImportText(ta.value);
   });
   ta.addEventListener('paste', e => {
     setTimeout(() => {
+      window.scrollTo(0, savedScroll);
       overlay.remove();
       runAutoImportText(ta.value);
     }, 50);
