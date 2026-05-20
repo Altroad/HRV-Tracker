@@ -1966,7 +1966,7 @@ function runSlowWaveCalc(text, overlay) {
     if (nightTemp !== null) {
       const date = $('inputDate').value;
       if (date) { tempData[date] = nightTemp; saveTemp(); }
-      $('calcTempValue').textContent = nightTemp.toFixed(2);
+      $('calcTempValue').innerHTML = tempValueHTML(nightTemp.toFixed(2));
       $('calcTempValue').style.color = tempZoneColor(nightTemp);
       const _eb = getEffectiveBaseline();
       if (_eb !== null) {
@@ -2945,6 +2945,11 @@ function showInfoModal() {
   }, { passive: true });
 })();
 
+function tempValueHTML(str) {
+  const [whole, dec] = String(str).split('.');
+  return dec ? `${whole}<span style="font-size:0.6em">.${dec}</span>` : str;
+}
+
 // ---------- Init ----------
 function saveCalcResult() {
   const s = {
@@ -2986,7 +2991,7 @@ function restoreCalcResult() {
     $('calcRHRWindow').textContent = s.rhrWindow;
     $('calcRHRWindow').style.display = s.rhrWindowVisible ? '' : 'none';
     $('calcTempDisplay').style.display = s.tempVisible ? '' : 'none';
-    $('calcTempValue').textContent = s.temp;
+    $('calcTempValue').innerHTML = tempValueHTML(s.temp);
     $('calcTempValue').style.color = s.tempColor;
     $('calcTempDelta').textContent = s.tempDelta;
     $('calcTempDelta').style.color = s.tempDeltaColor;
