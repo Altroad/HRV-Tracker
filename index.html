@@ -3083,11 +3083,14 @@ async function init() {
   if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
     history.replaceState(null, '', window.location.pathname);
     autoImport();
+  } else {
+    setTimeout(tryClipboardImport, 800);
   }
 
   let _lastSyncTs = Date.now();
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
+    tryClipboardImport();
     if (Date.now() - _lastSyncTs < 3 * 60 * 1000) return;
     if (!getGHToken()) return;
     _lastSyncTs = Date.now();
@@ -3201,6 +3204,20 @@ async function autoImport() {
   } catch(e) {
     showPasteImportModal();
   }
+}
+
+let _lastAutoImportClip = null;
+async function tryClipboardImport() {
+  if (!navigator.standalone) return;
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text) return;
+    if (!text.includes('heart_rate_variability') && !text.includes('sleep_analysis')) return;
+    if (text === _lastAutoImportClip) return;
+    _lastAutoImportClip = text;
+    runAutoImportText(text);
+  } catch {}
+}
 }
 
 function showPasteImportModal() {
