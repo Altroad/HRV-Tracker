@@ -3096,16 +3096,41 @@ async function init() {
   });
 }
 
-function runAutoImportText(text) {
+async function runAutoImportText(text) {
   if (!text || !text.trim()) { showToast('Clipboard is empty — run your Shortcut first'); return; }
   const fakeOverlay = { remove: () => {} };
   $('calcResult').classList.remove('show');
   runSlowWaveCalc(text, fakeOverlay);
-  if ($('calcResult').classList.contains('show')) {
-    addEntry();
-    clearTimeout(saveTimer);
-    saveToGitHub();
+  if (!$('calcResult').classList.contains('show')) return;
+
+  const date = $('inputDate').value;
+  const exists = readings.some(r => r.date === date);
+
+  if (exists) {
+    const replace = await new Promise(resolve => {
+      const overlay = openModal(`
+        <div class="modal-title">Entry Exists</div>
+        <div class="modal-desc">A reading for ${resultDateLabel(date) || date} already exists. Replace it with these results?</div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" data-keep>KEEP</button>
+          <button class="modal-btn" data-replace>REPLACE</button>
+        </div>
+      `);
+      overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); resolve(false); });
+      overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); resolve(true); });
+    });
+    if (!replace) return;
+    readings = readings.filter(r => r.date !== date);
+    save();
   }
+
+  addEntry();
+  clearTimeout(saveTimer);
+  saveToGitHub();
+  setTimeout(() => {
+    const top = $('calcResult').getBoundingClientRect().top + window.pageYOffset - 12;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }, 100);
 }
 
 function setupSwipeToDelete() {
