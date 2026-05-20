@@ -2943,7 +2943,7 @@ function showInfoModal() {
 })();
 
 function resultDateLabel(isoDate) {
-  if (!isoDate) return '';
+  if (!isoDate) return null;
   const pad = n => String(n).padStart(2, '0');
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
@@ -2952,6 +2952,13 @@ function resultDateLabel(isoDate) {
   if (isoDate === todayStr) return 'Today';
   if (isoDate === yestStr) return 'Yesterday';
   return new Date(isoDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function setResultDate(isoDate) {
+  const el = $('calcResultDate');
+  const label = resultDateLabel(isoDate);
+  el.textContent = label ?? '';
+  el.style.display = label ? '' : 'none';
 }
 
 function tempValueHTML(str) {
@@ -2983,7 +2990,7 @@ function saveCalcResult() {
     tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
   };
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
-  $('calcResultDate').textContent = resultDateLabel(savedAt);
+  setResultDate(savedAt);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToGitHub(), 800);
 }
@@ -3009,7 +3016,7 @@ function restoreCalcResult() {
     $('calcTempDelta').style.color = s.tempDeltaColor;
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
     $('calcAnotherBtn').style.display = 'none';
-    $('calcResultDate').textContent = resultDateLabel(s.savedAt || '');
+    setResultDate(s.savedAt || '');
     $('calcResult').classList.add('show');
   } catch(e) {}
 }
