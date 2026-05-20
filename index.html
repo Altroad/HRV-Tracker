@@ -2580,13 +2580,17 @@ async function loadFromGitHub() {
     tempBaseline        = (!Array.isArray(data) && data.tempBaseline != null) ? data.tempBaseline : null;
     tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
     saveTemp();
+    if (!Array.isArray(data) && data.lastResult && !localStorage.getItem(getLastResultKey())) {
+      localStorage.setItem(getLastResultKey(), typeof data.lastResult === 'string' ? data.lastResult : JSON.stringify(data.lastResult));
+    }
     return true;
   } catch { return false; }
 }
 
 async function saveToGitHub() {
   if (!getGHToken()) return false;
-  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate };
+  const lastResult = localStorage.getItem(getLastResultKey());
+  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -2946,6 +2950,8 @@ function saveCalcResult() {
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
   const rb = $('resultsBtn');
   if (rb) rb.disabled = false;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToGitHub(), 800);
 }
 
 function restoreCalcResult() {
@@ -3031,6 +3037,8 @@ async function init() {
     if (!loaded) {
       const saved = await saveToGitHub();
       if (!saved) showToast('Could not reach GitHub — check your token');
+    } else {
+      restoreCalcResult();
     }
   } else {
     load();
