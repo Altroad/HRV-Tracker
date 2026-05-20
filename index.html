@@ -144,6 +144,7 @@
   /* Calculator */
   .calc-result { margin-top:12px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; display:none; }
   .calc-result.show { display:block; }
+  .calc-result-date { font-size:10px; font-family:var(--font-mono); color:var(--accent); letter-spacing:3px; text-transform:uppercase; text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:12px; }
   .calc-result-values { display:flex; align-items:flex-start; justify-content:center; gap:24px; }
   .calc-metric { display:flex; flex-direction:column; align-items:center; }
   .calc-metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
@@ -322,13 +323,8 @@
     <input type="number" id="inputRHR" min="25" max="120">
     <button id="addBtn"></button>
   </div>
-  <div class="backup-row">
-    <div style="display:flex;gap:2px;flex:1;">
-      <button class="btn-secondary" id="slowWaveBtn" style="flex:17;border-radius:6px 0 0 6px;">Overnight Capture</button>
-      <button class="btn-secondary" id="resultsBtn" style="flex:3;border-radius:0 6px 6px 0;" disabled>Results</button>
-    </div>
-  </div>
   <div class="calc-result" id="calcResult">
+    <div id="calcResultDate" class="calc-result-date"></div>
     <div class="calc-result-values">
       <div class="calc-metric">
         <div class="calc-metric-label">HRV</div>
@@ -2681,7 +2677,6 @@ function showSyncModal() {
     ghFileSha = null;
     readings = [];
     $('calcResult').classList.remove('show');
-    $('resultsBtn').disabled = true;
     overlay.remove();
     updateSyncStatus();
     showToast('Connecting to GitHub...');
@@ -2696,6 +2691,7 @@ function showSyncModal() {
 function showMenuModal() {
   const overlay = openModal(`
     <div class="modal-title">Tools</div>
+    <button class="modal-btn" id="menuOvernight" style="text-align:left;">Overnight Capture</button>
     <button class="modal-btn" id="menuLog"    style="text-align:left;">Log Reading</button>
     <button class="modal-btn" id="menuCalc"   style="text-align:left;">Manual Sync</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
@@ -2704,6 +2700,7 @@ function showMenuModal() {
     <button class="modal-btn" id="menuTemp"   style="text-align:left;">Set Temp Baseline</button>
     <button class="modal-btn cancel" data-close>Close</button>
   `);
+  overlay.querySelector('#menuOvernight').addEventListener('click', () => { overlay.remove(); showSlowWaveModal(); });
   overlay.querySelector('#menuLog').addEventListener('click',    () => { overlay.remove(); showLogModal(); });
   overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
@@ -2945,6 +2942,18 @@ function showInfoModal() {
   }, { passive: true });
 })();
 
+function resultDateLabel(isoDate) {
+  if (!isoDate) return '';
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const yd = new Date(now); yd.setDate(yd.getDate() - 1);
+  const yestStr = `${yd.getFullYear()}-${pad(yd.getMonth()+1)}-${pad(yd.getDate())}`;
+  if (isoDate === todayStr) return 'Today';
+  if (isoDate === yestStr) return 'Yesterday';
+  return new Date(isoDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 function tempValueHTML(str) {
   const [whole, dec] = String(str).split('.');
   return dec ? `${whole}<span style="font-size:0.6em">.${dec}</span>` : str;
@@ -2952,7 +2961,11 @@ function tempValueHTML(str) {
 
 // ---------- Init ----------
 function saveCalcResult() {
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const savedAt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
   const s = {
+    savedAt,
     hrv: $('calcValue').textContent,
     hrvColor: $('calcValue').style.color,
     label: $('calcLabel').textContent,
@@ -2970,8 +2983,7 @@ function saveCalcResult() {
     tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
   };
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
-  const rb = $('resultsBtn');
-  if (rb) rb.disabled = false;
+  $('calcResultDate').textContent = resultDateLabel(savedAt);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToGitHub(), 800);
 }
@@ -2997,9 +3009,8 @@ function restoreCalcResult() {
     $('calcTempDelta').style.color = s.tempDeltaColor;
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
     $('calcAnotherBtn').style.display = 'none';
+    $('calcResultDate').textContent = resultDateLabel(s.savedAt || '');
     $('calcResult').classList.add('show');
-    const rb = $('resultsBtn');
-    if (rb) rb.disabled = false;
   } catch(e) {}
 }
 
@@ -3007,10 +3018,6 @@ async function init() {
   drawYAxis();
   restoreCalcResult();
   $('addBtn').addEventListener('click', addEntry);
-  $('slowWaveBtn').addEventListener('click', showSlowWaveModal);
-  $('resultsBtn').addEventListener('click', () => {
-    $('calcResult').classList.toggle('show');
-  });
   $('menuBtn').addEventListener('click', showMenuModal);
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
