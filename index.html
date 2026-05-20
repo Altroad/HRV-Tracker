@@ -1369,7 +1369,7 @@ function flipMetrics() {
     } else if (nextMode === 'temp') {
       const m = _tempMetrics;
       $('latestLabel').textContent = 'Tonight';
-      $('latestHRV').textContent = m.latest.toFixed(2); $('latestHRV').style.color = tempZoneColor(m.latest);
+      $('latestHRV').innerHTML = `${Math.floor(m.latest)}<span style="font-size:0.6em">.${m.latest.toFixed(2).split('.')[1]}</span>`; $('latestHRV').style.color = tempZoneColor(m.latest);
       $('latestUnit').textContent = '°C';
       if (m.latestDev !== null) {
         $('hrvDelta').textContent = (m.latestDev >= 0 ? '+' : '') + m.latestDev.toFixed(2) + '° vs baseline';
@@ -1378,12 +1378,12 @@ function flipMetrics() {
         $('hrvDelta').textContent = 'no baseline set'; $('hrvDelta').style.color = COLORS.muted;
       }
       $('avg3Label').textContent = '7 Night';
-      $('avg3d').textContent = m.avg7.toFixed(2); $('avg3d').style.color = tempZoneColor(m.avg7);
+      $('avg3d').innerHTML = `${Math.floor(m.avg7)}<span style="font-size:0.6em">.${m.avg7.toFixed(2).split('.')[1]}</span>`; $('avg3d').style.color = tempZoneColor(m.avg7);
       $('avg3Unit').textContent = '°C';
       $('avg3dDelta').textContent = m.avg7Count + ' night avg'; $('avg3dDelta').style.color = 'var(--muted)';
       $('avg7Label').textContent = 'Prev 7';
       if (m.prev7 !== null) {
-        $('avg7d').textContent = m.prev7.toFixed(2); $('avg7d').style.color = tempZoneColor(m.prev7);
+        $('avg7d').innerHTML = `${Math.floor(m.prev7)}<span style="font-size:0.6em">.${m.prev7.toFixed(2).split('.')[1]}</span>`; $('avg7d').style.color = tempZoneColor(m.prev7);
         $('avg7Unit').textContent = '°C';
         $('avg7dDelta').textContent = m.prev7Count + ' night avg'; $('avg7dDelta').style.color = 'var(--muted)';
       } else {
