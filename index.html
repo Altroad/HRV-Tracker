@@ -2560,13 +2560,13 @@ async function ghRequest(method, body) {
   try { return await fetch(url, opts); } catch(e) { console.error('ghRequest:', e); return null; }
 }
 
-// Repairs Latin-1 mojibake that arises when UTF-8 bytes are misread as Latin-1.
-// Works by re-interpreting each char code as a raw byte and letting TextDecoder
-// re-parse them as UTF-8. Pure ASCII strings pass through unchanged. Already-
-// correct non-ASCII strings contain code points > 127 that aren't valid UTF-8
-// lead bytes, so TextDecoder(fatal:true) throws and we return the original.
+// Repairs Latin-1 mojibake (e.g. Â· → ·) that arises when UTF-8 bytes are
+// misread as Latin-1 characters. Skips strings that already contain chars
+// above U+00FF — those are genuine Unicode and would be corrupted by the
+// byte reinterpretation (Uint8Array wraps values > 255).
 function decodeMojibake(v) {
   if (typeof v !== 'string') return v;
+  if ([...v].some(c => c.charCodeAt(0) > 255)) return v;
   try {
     const bytes = Uint8Array.from(v, c => c.charCodeAt(0));
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
