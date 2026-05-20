@@ -2557,10 +2557,13 @@ async function loadFromGitHub() {
     const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
     readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
-    rhrData  = (!Array.isArray(data) && data.rhr)  ? data.rhr  : {};
-    rhrNotes = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
+    const remoteRhr   = (!Array.isArray(data) && data.rhr)      ? data.rhr      : {};
+    const remoteNotes = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
+    const remoteTemp  = (!Array.isArray(data) && data.temp)     ? data.temp     : {};
+    rhrData  = { ...remoteRhr,   ...rhrData   };
+    rhrNotes = { ...remoteNotes, ...rhrNotes  };
     saveRHR();
-    tempData            = (!Array.isArray(data) && data.temp) ? data.temp : {};
+    tempData = { ...remoteTemp, ...tempData };
     tempBaseline        = (!Array.isArray(data) && data.tempBaseline != null) ? data.tempBaseline : null;
     tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
     saveTemp();
@@ -3046,9 +3049,12 @@ async function init() {
 function runAutoImportText(text) {
   if (!text || !text.trim()) { showToast('Clipboard is empty — run your Shortcut first'); return; }
   const fakeOverlay = { remove: () => {} };
+  $('calcResult').classList.remove('show');
   runSlowWaveCalc(text, fakeOverlay);
   if ($('calcResult').classList.contains('show')) {
     addEntry();
+    clearTimeout(saveTimer);
+    saveToGitHub();
     setTimeout(() => {
       const el = $('calcResult');
       const top = el.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 20;
