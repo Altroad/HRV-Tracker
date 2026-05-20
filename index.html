@@ -2008,6 +2008,10 @@ function runSlowWaveCalc(text, overlay) {
     panel.classList.add('show');
     $('calcAnotherBtn').style.display = 'none';
     saveCalcResult();
+    setTimeout(() => {
+      const top = panel.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 20;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 150);
   } catch(e) {
     showToast(e.message || 'Calculation error');
   }
@@ -2106,6 +2110,10 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   panel.classList.add('show');
   $('calcAnotherBtn').style.display = lastMonthlyData ? '' : 'none';
   saveCalcResult();
+  setTimeout(() => {
+    const top = panel.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop) - 20;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }, 150);
 }
 
 function openMonthlyPickerAgain() {
