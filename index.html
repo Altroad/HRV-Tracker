@@ -2560,6 +2560,19 @@ async function ghRequest(method, body) {
   try { return await fetch(url, opts); } catch(e) { console.error('ghRequest:', e); return null; }
 }
 
+// Repairs Latin-1 mojibake that arises when UTF-8 bytes are misread as Latin-1.
+// Works by re-interpreting each char code as a raw byte and letting TextDecoder
+// re-parse them as UTF-8. Pure ASCII strings pass through unchanged. Already-
+// correct non-ASCII strings contain code points > 127 that aren't valid UTF-8
+// lead bytes, so TextDecoder(fatal:true) throws and we return the original.
+function decodeMojibake(v) {
+  if (typeof v !== 'string') return v;
+  try {
+    const bytes = Uint8Array.from(v, c => c.charCodeAt(0));
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch { return v; }
+}
+
 async function loadFromGitHub() {
   const res = await ghRequest('GET');
   if (!res || !res.ok) return false;
@@ -2582,8 +2595,12 @@ async function loadFromGitHub() {
     tempBaseline        = (!Array.isArray(data) && data.tempBaseline != null) ? data.tempBaseline : null;
     tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
     saveTemp();
-    if (!Array.isArray(data) && data.lastResult && !localStorage.getItem(getLastResultKey())) {
-      try { localStorage.setItem(getLastResultKey(), JSON.stringify(data.lastResult)); } catch {}
+    if (!Array.isArray(data) && data.lastResult) {
+      try {
+        const lr = data.lastResult;
+        const fixed = Object.fromEntries(Object.entries(lr).map(([k, v]) => [k, decodeMojibake(v)]));
+        localStorage.setItem(getLastResultKey(), JSON.stringify(fixed));
+      } catch {}
     }
     return true;
   } catch { return false; }
