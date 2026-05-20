@@ -3128,9 +3128,9 @@ async function runAutoImportText(text) {
   clearTimeout(saveTimer);
   saveToGitHub();
   setTimeout(() => {
-    const top = $('calcResult').getBoundingClientRect().top + window.pageYOffset - 12;
-    window.scrollTo({ top, behavior: 'smooth' });
-  }, 100);
+    const el = $('calcResult');
+    window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - 12));
+  }, 200);
 }
 
 function setupSwipeToDelete() {
