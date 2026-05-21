@@ -36,7 +36,8 @@
     {
       "id": 17,
       "date": "2026-05-22",
-      "hrv": 42
+      "hrv": 42,
+      "note": "Evening run / disturbed sleep"
     }
   ],
   "rhr": {
