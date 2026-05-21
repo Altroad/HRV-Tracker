@@ -1,6 +1,6 @@
 {
-  "name": "Vitals",
-  "short_name": "Vitals",
+  "name": "Baseline",
+  "short_name": "Baseline",
   "description": "HRV, RHR and wrist temperature overnight tracker",
   "start_url": "/HRV-Tracker/",
   "display": "standalone",
