@@ -3159,19 +3159,34 @@ async function init() {
     load();
   }
   render();
+  let _fabFadeTimer = null;
+  function showImportFab() {
+    const fab = $('importFab');
+    if (!fab) return;
+    clearTimeout(_fabFadeTimer);
+    fab.style.display = '';
+    fab.style.opacity = '';
+    _fabFadeTimer = setTimeout(() => {
+      fab.style.opacity = '0';
+      setTimeout(() => { fab.style.display = 'none'; }, 600);
+    }, 3000);
+  }
+
   if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
     history.replaceState(null, '', window.location.pathname);
     autoImport();
   } else if (navigator.standalone) {
-    const fab = $('importFab');
-    fab.style.display = '';
-    const fabTimer = setTimeout(() => { fab.style.opacity = '0'; setTimeout(() => { fab.style.display = 'none'; }, 600); }, 3000);
-    fab.addEventListener('click', () => { clearTimeout(fabTimer); autoImport(); });
+    $('importFab').addEventListener('click', () => { clearTimeout(_fabFadeTimer); autoImport(); });
+    showImportFab();
   }
 
   let _lastSyncTs = Date.now();
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
+    if (navigator.standalone) {
+      tryClipboardImport();
+      showImportFab();
+    }
     if (Date.now() - _lastSyncTs < 3 * 60 * 1000) return;
     if (!getGHToken()) return;
     _lastSyncTs = Date.now();
