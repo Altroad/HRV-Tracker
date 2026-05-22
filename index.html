@@ -344,7 +344,7 @@
       </div>
     </div>
     <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;"></div>
-    <div id="calcChipInfo" style="display:none;position:absolute;top:6px;left:4px;right:4px;background:rgba(14,20,25,0.94);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.5px;color:var(--muted);line-height:1.6;text-align:center;z-index:20;box-shadow:0 2px 20px rgba(0,0,0,0.6);"></div>
+    <div id="calcChipInfo" style="display:none;position:absolute;top:6px;left:4px;right:4px;background:rgba(14,20,25,0.94);border:1px solid var(--accent);border-radius:8px;padding:7px 14px;font-family:var(--font-body);font-size:12px;color:var(--muted);line-height:1.6;text-align:center;z-index:20;box-shadow:0 2px 20px rgba(0,0,0,0.6);"></div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
@@ -3111,7 +3111,7 @@ async function init() {
     if (!e.target.closest('.calc-chip, .calc-cell')) return;
     const info = $('calcChipInfo');
     if (info.style.display !== 'none') { info.style.display = 'none'; return; }
-    info.innerHTML = 'Anchored to the longest deep sleep run &nbsp;·&nbsp; Highest &amp; lowest excluded <span style="color:var(--red)">●</span> &nbsp;·&nbsp; <span style="color:#90caf9">●</span> Deep &nbsp;<span style="color:var(--accent)">●</span> Core';
+    info.innerHTML = 'Anchored to the longest deep sleep run · Highest &amp; lowest excluded <span style="color:var(--red)">●</span> · <span style="color:#1e88e5">●</span> Deep · <span style="color:var(--accent)">●</span> Core';
     info.style.display = '';
     setTimeout(() => { info.style.display = 'none'; }, 4000);
   });
