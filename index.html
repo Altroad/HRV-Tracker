@@ -1822,7 +1822,10 @@ function showSlowWaveModal() {
       desc.textContent = `Failed (${ta.value.length} chars) — check data has all 4 exports`;
       desc.style.color = 'var(--red)';
     } else {
-      setTimeout(() => window.scrollTo(0, savedScroll), 300);
+      setTimeout(() => {
+        const el = $('calcResult');
+        window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - 12));
+      }, 200);
     }
   });
 }
@@ -3063,7 +3066,27 @@ function restoreCalcResult() {
 async function init() {
   drawYAxis();
   restoreCalcResult();
-  $('addBtn').addEventListener('click', addEntry);
+  $('addBtn').addEventListener('click', async () => {
+    const date = $('inputDate').value;
+    if (date && readings.some(r => r.date === date)) {
+      const replace = await new Promise(resolve => {
+        const ov = openModal(`
+          <div class="modal-title">Entry Exists</div>
+          <div class="modal-desc">An HRV reading for ${resultDateLabel(date) || date} already exists. Replace it?</div>
+          <div class="modal-actions">
+            <button class="modal-btn cancel" data-keep>KEEP</button>
+            <button class="modal-btn" data-replace>REPLACE</button>
+          </div>
+        `);
+        ov.querySelector('[data-keep]').addEventListener('click',    () => { ov.remove(); resolve(false); });
+        ov.querySelector('[data-replace]').addEventListener('click', () => { ov.remove(); resolve(true); });
+      });
+      if (!replace) return;
+      readings = readings.filter(r => r.date !== date);
+      save();
+    }
+    addEntry();
+  });
   $('calcReadings').addEventListener('click', e => {
     if (!e.target.closest('.calc-chip, .calc-cell')) return;
     const existing = document.querySelector('.calc-chip-info');
