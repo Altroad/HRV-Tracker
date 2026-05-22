@@ -3014,6 +3014,7 @@ function saveCalcResult() {
     hrv: $('calcValue').textContent,
     hrvColor: $('calcValue').style.color,
     label: $('calcLabel').textContent,
+    labelVisible: $('calcLabel').style.display !== 'none',
     readings: $('calcReadings').innerHTML,
     rhrVisible: $('calcRHRDisplay').style.display !== 'none',
     rhr: $('calcRHRValue').textContent,
@@ -3043,6 +3044,7 @@ function restoreCalcResult() {
     $('calcValue').textContent = s.hrv;
     $('calcValue').style.color = s.hrvColor;
     $('calcLabel').textContent = s.label;
+    $('calcLabel').style.display = (s.labelVisible === false || !s.label) ? 'none' : '';
     $('calcReadings').innerHTML = s.readings;
     $('calcRHRDisplay').style.display = s.rhrVisible ? '' : 'none';
     $('calcRHRValue').textContent = s.rhr;
