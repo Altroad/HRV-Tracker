@@ -153,7 +153,8 @@
   .calc-sleep-stats { font-family:var(--font-mono); font-size:11px; letter-spacing:0.5px; color:var(--muted); text-align:center; margin-top:10px; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; }
-  .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; justify-content:center; }
+  .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; justify-content:center; cursor:pointer; }
+  .calc-chip-info { position:fixed; left:50%; transform:translateX(-50%); bottom:80px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-family:var(--font-mono); font-size:10px; line-height:1.6; color:var(--text); max-width:300px; text-align:center; z-index:200; box-shadow:0 4px 20px rgba(0,0,0,0.4); }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:4px 10px; border-radius:4px; white-space:nowrap; background:var(--border); color:var(--muted); min-width:calc(11ch + 22px); text-align:center; }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
   .calc-chip.dropped { color:var(--red); opacity:0.7; border:1px solid rgba(244,67,54,0.3); background:rgba(244,67,54,0.08); }
@@ -1949,7 +1950,8 @@ function runSlowWaveCalc(text, overlay) {
     const panel = $('calcResult');
     $('calcValue').textContent = avg;
     $('calcValue').style.color = colorForHRV(avg);
-    $('calcLabel').textContent = `Overnight Capture · Deep anchor + top-up · ${statLabel}`;
+    $('calcLabel').textContent = '';
+    $('calcLabel').style.display = 'none';
 
     if (rhrResult) {
       $('calcRHRValue').textContent = rhrResult.rhr;
@@ -2131,6 +2133,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   $('calcValue').textContent = avg;
   $('calcValue').style.color = colorForHRV(avg);
   $('calcLabel').textContent = `${methodLabel} · ${statLabel}`;
+  $('calcLabel').style.display = '';
   $('calcRHRDisplay').style.display = 'none';
   $('calcRHRWindow').style.display = 'none';
   $('calcSleepDisplay').style.display = 'none';
@@ -3061,6 +3064,16 @@ async function init() {
   drawYAxis();
   restoreCalcResult();
   $('addBtn').addEventListener('click', addEntry);
+  $('calcReadings').addEventListener('click', e => {
+    if (!e.target.closest('.calc-chip, .calc-cell')) return;
+    const existing = document.querySelector('.calc-chip-info');
+    if (existing) { existing.remove(); return; }
+    const el = document.createElement('div');
+    el.className = 'calc-chip-info';
+    el.textContent = 'Anchored to the longest deep sleep run. Highest and lowest excluded (red). Dark blue = Deep · Light blue = Core';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  });
   $('menuBtn').addEventListener('click', showMenuModal);
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
