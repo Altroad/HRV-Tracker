@@ -303,6 +303,8 @@
     "tempColor": "rgb(230, 124, 138)",
     "tempDelta": "-0.29°",
     "tempDeltaColor": "rgb(230, 124, 138)",
-    "tempDeltaVisible": true
+    "tempDeltaVisible": true,
+    "sleepVisible": true,
+    "sleep": "6h 27m asleep · Deep 41m · REM 1h 12m · Core 4h 34m"
   }
 }
