@@ -150,7 +150,7 @@
   .calc-metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
   .calc-result-value { font-family:var(--font-display); font-size:38px; letter-spacing:2px; text-align:center; line-height:1; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
-  .calc-sleep-stats { font-family:var(--font-mono); font-size:11px; letter-spacing:0.5px; color:var(--muted); text-align:center; margin-top:10px; }
+  .calc-sleep-stats { font-family:var(--font-mono); font-size:11px; letter-spacing:0.5px; color:var(--muted); text-align:center; margin-top:10px; margin-bottom:14px; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; justify-content:center; cursor:pointer; }
@@ -1814,7 +1814,7 @@ function showSlowWaveModal() {
   const desc = overlay.querySelector('#swModalDesc');
   ta.addEventListener('input', () => { desc.textContent = `${ta.value.length} chars pasted — tap CALCULATE`; desc.style.color = 'var(--accent)'; });
   overlay.querySelector('[data-cancel]').addEventListener('click', () => { overlay.remove(); setTimeout(() => window.scrollTo(0, savedScroll), 100); });
-  overlay.querySelector('[data-calc]').addEventListener('click', () => {
+  overlay.querySelector('[data-calc]').addEventListener('click', async () => {
     if (!ta.value.trim()) { desc.textContent = 'Nothing pasted yet — paste your exports first'; desc.style.color = 'var(--red)'; return; }
     desc.textContent = `Processing ${ta.value.length} chars…`; desc.style.color = 'var(--muted)';
     runSlowWaveCalc(ta.value, overlay);
@@ -1822,6 +1822,24 @@ function showSlowWaveModal() {
       desc.textContent = `Failed (${ta.value.length} chars) — check data has all 4 exports`;
       desc.style.color = 'var(--red)';
     } else {
+      const date = $('inputDate').value;
+      if (date && readings.some(r => r.date === date)) {
+        const replace = await new Promise(resolve => {
+          const ov = openModal(`
+            <div class="modal-title">Entry Exists</div>
+            <div class="modal-desc">An entry for ${resultDateLabel(date) || date} already exists. Replace it?</div>
+            <div class="modal-actions">
+              <button class="modal-btn cancel" data-keep>KEEP</button>
+              <button class="modal-btn" data-replace>REPLACE</button>
+            </div>
+          `);
+          ov.querySelector('[data-keep]').addEventListener('click',    () => { ov.remove(); resolve(false); });
+          ov.querySelector('[data-replace]').addEventListener('click', () => { ov.remove(); resolve(true); });
+        });
+        if (replace) { readings = readings.filter(r => r.date !== date); save(); addEntry(); }
+      } else {
+        addEntry();
+      }
       setTimeout(() => {
         const el = $('calcResult');
         window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - 12));
