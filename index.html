@@ -150,6 +150,7 @@
   .calc-metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
   .calc-result-value { font-family:var(--font-display); font-size:38px; letter-spacing:2px; text-align:center; line-height:1; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
+  .calc-sleep-stats { font-family:var(--font-mono); font-size:11px; letter-spacing:0.5px; color:var(--muted); text-align:center; margin-top:10px; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; justify-content:center; }
@@ -342,6 +343,7 @@
         <div class="calc-temp-delta" id="calcTempDelta" style="display:none;"></div>
       </div>
     </div>
+    <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;"></div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
@@ -1852,6 +1854,7 @@ function runSlowWaveCalc(text, overlay) {
 
     const deepStages = stages.filter(s => s.value === 'Deep');
     const coreStages = stages.filter(s => s.value === 'Core');
+    const remStages  = stages.filter(s => s.value === 'REM');
 
     const inAnyStage = (r, stageList) => {
       const t = parseTimestamp(r).getTime();
@@ -1982,6 +1985,23 @@ function runSlowWaveCalc(text, overlay) {
       $('calcTempDelta').style.display = 'none';
     }
 
+    const stageMins = list => list.reduce((s, sg) => {
+      return s + (parseSleepTs(sg.end).getTime() - parseSleepTs(sg.start).getTime()) / 60000;
+    }, 0);
+    const fmtMins = m => { const h = Math.floor(m / 60), r = Math.round(m % 60); return h > 0 ? `${h}h ${r}m` : `${r}m`; };
+    const totalSleep = stageMins(deepStages) + stageMins(coreStages) + stageMins(remStages);
+    if (totalSleep > 0) {
+      const deepM = stageMins(deepStages), coreM = stageMins(coreStages), remM = stageMins(remStages);
+      const parts = [`${fmtMins(totalSleep)} asleep`];
+      if (deepM > 0) parts.push(`Deep ${fmtMins(deepM)}`);
+      if (remM  > 0) parts.push(`REM ${fmtMins(remM)}`);
+      if (coreM > 0) parts.push(`Core ${fmtMins(coreM)}`);
+      $('calcSleepDisplay').textContent = parts.join(' · ');
+      $('calcSleepDisplay').style.display = '';
+    } else {
+      $('calcSleepDisplay').style.display = 'none';
+    }
+
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
 
     // Group consecutive readings into render groups
@@ -2104,6 +2124,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   $('calcLabel').textContent = `${methodLabel} · ${statLabel}`;
   $('calcRHRDisplay').style.display = 'none';
   $('calcRHRWindow').style.display = 'none';
+  $('calcSleepDisplay').style.display = 'none';
   const chips = filtered.map(r => {
     const qty = Math.round(r.qty);
     const isDropped = values.length >= 3 && (r.qty === values[0] || r.qty === values[values.length - 1]);
@@ -2990,6 +3011,8 @@ function saveCalcResult() {
     tempDelta: $('calcTempDelta').textContent,
     tempDeltaColor: $('calcTempDelta').style.color,
     tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
+    sleepVisible: $('calcSleepDisplay').style.display !== 'none',
+    sleep: $('calcSleepDisplay').textContent,
   };
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
   setResultDate(savedAt);
@@ -3017,6 +3040,8 @@ function restoreCalcResult() {
     $('calcTempDelta').textContent = s.tempDelta;
     $('calcTempDelta').style.color = s.tempDeltaColor;
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
+    $('calcSleepDisplay').textContent = s.sleep || '';
+    $('calcSleepDisplay').style.display = s.sleepVisible ? '' : 'none';
     $('calcAnotherBtn').style.display = 'none';
     setResultDate(s.savedAt || '');
     $('calcResult').classList.add('show');
