@@ -1994,6 +1994,7 @@ function runSlowWaveCalc(text, overlay) {
     const sumDur = list => list.reduce((s, sg) => s + getStageDur(sg), 0);
     const deepM = sumDur(deepStages), coreM = sumDur(coreStages), remM = sumDur(remStages);
     const granularTotal = deepM + coreM + remM;
+    { const s0 = sleepMetric.data[0] || {}; showToast(`sleep dbg: total=${sleepMetric.data.length} stages(AW)=${stages.length} D=${deepStages.length} C=${coreStages.length} R=${remStages.length} granM=${Math.round(granularTotal)} fields:${Object.keys(s0).join(',')} src0="${s0.source||'?'}" val0="${s0.value||'?'}"`); }
     if (granularTotal > 0) {
       const parts = [`${fmtMins(granularTotal)} asleep`];
       if (deepM > 0) parts.push(`Deep ${fmtMins(deepM)}`);
