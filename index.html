@@ -345,7 +345,7 @@
     </div>
     <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;"></div>
     <div id="calcChipInfo" style="display:none;position:absolute;top:6px;left:4px;right:4px;background:rgba(14,20,25,0.94);border:1px solid var(--accent);border-radius:8px;padding:7px 14px;font-family:var(--font-body);font-size:12px;color:var(--muted);line-height:1.6;text-align:center;z-index:20;box-shadow:0 2px 20px rgba(0,0,0,0.6);"></div>
-    <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
+    <div class="calc-result-label" id="calcLabel" style="display:none;"></div>
     <div class="calc-readings" id="calcReadings"></div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
   </div>
@@ -1422,6 +1422,21 @@ function flipMetrics() {
 
 // ---------- CRUD ----------
 
+function confirmReplaceEntry(date) {
+  return new Promise(resolve => {
+    const ov = openModal(`
+      <div class="modal-title">Entry Exists</div>
+      <div class="modal-desc">A reading for ${resultDateLabel(date) || date} already exists. Replace it?</div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" data-keep>KEEP</button>
+        <button class="modal-btn" data-replace>REPLACE</button>
+      </div>
+    `);
+    ov.querySelector('[data-keep]').addEventListener('click',    () => { ov.remove(); resolve(false); });
+    ov.querySelector('[data-replace]').addEventListener('click', () => { ov.remove(); resolve(true); });
+  });
+}
+
 function addEntry() {
   const date = $('inputDate').value;
   const hrv = parseInt($('inputHRV').value);
@@ -1824,19 +1839,9 @@ function showSlowWaveModal() {
     } else {
       const date = $('inputDate').value;
       if (date && readings.some(r => r.date === date)) {
-        const replace = await new Promise(resolve => {
-          const ov = openModal(`
-            <div class="modal-title">Entry Exists</div>
-            <div class="modal-desc">An entry for ${resultDateLabel(date) || date} already exists. Replace it?</div>
-            <div class="modal-actions">
-              <button class="modal-btn cancel" data-keep>KEEP</button>
-              <button class="modal-btn" data-replace>REPLACE</button>
-            </div>
-          `);
-          ov.querySelector('[data-keep]').addEventListener('click',    () => { ov.remove(); resolve(false); });
-          ov.querySelector('[data-replace]').addEventListener('click', () => { ov.remove(); resolve(true); });
-        });
-        if (replace) { readings = readings.filter(r => r.date !== date); save(); addEntry(); }
+        if (await confirmReplaceEntry(date)) {
+          readings = readings.filter(r => r.date !== date); save(); addEntry();
+        }
       } else {
         addEntry();
       }
@@ -2101,13 +2106,7 @@ function extractHRVReadings(json) {
 }
 
 function parseTimestamp(r) {
-  const s = (r.start || r.date).trim();
-  // Normalize to ISO 8601 with colon in offset (+0800 → +08:00) for Safari compatibility
-  return new Date(
-    s.replace(/^(\d{4}-\d{2}-\d{2}) /, '$1T')
-     .replace(/ ([+-])(\d{2})(\d{2})$/, '$1$2:$3')
-     .replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3')
-  );
+  return parseSleepTs(r.start || r.date);
 }
 
 function readingLocalHM(r) {
@@ -3091,19 +3090,7 @@ async function init() {
   $('addBtn').addEventListener('click', async () => {
     const date = $('inputDate').value;
     if (date && readings.some(r => r.date === date)) {
-      const replace = await new Promise(resolve => {
-        const ov = openModal(`
-          <div class="modal-title">Entry Exists</div>
-          <div class="modal-desc">An HRV reading for ${resultDateLabel(date) || date} already exists. Replace it?</div>
-          <div class="modal-actions">
-            <button class="modal-btn cancel" data-keep>KEEP</button>
-            <button class="modal-btn" data-replace>REPLACE</button>
-          </div>
-        `);
-        ov.querySelector('[data-keep]').addEventListener('click',    () => { ov.remove(); resolve(false); });
-        ov.querySelector('[data-replace]').addEventListener('click', () => { ov.remove(); resolve(true); });
-      });
-      if (!replace) return;
+      if (!await confirmReplaceEntry(date)) return;
       readings = readings.filter(r => r.date !== date);
       save();
     }
@@ -3204,19 +3191,7 @@ async function runAutoImportText(text) {
   const exists = readings.some(r => r.date === date);
 
   if (exists) {
-    const replace = await new Promise(resolve => {
-      const overlay = openModal(`
-        <div class="modal-title">Entry Exists</div>
-        <div class="modal-desc">A reading for ${resultDateLabel(date) || date} already exists. Replace it with these results?</div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" data-keep>KEEP</button>
-          <button class="modal-btn" data-replace>REPLACE</button>
-        </div>
-      `);
-      overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); resolve(false); });
-      overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); resolve(true); });
-    });
-    if (!replace) return;
+    if (!await confirmReplaceEntry(date)) return;
     readings = readings.filter(r => r.date !== date);
     save();
   }
