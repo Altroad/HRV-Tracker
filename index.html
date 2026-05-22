@@ -2017,17 +2017,19 @@ function runSlowWaveCalc(text, overlay) {
     const sumDur = list => list.reduce((s, sg) => s + getStageDur(sg), 0);
     const deepM = sumDur(deepStages), coreM = sumDur(coreStages), remM = sumDur(remStages);
     const granularTotal = deepM + coreM + remM;
+    const inBedM = Math.max(0, ...sleepMetric.data.filter(s => s.value === 'In Bed').map(getStageDur));
+    const effStr = (granularTotal > 0 && inBedM > 0) ? ` · ${Math.round(granularTotal / inBedM * 100)}% efficiency` : '';
     if (granularTotal > 0) {
       const parts = [`${fmtMins(granularTotal)} asleep`];
       if (deepM > 0) parts.push(`Deep ${fmtMins(deepM)}`);
       if (remM  > 0) parts.push(`REM ${fmtMins(remM)}`);
       if (coreM > 0) parts.push(`Core ${fmtMins(coreM)}`);
-      $('calcSleepDisplay').textContent = parts.join(' · ');
+      $('calcSleepDisplay').textContent = parts.join(' · ') + effStr;
       $('calcSleepDisplay').style.display = '';
     } else {
       const asleepTotal = sumDur(sleepMetric.data.filter(s => s.value === 'Asleep'));
       if (asleepTotal > 0) {
-        $('calcSleepDisplay').textContent = `${fmtMins(asleepTotal)} asleep`;
+        $('calcSleepDisplay').textContent = `${fmtMins(asleepTotal)} asleep` + effStr;
         $('calcSleepDisplay').style.display = '';
       } else {
         $('calcSleepDisplay').style.display = 'none';
