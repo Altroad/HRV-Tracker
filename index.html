@@ -1985,21 +1985,31 @@ function runSlowWaveCalc(text, overlay) {
       $('calcTempDelta').style.display = 'none';
     }
 
-    const stageMins = list => list.reduce((s, sg) => {
-      return s + (parseSleepTs(sg.end).getTime() - parseSleepTs(sg.start).getTime()) / 60000;
-    }, 0);
     const fmtMins = m => { const h = Math.floor(m / 60), r = Math.round(m % 60); return h > 0 ? `${h}h ${r}m` : `${r}m`; };
-    const totalSleep = stageMins(deepStages) + stageMins(coreStages) + stageMins(remStages);
-    if (totalSleep > 0) {
-      const deepM = stageMins(deepStages), coreM = stageMins(coreStages), remM = stageMins(remStages);
-      const parts = [`${fmtMins(totalSleep)} asleep`];
+    const getStageDur = sg => {
+      if (sg.start && sg.end) return (parseSleepTs(sg.end).getTime() - parseSleepTs(sg.start).getTime()) / 60000;
+      if (sg.qty != null) return sg.qty * 60;
+      return 0;
+    };
+    const sumDur = list => list.reduce((s, sg) => s + getStageDur(sg), 0);
+    const deepM = sumDur(deepStages), coreM = sumDur(coreStages), remM = sumDur(remStages);
+    const granularTotal = deepM + coreM + remM;
+    if (granularTotal > 0) {
+      const parts = [`${fmtMins(granularTotal)} asleep`];
       if (deepM > 0) parts.push(`Deep ${fmtMins(deepM)}`);
       if (remM  > 0) parts.push(`REM ${fmtMins(remM)}`);
       if (coreM > 0) parts.push(`Core ${fmtMins(coreM)}`);
       $('calcSleepDisplay').textContent = parts.join(' · ');
       $('calcSleepDisplay').style.display = '';
     } else {
-      $('calcSleepDisplay').style.display = 'none';
+      // Fallback: sum any 'Asleep' records from any source
+      const asleepTotal = sumDur(sleepMetric.data.filter(s => s.value === 'Asleep'));
+      if (asleepTotal > 0) {
+        $('calcSleepDisplay').textContent = `${fmtMins(asleepTotal)} asleep`;
+        $('calcSleepDisplay').style.display = '';
+      } else {
+        $('calcSleepDisplay').style.display = 'none';
+      }
     }
 
     selected.sort((a, b) => parseTimestamp(a).getTime() - parseTimestamp(b).getTime());
