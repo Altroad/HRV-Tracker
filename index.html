@@ -204,13 +204,13 @@
   .filter-summary { font-family:var(--font-mono); font-size:10px; color:var(--muted); margin-bottom:10px; padding:8px 10px; background:var(--surface2); border-radius:6px; }
 
   /* Journal/Analysis Modal */
-  .jnl-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:9999; display:flex; flex-direction:column; }
-  .jnl-modal { display:flex; flex-direction:column; height:100%; max-width:520px; width:100%; margin:0 auto; }
+  .jnl-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:9999; display:flex; flex-direction:column; overflow:hidden; touch-action:none; }
+  .jnl-modal { display:flex; flex-direction:column; flex:1; max-width:520px; width:100%; margin:0 auto; min-height:0; }
   .jnl-header { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .jnl-title { font-family:var(--font-mono); font-size:11px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
   .jnl-entry-count { font-family:var(--font-mono); font-size:10px; color:var(--muted); }
   .jnl-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px 8px; line-height:1; }
-  .jnl-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 16px; display:flex; flex-direction:column; gap:12px; }
+  .jnl-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:12px 16px; display:flex; flex-direction:column; gap:12px; min-height:0; touch-action:pan-y; }
   .jnl-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
   .jnl-card-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .jnl-date { font-family:var(--font-mono); font-size:11px; color:var(--text); letter-spacing:1px; flex:1; min-width:0; }
@@ -1168,7 +1168,9 @@ function showJournalModal() {
       <div class="jnl-body">${cards}</div>
     </div>
   `;
-  overlay.querySelector('.jnl-close').addEventListener('click', () => overlay.remove());
+  const closeJnl = () => { document.body.style.overflow = ''; overlay.remove(); };
+  overlay.querySelector('.jnl-close').addEventListener('click', closeJnl);
+  document.body.style.overflow = 'hidden';
   document.body.appendChild(overlay);
 }
 
