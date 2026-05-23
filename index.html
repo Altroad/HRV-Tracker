@@ -129,7 +129,8 @@
   .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
   .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
   .history-temp { font-family:var(--font-display); font-size:17px; cursor:pointer; }
-  .history-rhr-heart { font-size:4px; vertical-align:middle; }
+  .history-col-header { display:flex; align-items:center; padding:5px 0 4px; border-bottom:1px solid var(--border); margin-bottom:2px; }
+  .history-col-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:center; }
   .history-rhr.confirming, .history-hrv.confirming, .history-temp.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
   .delete-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.5; }
   .delete-btn.confirming { color:var(--red); opacity:1; font-size:10px; font-family:monospace; letter-spacing:1px; border:1px solid rgba(244,67,54,0.4); border-radius:4px; padding:3px 7px; }
@@ -906,7 +907,15 @@ function renderHistoryList() {
 
   const thisYear = new Date().getFullYear();
   let lastMonthKey = null;
-  let html = summaryHtml;
+  let html = summaryHtml + `<div class="history-col-header">
+    <div style="flex:1"></div>
+    <div style="display:flex;gap:6px;">
+      <div class="history-col-label history-metric-hrv">HRV</div>
+      <div class="history-col-label history-metric-rhr">RHR</div>
+      <div class="history-col-label history-metric-temp">TEMP</div>
+    </div>
+    <div style="width:26px"></div>
+  </div>`;
 
   weeks.forEach(([key, { monday, entries }]) => {
     const monthKey = `${monday.getFullYear()}-${monday.getMonth()}`;
@@ -952,7 +961,7 @@ function renderHistoryList() {
               </div>
               <div class="history-metric history-metric-rhr">
                 <div class="history-metric-delta" style="color:${rhrZoneColor(r.rhr)}">${rhrDStr}</div>
-                <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${r.rhr}</span>
+                <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}">${r.rhr}</span>
               </div>
               <div class="history-metric history-metric-temp">
                 <div class="history-metric-delta" style="color:${rhrOTempVal !== undefined ? tempZoneColor(rhrOTempVal) : ''}">${rhrOTempDStr}</div>
@@ -1002,7 +1011,7 @@ function renderHistoryList() {
             </div>
             <div class="history-metric history-metric-rhr">
               <div class="history-metric-delta" style="color:${rhrVal !== undefined ? rhrZoneColor(rhrVal) : ''}">${rhrDStr}</div>
-              ${rhrVal !== undefined ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}"><span class="history-rhr-heart">♥</span>${rhrVal}</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+              ${rhrVal !== undefined ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}">${rhrVal}</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
             </div>
             <div class="history-metric history-metric-temp">
               <div class="history-metric-delta" style="color:${tempVal !== undefined ? tempZoneColor(tempVal) : ''}">${tempDStr}</div>
