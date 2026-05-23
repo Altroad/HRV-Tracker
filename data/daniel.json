@@ -240,6 +240,11 @@
       "date": "2026-05-23",
       "hrv": 73,
       "tag": "Rest"
+    },
+    {
+      "id": 164,
+      "date": "2026-05-24",
+      "hrv": 97
     }
   ],
   "rhr": {
@@ -255,7 +260,8 @@
     "2026-05-20": 39,
     "2026-05-21": 39,
     "2026-05-22": 39,
-    "2026-05-23": 38
+    "2026-05-23": 38,
+    "2026-05-24": 39
   },
   "rhrNotes": {},
   "temp": {
@@ -266,29 +272,30 @@
     "2026-05-20": 36.417274475097656,
     "2026-05-21": 36.08305358886719,
     "2026-05-22": 36.157989501953125,
-    "2026-05-23": 36.20685577392578
+    "2026-05-23": 36.20685577392578,
+    "2026-05-24": 36.1502799987793
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
   "lastResult": {
-    "savedAt": "2026-05-23",
-    "hrv": "73",
-    "hrvColor": "rgb(76, 175, 80)",
+    "savedAt": "2026-05-24",
+    "hrv": "97",
+    "hrvColor": "rgb(0, 229, 255)",
     "label": "",
     "labelVisible": false,
-    "readings": "<div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">22:08</span><span class=\"calc-cell-v\">64</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">22:23</span><span class=\"calc-cell-v\">73</span></div></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:38</span><span class=\"calc-cell-v\">46</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:54</span><span class=\"calc-cell-v\">65</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:08</span><span class=\"calc-cell-v\">115</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:23</span><span class=\"calc-cell-v\">128</span></div></div><div class=\"calc-chip deep dropped\">3:53 · <strong>41</strong></div>",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">22:38</span><span class=\"calc-cell-v\">58</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">22:53</span><span class=\"calc-cell-v\">67</span></div></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:38</span><span class=\"calc-cell-v\">74</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:53</span><span class=\"calc-cell-v\">146</span></div></div><div class=\"calc-group\" style=\"--ncells:3\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:23</span><span class=\"calc-cell-v\">125</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:38</span><span class=\"calc-cell-v\">75</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:54</span><span class=\"calc-cell-v\">210</span></div></div>",
     "rhrVisible": true,
-    "rhr": "38",
+    "rhr": "39",
     "rhrColor": "rgb(76, 175, 80)",
-    "rhrWindow": "0:23–0:35",
+    "rhrWindow": "3:02–3:11",
     "rhrWindowVisible": true,
     "tempVisible": true,
-    "temp": "36.21",
+    "temp": "36.15",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "-0.24°",
+    "tempDelta": "-0.30°",
     "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "6h 28m asleep · Deep 56m · REM 1h 14m · Core 4h 17m · 103% efficiency"
+    "sleep": "5h 43m asleep · Deep 26m · REM 58m · Core 4h 18m"
   }
 }
