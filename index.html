@@ -3142,9 +3142,13 @@ async function init() {
 async function runAutoImportText(text) {
   if (!text || !text.trim()) { showToast('Clipboard is empty — run your Shortcut first'); return; }
   const fakeOverlay = { remove: () => {} };
+  const hadResult = $('calcResult').classList.contains('show');
   $('calcResult').classList.remove('show');
   runSlowWaveCalc(text, fakeOverlay);
-  if (!$('calcResult').classList.contains('show')) return;
+  if (!$('calcResult').classList.contains('show')) {
+    if (hadResult) restoreCalcResult();
+    return;
+  }
 
   const date = $('inputDate').value;
   const exists = readings.some(r => r.date === date);
