@@ -46,6 +46,11 @@
       "hrv": 62,
       "tag": "<100TSS",
       "note": "Large Golf Day + beers after"
+    },
+    {
+      "id": 19,
+      "date": "2026-05-24",
+      "hrv": 51
     }
   ],
   "rhr": {
@@ -55,36 +60,38 @@
     "2026-05-20": 42,
     "2026-05-21": 42,
     "2026-05-22": 42,
-    "2026-05-23": 55
+    "2026-05-23": 55,
+    "2026-05-24": 43
   },
   "rhrNotes": {},
   "temp": {
     "2026-05-20": 34.78376007080078,
     "2026-05-21": 35.642250061035156,
     "2026-05-22": 35.66813659667969,
-    "2026-05-23": 35.5263557434082
+    "2026-05-23": 35.5263557434082,
+    "2026-05-24": 35.494834899902344
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
   "lastResult": {
-    "savedAt": "2026-05-23",
-    "hrv": "62",
-    "hrvColor": "rgb(76, 175, 80)",
+    "savedAt": "2026-05-24",
+    "hrv": "51",
+    "hrvColor": "rgb(255, 152, 0)",
     "label": "",
     "labelVisible": false,
-    "readings": "<div class=\"calc-group\" style=\"--ncells:5\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:41</span><span class=\"calc-cell-v\">57</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:56</span><span class=\"calc-cell-v\">51</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:11</span><span class=\"calc-cell-v\">75</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:26</span><span class=\"calc-cell-v\">63</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:41</span><span class=\"calc-cell-v\">49</span></div></div><div class=\"calc-chip deep\">2:56 · <strong>74</strong></div><div class=\"calc-chip deep\">4:26 · <strong>63</strong></div>",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:41</span><span class=\"calc-cell-v\">42</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:56</span><span class=\"calc-cell-v\">54</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:12</span><span class=\"calc-cell-v\">58</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:26</span><span class=\"calc-cell-v\">41</span></div></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">0:56</span><span class=\"calc-cell-v\">40</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">1:11</span><span class=\"calc-cell-v\">59</span></div></div><div class=\"calc-chip deep dropped\">2:26 · <strong>61</strong></div>",
     "rhrVisible": true,
-    "rhr": "55",
-    "rhrColor": "rgb(244, 67, 54)",
-    "rhrWindow": "1:06–1:17",
+    "rhr": "43",
+    "rhrColor": "rgb(76, 175, 80)",
+    "rhrWindow": "2:44–2:56",
     "rhrWindowVisible": true,
     "tempVisible": true,
-    "temp": "35.53",
+    "temp": "35.49",
     "tempColor": "rgb(100, 181, 246)",
-    "tempDelta": "-0.92°",
+    "tempDelta": "-0.96°",
     "tempDeltaColor": "rgb(100, 181, 246)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "6h 22m asleep · Deep 1h 0m · REM 1h 58m · Core 3h 24m"
+    "sleep": "8h 52m asleep · Deep 1h 17m · REM 2h 22m · Core 5h 14m"
   }
 }
