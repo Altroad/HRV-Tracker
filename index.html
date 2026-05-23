@@ -231,6 +231,8 @@
   .jnl-filters::-webkit-scrollbar { display:none; }
   .jnl-filter-chip { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:4px 10px; border-radius:10px; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:none; white-space:nowrap; flex-shrink:0; -webkit-user-select:none; user-select:none; }
   .jnl-filter-chip.active { border-color:var(--accent); color:var(--accent); }
+  .jnl-sort { display:flex; align-items:center; gap:6px; padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .jnl-sort-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); white-space:nowrap; margin-right:2px; }
   .jnl-search-row { padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .jnl-search { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-mono); font-size:12px; padding:7px 10px; outline:none; box-sizing:border-box; -webkit-user-select:text; user-select:text; }
   .jnl-search:focus { border-color:var(--muted); }
@@ -1061,8 +1063,10 @@ function renderHistoryList() {
 
 let jnlFilter = null;
 let jnlSearch = '';
+let jnlSort = null;
+let jnlSortDir = 'desc';
 
-function buildJournalCards(filter, search) {
+function buildJournalCards(filter, search, sort, sortDir) {
   const dateSet = new Set();
   readings.forEach(r => dateSet.add(r.date));
   Object.keys(rhrData).forEach(d => dateSet.add(d));
@@ -1080,6 +1084,18 @@ function buildJournalCards(filter, search) {
       const r = readings.find(r => r.date === date);
       const note = r ? (r.note || '') : (rhrNotes[date] || '');
       return note.toLowerCase().includes(s);
+    });
+  }
+  if (sort) {
+    dates.sort((a, b) => {
+      let va = null, vb = null;
+      if (sort === 'hrv')  { va = readings.find(r => r.date === a)?.hrv ?? null; vb = readings.find(r => r.date === b)?.hrv ?? null; }
+      if (sort === 'rhr')  { va = rhrData[a]  ?? null; vb = rhrData[b]  ?? null; }
+      if (sort === 'temp') { va = tempData[a] ?? null; vb = tempData[b] ?? null; }
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return sortDir === 'desc' ? vb - va : va - vb;
     });
   }
 
@@ -1214,11 +1230,37 @@ function buildJnlFiltersHtml(tags, activeFilter) {
   return html;
 }
 
+function buildJnlSortHtml(sort, sortDir) {
+  const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
+  return ['hrv', 'rhr', 'temp'].map(key => {
+    const isActive = sort === key;
+    const style = isActive ? 'border-color:var(--accent);color:var(--accent);' : '';
+    return `<button class="jnl-filter-chip" style="${style}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
+  }).join('');
+}
+
+function setJnlSort(key) {
+  if (jnlSort === key) {
+    if (jnlSortDir === 'desc') { jnlSortDir = 'asc'; }
+    else { jnlSort = null; jnlSortDir = 'desc'; }
+  } else {
+    jnlSort = key; jnlSortDir = 'desc';
+  }
+  const overlay = document.querySelector('.jnl-overlay');
+  if (!overlay) return;
+  const { cards, count, avgHrv, avgRhr, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  overlay.querySelector('.jnl-body').innerHTML = cards;
+  overlay.querySelector('.jnl-body').scrollTop = 0;
+  overlay.querySelector('.jnl-sort').innerHTML = `<span class="jnl-sort-label">SORT</span>${buildJnlSortHtml(jnlSort, jnlSortDir)}`;
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
+}
+
 function setJnlFilter(tag) {
   jnlFilter = tag;
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch);
+  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
   overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
@@ -1230,7 +1272,7 @@ function setJnlSearch(val) {
   jnlSearch = val.trim();
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgTemp } = buildJournalCards(jnlFilter, jnlSearch);
+  const { cards, count, avgHrv, avgRhr, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   const body = overlay.querySelector('.jnl-body');
   body.innerHTML = cards;
   body.scrollTop = 0;
@@ -1241,13 +1283,15 @@ function setJnlSearch(val) {
 function showJournalModal() {
   jnlFilter = null;
   jnlSearch = '';
+  jnlSort = null;
+  jnlSortDir = 'desc';
   const dateSet = new Set();
   readings.forEach(r => dateSet.add(r.date));
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
   if (!dateSet.size) { showToast('No data yet'); return; }
 
-  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(null, '');
+  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(null, '', null, 'desc');
   const overlay = document.createElement('div');
   overlay.className = 'jnl-overlay';
   overlay.innerHTML = `
@@ -1258,6 +1302,7 @@ function showJournalModal() {
         <button class="jnl-close">✕</button>
       </div>
       <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp)}</div>
+      <div class="jnl-sort"><span class="jnl-sort-label">SORT</span>${buildJnlSortHtml(null, 'desc')}</div>
       <div class="jnl-search-row"><input class="jnl-search" type="search" placeholder="Search notes…" oninput="setJnlSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"></div>
       ${tags.length ? `<div class="jnl-filters">${buildJnlFiltersHtml(tags, null)}</div>` : ''}
       <div class="jnl-body">${cards}</div>
@@ -1274,7 +1319,7 @@ function refreshJournalModal() {
   if (!overlay) return;
   const body = overlay.querySelector('.jnl-body');
   const scrollTop = body.scrollTop;
-  const { cards, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch);
+  const { cards, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   body.innerHTML = cards;
   body.scrollTop = scrollTop;
   overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
