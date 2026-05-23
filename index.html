@@ -222,6 +222,15 @@
   .jnl-metric-value { font-family:var(--font-display); font-size:24px; line-height:1; }
   .jnl-metric-nil { font-family:var(--font-mono); font-size:14px; color:var(--muted); line-height:1; }
   .jnl-note { user-select:text; -webkit-user-select:text; }
+  .jnl-summary { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .jnl-summary-metric { flex:1; display:flex; flex-direction:column; align-items:center; padding:10px 4px; }
+  .jnl-summary-metric + .jnl-summary-metric { border-left:1px solid var(--border); }
+  .jnl-summary-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .jnl-summary-value { font-family:var(--font-display); font-size:22px; line-height:1; }
+  .jnl-filters { display:flex; gap:6px; padding:8px 16px; flex-shrink:0; border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .jnl-filters::-webkit-scrollbar { display:none; }
+  .jnl-filter-chip { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:4px 10px; border-radius:10px; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:none; white-space:nowrap; flex-shrink:0; -webkit-user-select:none; user-select:none; }
+  .jnl-filter-chip.active { border-color:var(--accent); color:var(--accent); }
 
   /* Toast */
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; padding:10px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
@@ -1047,12 +1056,28 @@ function renderHistoryList() {
   el.innerHTML = html;
 }
 
-function buildJournalCards() {
+let jnlFilter = null;
+
+function buildJournalCards(filter) {
   const dateSet = new Set();
   readings.forEach(r => dateSet.add(r.date));
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
-  const dates = [...dateSet].sort((a, b) => b.localeCompare(a));
+
+  // Tags present in data, in TAGS definition order
+  const tagSet = new Set(readings.map(r => r.tag).filter(Boolean));
+  const tags = TAGS.map(t => t.label).filter(l => tagSet.has(l));
+
+  let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
+  if (filter) dates = dates.filter(date => readings.find(r => r.date === date)?.tag === filter);
+
+  // Summary stats across filtered dates
+  const hrvVals = dates.map(d => readings.find(r => r.date === d)?.hrv).filter(v => v !== undefined);
+  const rhrVals = dates.map(d => rhrData[d]).filter(v => v !== undefined);
+  const tempVals = dates.map(d => tempData[d]).filter(v => v !== undefined);
+  const avgHrv  = hrvVals.length  ? Math.round(hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length) : null;
+  const avgRhr  = rhrVals.length  ? Math.round(rhrVals.reduce((a, b) => a + b, 0) / rhrVals.length) : null;
+  const avgTemp = tempVals.length ? tempVals.reduce((a, b) => a + b, 0) / tempVals.length : null;
 
   const allSorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
   const deltaMap = new Map();
@@ -1144,17 +1169,60 @@ function buildJournalCards() {
       <textarea class="note-input jnl-note" rows="2" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
     </div>`;
   });
-  return { cards, count: dates.length };
+
+  return { cards, count: dates.length, avgHrv, avgRhr, avgTemp, tags };
+}
+
+function buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp) {
+  const hc = avgHrv !== null ? colorForHRV(avgHrv) : 'var(--muted)';
+  const rc = avgRhr !== null ? rhrZoneColor(avgRhr) : 'var(--muted)';
+  const tc = avgTemp !== null ? tempZoneColor(avgTemp) : 'var(--muted)';
+  return `
+    <div class="jnl-summary-metric">
+      <div class="jnl-summary-label">Avg HRV</div>
+      <span class="jnl-summary-value" style="color:${hc}">${avgHrv !== null ? avgHrv : '—'}</span>
+    </div>
+    <div class="jnl-summary-metric">
+      <div class="jnl-summary-label">Avg RHR</div>
+      <span class="jnl-summary-value" style="color:${rc}">${avgRhr !== null ? avgRhr : '—'}</span>
+    </div>
+    <div class="jnl-summary-metric">
+      <div class="jnl-summary-label">Avg Temp</div>
+      <span class="jnl-summary-value" style="color:${tc}">${avgTemp !== null ? avgTemp.toFixed(1) + '°' : '—'}</span>
+    </div>`;
+}
+
+function buildJnlFiltersHtml(tags, activeFilter) {
+  let html = `<button class="jnl-filter-chip${!activeFilter ? ' active' : ''}" onclick="setJnlFilter(null)">ALL</button>`;
+  tags.forEach(tag => {
+    const color = TAG_MAP[tag];
+    const isActive = activeFilter === tag;
+    html += `<button class="jnl-filter-chip" style="${isActive ? `border-color:${color};color:${color};` : ''}" onclick="setJnlFilter('${tag}')">${tag.toUpperCase()}</button>`;
+  });
+  return html;
+}
+
+function setJnlFilter(tag) {
+  jnlFilter = tag;
+  const overlay = document.querySelector('.jnl-overlay');
+  if (!overlay) return;
+  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter);
+  overlay.querySelector('.jnl-body').innerHTML = cards;
+  overlay.querySelector('.jnl-body').scrollTop = 0;
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  overlay.querySelector('.jnl-filters').innerHTML = buildJnlFiltersHtml(tags, jnlFilter);
+  overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
 
 function showJournalModal() {
+  jnlFilter = null;
   const dateSet = new Set();
   readings.forEach(r => dateSet.add(r.date));
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
   if (!dateSet.size) { showToast('No data yet'); return; }
 
-  const { cards, count } = buildJournalCards();
+  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(null);
   const overlay = document.createElement('div');
   overlay.className = 'jnl-overlay';
   overlay.innerHTML = `
@@ -1164,6 +1232,8 @@ function showJournalModal() {
         <span class="jnl-entry-count">${count} entries</span>
         <button class="jnl-close">✕</button>
       </div>
+      <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp)}</div>
+      ${tags.length ? `<div class="jnl-filters">${buildJnlFiltersHtml(tags, null)}</div>` : ''}
       <div class="jnl-body">${cards}</div>
     </div>
   `;
@@ -1178,9 +1248,12 @@ function refreshJournalModal() {
   if (!overlay) return;
   const body = overlay.querySelector('.jnl-body');
   const scrollTop = body.scrollTop;
-  const { cards } = buildJournalCards();
+  const { cards, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter);
   body.innerHTML = cards;
   body.scrollTop = scrollTop;
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  const filtersEl = overlay.querySelector('.jnl-filters');
+  if (filtersEl) filtersEl.innerHTML = buildJnlFiltersHtml(tags, jnlFilter);
 }
 
 // ---------- Tag Picker ----------
