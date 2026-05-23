@@ -231,8 +231,9 @@
   .jnl-filters::-webkit-scrollbar { display:none; }
   .jnl-filter-chip { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:4px 10px; border-radius:10px; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:none; white-space:nowrap; flex-shrink:0; -webkit-user-select:none; user-select:none; }
   .jnl-filter-chip.active { border-color:var(--accent); color:var(--accent); }
-  .jnl-sort { display:flex; align-items:center; gap:6px; padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
-  .jnl-sort-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); white-space:nowrap; margin-right:2px; }
+  .jnl-sort { display:flex; padding:0 30px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .jnl-sort-btn { flex:1; background:none; border:none; font-family:var(--font-mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); cursor:pointer; padding:7px 0; text-align:center; -webkit-user-select:none; user-select:none; }
+  .jnl-sort-btn.active { color:var(--accent); }
   .jnl-search-row { padding:8px 16px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .jnl-search { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-mono); font-size:12px; padding:7px 10px; outline:none; box-sizing:border-box; -webkit-user-select:text; user-select:text; }
   .jnl-search:focus { border-color:var(--muted); }
@@ -1235,8 +1236,7 @@ function buildJnlSortHtml(sort, sortDir) {
   const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
   return ['hrv', 'rhr', 'temp'].map(key => {
     const isActive = sort === key;
-    const style = isActive ? 'border-color:var(--accent);color:var(--accent);' : '';
-    return `<button class="jnl-filter-chip" style="${style}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
+    return `<button class="jnl-sort-btn${isActive ? ' active' : ''}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
   }).join('');
 }
 
@@ -1252,7 +1252,7 @@ function setJnlSort(key) {
   const { cards, count, avgHrv, avgRhr, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
-  overlay.querySelector('.jnl-sort').innerHTML = `<span class="jnl-sort-label">SORT</span>${buildJnlSortHtml(jnlSort, jnlSortDir)}`;
+  overlay.querySelector('.jnl-sort').innerHTML = buildJnlSortHtml(jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
@@ -1303,9 +1303,9 @@ function showJournalModal() {
         <button class="jnl-close">✕</button>
       </div>
       <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp)}</div>
-      <div class="jnl-sort"><span class="jnl-sort-label">SORT</span>${buildJnlSortHtml(null, 'desc')}</div>
       <div class="jnl-search-row"><input class="jnl-search" type="search" placeholder="Search notes…" oninput="setJnlSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"></div>
       ${tags.length ? `<div class="jnl-filters">${buildJnlFiltersHtml(tags, null)}</div>` : ''}
+      <div class="jnl-sort">${buildJnlSortHtml(null, 'desc')}</div>
       <div class="jnl-body">${cards}</div>
     </div>
   `;
