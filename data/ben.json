@@ -82,7 +82,8 @@
     {
       "id": 24,
       "date": "2026-05-29",
-      "hrv": 57
+      "hrv": 57,
+      "tag": "Active Recovery"
     }
   ],
   "rhr": {
