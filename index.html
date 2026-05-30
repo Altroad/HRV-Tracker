@@ -1081,11 +1081,11 @@ let jnlSort = null;
 let jnlSortDir = 'desc';
 
 function buildJournalCards(filter, search, sort, sortDir) {
+  const prevDay = d => { const dt = new Date(d + 'T12:00:00Z'); dt.setUTCDate(dt.getUTCDate() - 1); return dt.toISOString().slice(0, 10); };
   const dateSet = new Set();
   readings.forEach(r => dateSet.add(r.date));
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
-  Object.keys(workoutData).forEach(d => dateSet.add(d));
 
   // Tags present in data, in TAGS definition order
   const tagSet = new Set(readings.map(r => r.tag).filter(Boolean));
@@ -1106,7 +1106,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       let va = null, vb = null;
       if (sort === 'hrv')  { va = readings.find(r => r.date === a)?.hrv ?? null; vb = readings.find(r => r.date === b)?.hrv ?? null; }
       if (sort === 'rhr')  { va = rhrData[a]    ?? null; vb = rhrData[b]    ?? null; }
-      if (sort === 'kcal') { va = workoutData[a] ?? null; vb = workoutData[b] ?? null; }
+      if (sort === 'kcal') { va = workoutData[prevDay(a)] ?? null; vb = workoutData[prevDay(b)] ?? null; }
       if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
@@ -1118,7 +1118,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   // Summary stats across filtered dates
   const hrvVals  = dates.map(d => readings.find(r => r.date === d)?.hrv).filter(v => v !== undefined);
   const rhrVals  = dates.map(d => rhrData[d]).filter(v => v !== undefined);
-  const kcalVals = dates.map(d => workoutData[d]).filter(v => v !== undefined);
+  const kcalVals = dates.map(d => workoutData[prevDay(d)]).filter(v => v !== undefined);
   const tempVals = dates.map(d => tempData[d]).filter(v => v !== undefined);
   const avgHrv  = hrvVals.length  ? Math.round(hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length) : null;
   const avgRhr  = rhrVals.length  ? Math.round(rhrVals.reduce((a, b) => a + b, 0) / rhrVals.length) : null;
@@ -1136,7 +1136,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   dates.forEach(date => {
     const r = readings.find(r => r.date === date);
     const rhrVal  = rhrData[date];
-    const kcalVal = workoutData[date];
+    const kcalVal = workoutData[prevDay(date)];
     const tempVal = tempData[date];
     const noteId = r ? String(r.id) : `rhr-${date}`;
     const noteVal = r ? (r.note || '') : (rhrNotes[date] || '');
