@@ -229,7 +229,7 @@
       "date": "2026-05-26",
       "hrv": 65,
       "tag": "Rest",
-      "note": "Late sauna and ice. Finished on ice. Long nap yesterday so wasn’t tired and short sleep."
+      "note": "Late sauna and ice. Finished on ice. Long nap yesterday so wasn\u2019t tired and short sleep."
     },
     {
       "id": 167,
@@ -299,7 +299,31 @@
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
   "workout": {
-    "2026-05-29": 1999
+    "2026-05-29": 1999,
+    "2026-05-01": 4713,
+    "2026-05-02": 1717,
+    "2026-05-03": 4096,
+    "2026-05-05": 2845,
+    "2026-05-06": 3551,
+    "2026-05-07": 2348,
+    "2026-05-08": 1200,
+    "2026-05-09": 2280,
+    "2026-05-10": 2795,
+    "2026-05-12": 1481,
+    "2026-05-13": 4356,
+    "2026-05-14": 2591,
+    "2026-05-15": 318,
+    "2026-05-16": 3801,
+    "2026-05-17": 2528,
+    "2026-05-19": 1538,
+    "2026-05-20": 3487,
+    "2026-05-21": 2865,
+    "2026-05-23": 3818,
+    "2026-05-24": 2155,
+    "2026-05-26": 1612,
+    "2026-05-27": 3526,
+    "2026-05-28": 4289,
+    "2026-05-30": 3155
   },
   "lastResult": {
     "savedAt": "2026-05-30",
@@ -307,21 +331,21 @@
     "hrvColor": "rgb(255, 152, 0)",
     "label": "",
     "labelVisible": false,
-    "readings": "<div class=\"calc-chip deep dropped\">21:23 · <strong>44</strong></div><div class=\"calc-chip deep\">23:08 · <strong>57</strong></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:53</span><span class=\"calc-cell-v\">50</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:08</span><span class=\"calc-cell-v\">50</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:23</span><span class=\"calc-cell-v\">69</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:39</span><span class=\"calc-cell-v\">143</span></div></div><div class=\"calc-chip deep\">1:53 · <strong>82</strong></div>",
+    "readings": "<div class=\"calc-chip deep dropped\">21:23 \u00b7 <strong>44</strong></div><div class=\"calc-chip deep\">23:08 \u00b7 <strong>57</strong></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:53</span><span class=\"calc-cell-v\">50</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:08</span><span class=\"calc-cell-v\">50</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:23</span><span class=\"calc-cell-v\">69</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:39</span><span class=\"calc-cell-v\">143</span></div></div><div class=\"calc-chip deep\">1:53 \u00b7 <strong>82</strong></div>",
     "rhrVisible": true,
     "rhr": "40",
     "rhrColor": "rgb(76, 175, 80)",
-    "rhrWindow": "3:13–3:23",
+    "rhrWindow": "3:13\u20133:23",
     "rhrWindowVisible": true,
     "workoutVisible": true,
     "workout": "1,999",
     "tempVisible": true,
     "temp": "36.52",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "+0.23°",
+    "tempDelta": "+0.23\u00b0",
     "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "7h 21m asleep · Deep 51m · REM 1h 6m · Core 5h 24m"
+    "sleep": "7h 21m asleep \u00b7 Deep 51m \u00b7 REM 1h 6m \u00b7 Core 5h 24m"
   }
 }
