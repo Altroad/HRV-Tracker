@@ -373,6 +373,10 @@
         <div class="calc-result-value" id="calcRHRValue">—</div>
         <div class="calc-rhr-window" id="calcRHRWindow" style="display:none;"></div>
       </div>
+      <div class="calc-metric" id="calcWorkoutDisplay" style="display:none;">
+        <div class="calc-metric-label">KCAL</div>
+        <div class="calc-result-value" id="calcWorkoutValue">—</div>
+      </div>
       <div class="calc-metric" id="calcTempDisplay" style="display:none;">
         <div class="calc-metric-label">TEMP</div>
         <div class="calc-result-value" id="calcTempValue">—</div>
@@ -2299,6 +2303,22 @@ function runSlowWaveCalc(text, overlay) {
       if (date) rhrResult = extractRHRForSlowWave(hrBlock, date);
     }
 
+    // Extract workout kcal if present
+    const workoutBlock = blocks.find(b => b?.data?.workouts?.length > 0);
+    let importedKcal = null;
+    if (workoutBlock) {
+      for (const w of workoutBlock.data.workouts) {
+        const ae = w.activeEnergy;
+        if (!ae || !ae.qty) continue;
+        const kcal = ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
+        const dateStr = w.start ? w.start.substring(0, 10) : null;
+        if (!dateStr) continue;
+        workoutData[dateStr] = Math.round((workoutData[dateStr] || 0) + kcal);
+        importedKcal = Math.round((importedKcal || 0) + kcal);
+      }
+      if (importedKcal !== null) saveWorkout();
+    }
+
     overlay.remove();
     const panel = $('calcResult');
     $('calcValue').textContent = avg;
@@ -2317,6 +2337,13 @@ function runSlowWaveCalc(text, overlay) {
     } else {
       $('calcRHRDisplay').style.display = 'none';
       $('calcRHRWindow').style.display = 'none';
+    }
+
+    if (importedKcal !== null) {
+      $('calcWorkoutValue').textContent = importedKcal.toLocaleString();
+      $('calcWorkoutDisplay').style.display = '';
+    } else {
+      $('calcWorkoutDisplay').style.display = 'none';
     }
 
     if (nightTemp !== null) {
@@ -3368,6 +3395,8 @@ function saveCalcResult() {
     rhrColor: $('calcRHRValue').style.color,
     rhrWindow: $('calcRHRWindow').textContent,
     rhrWindowVisible: $('calcRHRWindow').style.display !== 'none',
+    workoutVisible: $('calcWorkoutDisplay').style.display !== 'none',
+    workout: $('calcWorkoutValue').textContent,
     tempVisible: $('calcTempDisplay').style.display !== 'none',
     temp: $('calcTempValue').textContent,
     tempColor: $('calcTempValue').style.color,
@@ -3398,6 +3427,8 @@ function restoreCalcResult() {
     $('calcRHRValue').style.color = s.rhrColor;
     $('calcRHRWindow').textContent = s.rhrWindow;
     $('calcRHRWindow').style.display = s.rhrWindowVisible ? '' : 'none';
+    $('calcWorkoutDisplay').style.display = s.workoutVisible ? '' : 'none';
+    $('calcWorkoutValue').textContent = s.workout || '—';
     $('calcTempDisplay').style.display = s.tempVisible ? '' : 'none';
     $('calcTempValue').innerHTML = tempValueHTML(s.temp);
     $('calcTempValue').style.color = s.tempColor;
