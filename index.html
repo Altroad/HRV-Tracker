@@ -1211,7 +1211,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-date">${dateStr}</span>
         ${tagHtml}
       </div>
-      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${kcalVal !== undefined ? `<div class="jnl-metric"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${Math.round(kcalVal).toLocaleString()}</span></div>` : `<div class="jnl-metric"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-nil">—</span></div>`}${tempHtml}</div>
+      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${kcalVal !== undefined ? `<div class="jnl-metric"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${Math.round(kcalVal).toLocaleString()}</span></div>` : ''}${tempHtml}</div>
       <textarea class="note-input jnl-note" rows="2" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
     </div>`;
   });
