@@ -1270,7 +1270,7 @@ function setJnlSort(key) {
   }
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
   overlay.querySelector('.jnl-sort').innerHTML = buildJnlSortHtml(jnlSort, jnlSortDir);
@@ -1282,7 +1282,7 @@ function setJnlFilter(tag) {
   jnlFilter = tag;
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
   overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
@@ -1294,7 +1294,7 @@ function setJnlSearch(val) {
   jnlSearch = val.trim();
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   const body = overlay.querySelector('.jnl-body');
   body.innerHTML = cards;
   body.scrollTop = 0;
@@ -1313,7 +1313,7 @@ function showJournalModal() {
   Object.keys(tempData).forEach(d => dateSet.add(d));
   if (!dateSet.size) { showToast('No data yet'); return; }
 
-  const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(null, '', null, 'desc');
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(null, '', null, 'desc');
   const overlay = document.createElement('div');
   overlay.className = 'jnl-overlay';
   overlay.innerHTML = `
