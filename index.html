@@ -413,6 +413,7 @@ const RHR_NOTES_KEY = 'hrv_rhr_notes_v1';
 const TEMP_KEY               = 'hrv_wrist_temp_v1';
 const TEMP_BASELINE_KEY      = 'hrv_temp_baseline_v1';
 const TEMP_BASELINE_DATE_KEY = 'hrv_temp_baseline_date_v1';
+const WORKOUT_KEY            = 'hrv_workout_v1';
 const LAST_RESULT_KEY        = 'hrv_last_result_v1';
 const getLastResultKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_last_result_${u}_v1` : LAST_RESULT_KEY; };
 const RHR_SCALE_MIN = 35, RHR_SCALE_MAX = 60;
@@ -450,6 +451,7 @@ let rhrBaseline = 40;
 let rhrData = {};
 let rhrNotes = {};
 let tempData = {};
+let workoutData = {};
 let tempBaseline = null;
 let tempBaselineSetDate = null;
 
@@ -498,6 +500,12 @@ function saveTemp() {
   try { localStorage.setItem(TEMP_KEY, JSON.stringify(tempData)); } catch {}
   if (tempBaseline !== null) try { localStorage.setItem(TEMP_BASELINE_KEY, String(tempBaseline)); } catch {}
   if (tempBaselineSetDate) try { localStorage.setItem(TEMP_BASELINE_DATE_KEY, tempBaselineSetDate); } catch {}
+}
+function loadWorkout() {
+  try { const raw = localStorage.getItem(WORKOUT_KEY); if (raw) workoutData = JSON.parse(raw); } catch { workoutData = {}; }
+}
+function saveWorkout() {
+  try { localStorage.setItem(WORKOUT_KEY, JSON.stringify(workoutData)); } catch {}
 }
 
 function showToast(msg) {
@@ -1072,6 +1080,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   readings.forEach(r => dateSet.add(r.date));
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
+  Object.keys(workoutData).forEach(d => dateSet.add(d));
 
   // Tags present in data, in TAGS definition order
   const tagSet = new Set(readings.map(r => r.tag).filter(Boolean));
@@ -1091,8 +1100,9 @@ function buildJournalCards(filter, search, sort, sortDir) {
     dates.sort((a, b) => {
       let va = null, vb = null;
       if (sort === 'hrv')  { va = readings.find(r => r.date === a)?.hrv ?? null; vb = readings.find(r => r.date === b)?.hrv ?? null; }
-      if (sort === 'rhr')  { va = rhrData[a]  ?? null; vb = rhrData[b]  ?? null; }
-      if (sort === 'temp') { va = tempData[a] ?? null; vb = tempData[b] ?? null; }
+      if (sort === 'rhr')  { va = rhrData[a]    ?? null; vb = rhrData[b]    ?? null; }
+      if (sort === 'kcal') { va = workoutData[a] ?? null; vb = workoutData[b] ?? null; }
+      if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
       if (vb === null) return -1;
@@ -1101,11 +1111,13 @@ function buildJournalCards(filter, search, sort, sortDir) {
   }
 
   // Summary stats across filtered dates
-  const hrvVals = dates.map(d => readings.find(r => r.date === d)?.hrv).filter(v => v !== undefined);
-  const rhrVals = dates.map(d => rhrData[d]).filter(v => v !== undefined);
+  const hrvVals  = dates.map(d => readings.find(r => r.date === d)?.hrv).filter(v => v !== undefined);
+  const rhrVals  = dates.map(d => rhrData[d]).filter(v => v !== undefined);
+  const kcalVals = dates.map(d => workoutData[d]).filter(v => v !== undefined);
   const tempVals = dates.map(d => tempData[d]).filter(v => v !== undefined);
   const avgHrv  = hrvVals.length  ? Math.round(hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length) : null;
   const avgRhr  = rhrVals.length  ? Math.round(rhrVals.reduce((a, b) => a + b, 0) / rhrVals.length) : null;
+  const avgKcal = kcalVals.length ? Math.round(kcalVals.reduce((a, b) => a + b, 0) / kcalVals.length) : null;
   const avgTemp = tempVals.length ? tempVals.reduce((a, b) => a + b, 0) / tempVals.length : null;
 
   const allSorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
@@ -1118,7 +1130,8 @@ function buildJournalCards(filter, search, sort, sortDir) {
   let cards = '';
   dates.forEach(date => {
     const r = readings.find(r => r.date === date);
-    const rhrVal = rhrData[date];
+    const rhrVal  = rhrData[date];
+    const kcalVal = workoutData[date];
     const tempVal = tempData[date];
     const noteId = r ? String(r.id) : `rhr-${date}`;
     const noteVal = r ? (r.note || '') : (rhrNotes[date] || '');
@@ -1194,15 +1207,15 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-date">${dateStr}</span>
         ${tagHtml}
       </div>
-      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${tempHtml}</div>
+      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${kcalVal !== undefined ? `<div class="jnl-metric"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${Math.round(kcalVal).toLocaleString()}</span></div>` : `<div class="jnl-metric"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-nil">—</span></div>`}${tempHtml}</div>
       <textarea class="note-input jnl-note" rows="2" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
     </div>`;
   });
 
-  return { cards, count: dates.length, avgHrv, avgRhr, avgTemp, tags };
+  return { cards, count: dates.length, avgHrv, avgRhr, avgKcal, avgTemp, tags };
 }
 
-function buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp) {
+function buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp) {
   const hc = avgHrv !== null ? colorForHRV(avgHrv) : 'var(--muted)';
   const rc = avgRhr !== null ? rhrZoneColor(avgRhr) : 'var(--muted)';
   const tc = avgTemp !== null ? tempZoneColor(avgTemp) : 'var(--muted)';
@@ -1214,6 +1227,10 @@ function buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp) {
     <div class="jnl-summary-metric">
       <div class="jnl-summary-label">Avg RHR</div>
       <span class="jnl-summary-value" style="color:${rc}">${avgRhr !== null ? avgRhr : '—'}</span>
+    </div>
+    <div class="jnl-summary-metric">
+      <div class="jnl-summary-label">Avg KCAL</div>
+      <span class="jnl-summary-value" style="color:var(--text)">${avgKcal !== null ? avgKcal.toLocaleString() : '—'}</span>
     </div>
     <div class="jnl-summary-metric">
       <div class="jnl-summary-label">Avg Temp</div>
@@ -1233,7 +1250,7 @@ function buildJnlFiltersHtml(tags, activeFilter) {
 
 function buildJnlSortHtml(sort, sortDir) {
   const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
-  return ['hrv', 'rhr', 'temp'].map(key => {
+  return ['hrv', 'rhr', 'kcal', 'temp'].map(key => {
     const isActive = sort === key;
     return `<button class="jnl-sort-btn${isActive ? ' active' : ''}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
   }).join('');
@@ -1252,7 +1269,7 @@ function setJnlSort(key) {
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
   overlay.querySelector('.jnl-sort').innerHTML = buildJnlSortHtml(jnlSort, jnlSortDir);
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
 
@@ -1263,7 +1280,7 @@ function setJnlFilter(tag) {
   const { cards, count, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
   overlay.querySelector('.jnl-filters').innerHTML = buildJnlFiltersHtml(tags, jnlFilter);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
@@ -1276,7 +1293,7 @@ function setJnlSearch(val) {
   const body = overlay.querySelector('.jnl-body');
   body.innerHTML = cards;
   body.scrollTop = 0;
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
 
@@ -1301,7 +1318,7 @@ function showJournalModal() {
         <span class="jnl-entry-count">${count} entries</span>
         <button class="jnl-close">✕</button>
       </div>
-      <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp)}</div>
+      <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp)}</div>
       <div class="jnl-search-row"><input class="jnl-search" type="search" placeholder="Search notes…" oninput="setJnlSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"></div>
       ${tags.length ? `<div class="jnl-filters">${buildJnlFiltersHtml(tags, null)}</div>` : ''}
       <div class="jnl-sort">${buildJnlSortHtml(null, 'desc')}</div>
@@ -1322,7 +1339,7 @@ function refreshJournalModal() {
   const { cards, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   body.innerHTML = cards;
   body.scrollTop = scrollTop;
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
   const filtersEl = overlay.querySelector('.jnl-filters');
   if (filtersEl) filtersEl.innerHTML = buildJnlFiltersHtml(tags, jnlFilter);
 }
@@ -2922,16 +2939,19 @@ async function loadFromGitHub() {
     const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
     readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
-    const remoteRhr   = (!Array.isArray(data) && data.rhr)      ? data.rhr      : {};
-    const remoteNotes = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
-    const remoteTemp  = (!Array.isArray(data) && data.temp)     ? data.temp     : {};
-    rhrData  = { ...remoteRhr,   ...rhrData   };
-    rhrNotes = { ...remoteNotes, ...rhrNotes  };
+    const remoteRhr     = (!Array.isArray(data) && data.rhr)      ? data.rhr      : {};
+    const remoteNotes   = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
+    const remoteTemp    = (!Array.isArray(data) && data.temp)     ? data.temp     : {};
+    const remoteWorkout = (!Array.isArray(data) && data.workout)  ? data.workout  : {};
+    rhrData     = { ...remoteRhr,     ...rhrData     };
+    rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     saveRHR();
-    tempData = { ...remoteTemp, ...tempData };
+    tempData    = { ...remoteTemp,    ...tempData    };
     tempBaseline        = (!Array.isArray(data) && data.tempBaseline != null) ? data.tempBaseline : null;
     tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
     saveTemp();
+    workoutData = { ...remoteWorkout, ...workoutData };
+    saveWorkout();
     if (!Array.isArray(data) && data.lastResult) {
       try {
         const fixed = Object.fromEntries(Object.entries(data.lastResult).map(([k, v]) => [k, decodeMojibake(v)]));
@@ -2947,7 +2967,7 @@ async function saveToGitHub() {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate, lastResult };
+  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -3378,6 +3398,7 @@ async function init() {
   $('infoBtn').addEventListener('click', showInfoModal);
   loadRHR();
   loadTemp();
+  loadWorkout();
   $('historyList').addEventListener('click', e => {
     const deleteBg = e.target.closest('.row-delete-bg');
     if (deleteBg) {
