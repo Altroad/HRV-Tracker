@@ -704,23 +704,40 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
   };
 }
 
-function kcalHeatmapColor(kcal) {
+function kcalHeatmapColor(kcal, ctl) {
+  const base = Math.max(2000, ctl || 2000);
   const anchors = [
-    [0,    [21, 101, 192]],
-    [714,  [30, 136, 229]],
-    [1429, [0,  188, 212]],
-    [2143, [76, 175, 80]],
-    [2857, [255, 193, 7]],
-    [3571, [255, 87, 34]],
-    [5000, [244, 67, 54]]
+    [0,        [21, 101, 192]],
+    [500,      [30, 136, 229]],
+    [1000,     [0,  188, 212]],
+    [1500,     [76, 175, 80]],
+    [base,     [255, 193, 7]],
+    [base*1.5, [255, 87, 34]],
+    [base*2.0, [244, 67, 54]]
   ];
-  const v = Math.max(0, Math.min(5000, kcal));
+  const v = Math.max(0, Math.min(base * 2, kcal));
   let lo = anchors[0], hi = anchors[anchors.length - 1];
   for (let i = 0; i < anchors.length - 1; i++) {
     if (v >= anchors[i][0] && v <= anchors[i+1][0]) { lo = anchors[i]; hi = anchors[i+1]; break; }
   }
   const t = lo[0] === hi[0] ? 0 : (v - lo[0]) / (hi[0] - lo[0]);
   return `rgb(${Math.round(lo[1][0]+t*(hi[1][0]-lo[1][0]))},${Math.round(lo[1][1]+t*(hi[1][1]-lo[1][1]))},${Math.round(lo[1][2]+t*(hi[1][2]-lo[1][2]))})`;
+}
+
+function computeKcalCTL() {
+  const dates = Object.keys(workoutData).sort();
+  if (!dates.length) return {};
+  let ctl = 0;
+  const result = {};
+  let cur = new Date(dates[0] + 'T12:00:00Z');
+  const end = new Date(dates[dates.length - 1] + 'T12:00:00Z');
+  while (cur <= end) {
+    const d = cur.toISOString().slice(0, 10);
+    ctl += ((workoutData[d] || 0) - ctl) / 42;
+    result[d] = ctl;
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return result;
 }
 
 function buildHeatmapPlugin(sortedDates) {
@@ -731,6 +748,8 @@ function buildHeatmapPlugin(sortedDates) {
       const { ctx, chartArea } = chart;
       const meta = chart.getDatasetMeta(0);
       if (!meta || !meta.data.length) return;
+
+      const ctlByDate = computeKcalCTL();
 
       const rollingKcal = sortedDates.map((d, i) => {
         let sum = 0, count = 0;
@@ -743,7 +762,8 @@ function buildHeatmapPlugin(sortedDates) {
 
       const grad = ctx.createLinearGradient(left, 0, left + width, 0);
       meta.data.forEach((pt, i) => {
-        grad.addColorStop(Math.max(0, Math.min(1, (pt.x - left) / width)), kcalHeatmapColor(rollingKcal[i]));
+        const ctl = ctlByDate[sortedDates[i]] || 0;
+        grad.addColorStop(Math.max(0, Math.min(1, (pt.x - left) / width)), kcalHeatmapColor(rollingKcal[i], ctl));
       });
 
       ctx.save();
