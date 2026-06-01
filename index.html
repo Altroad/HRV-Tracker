@@ -286,7 +286,7 @@
     <div class="bl-cell">
       <div class="bl-label">KCAL</div>
       <div class="bl-value" id="blKcalVal" style="color:var(--muted)">—</div>
-      <div class="bl-period">42d CTL</div>
+      <div class="bl-period" id="blKcalPeriod">av</div>
     </div>
   </div>
   <button class="menu-btn" id="menuBtn">≡</button>
@@ -750,16 +750,20 @@ function kcalHeatmapColor(kcal, ctl) {
 function computeKcalCTL() {
   const dates = Object.keys(workoutData).sort();
   if (!dates.length) return {};
-  let ctl = 0;
   const result = {};
-  let cur = new Date(dates[0] + 'T12:00:00Z');
-  const end = new Date(dates[dates.length - 1] + 'T12:00:00Z');
-  while (cur <= end) {
-    const d = cur.toISOString().slice(0, 10);
-    ctl += ((workoutData[d] || 0) - ctl) / 42;
-    result[d] = ctl;
-    cur.setUTCDate(cur.getUTCDate() + 1);
-  }
+  dates.forEach((d, i) => {
+    const slice = dates.slice(0, i + 1);
+    if (slice.length < 42) {
+      result[d] = slice.reduce((s, dd) => s + workoutData[dd], 0) / slice.length;
+    } else {
+      const end = new Date(d + 'T12:00:00Z');
+      const start = new Date(end);
+      start.setUTCDate(start.getUTCDate() - 41);
+      let sum = 0, cur = new Date(start);
+      while (cur <= end) { sum += workoutData[cur.toISOString().slice(0, 10)] || 0; cur.setUTCDate(cur.getUTCDate() + 1); }
+      result[d] = sum / 42;
+    }
+  });
   return result;
 }
 
@@ -1556,16 +1560,29 @@ function updateBaseline() {
     $('blTempVal').style.color = 'var(--muted)';
     $('blTempPeriod').textContent = 'baseline';
   }
-  // KCAL CTL: 42-day EWMA of daily workout kcal
-  const ctlByDate = computeKcalCTL();
-  const ctlDates = Object.keys(ctlByDate).sort();
-  if (ctlDates.length) {
-    const ctl = Math.round(ctlByDate[ctlDates.at(-1)]);
-    $('blKcalVal').textContent = ctl.toLocaleString();
-    $('blKcalVal').style.color = kcalHeatmapColor(ctl, ctl);
+  // KCAL baseline: simple avg until 42 workout days, then 42-day rolling avg
+  const wDates = Object.keys(workoutData).sort();
+  if (wDates.length) {
+    let kcalBaseline, periodLabel;
+    const n = wDates.length;
+    if (n < 42) {
+      kcalBaseline = Math.round(wDates.reduce((s, d) => s + workoutData[d], 0) / n);
+      periodLabel = `${n}d av`;
+    } else {
+      const lastD = new Date(wDates[n-1] + 'T12:00:00Z');
+      const startD = new Date(lastD); startD.setUTCDate(startD.getUTCDate() - 41);
+      let sum = 0, cur = new Date(startD);
+      while (cur <= lastD) { sum += workoutData[cur.toISOString().slice(0, 10)] || 0; cur.setUTCDate(cur.getUTCDate() + 1); }
+      kcalBaseline = Math.round(sum / 42);
+      periodLabel = '42d av';
+    }
+    $('blKcalVal').textContent = kcalBaseline.toLocaleString();
+    $('blKcalVal').style.color = kcalHeatmapColor(kcalBaseline, kcalBaseline);
+    $('blKcalPeriod').textContent = periodLabel;
   } else {
     $('blKcalVal').textContent = '—';
     $('blKcalVal').style.color = 'var(--muted)';
+    $('blKcalPeriod').textContent = 'av';
   }
 }
 
