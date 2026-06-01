@@ -1551,9 +1551,10 @@ function updateBaseline() {
     const tempDatesPost = tempBaselineSetDate
       ? Object.keys(tempData).filter(d => d > tempBaselineSetDate)
       : Object.keys(tempData);
-    const periodLabel = tempDatesPost.length >= 7 ? 'rolling' : 'set';
+    const isAuto = tempDatesPost.length >= 7;
+    const periodLabel = isAuto ? 'rolling' : 'set';
     $('blTempVal').textContent = eb.toFixed(2) + '°';
-    $('blTempVal').style.color = '#4caf50';
+    $('blTempVal').style.color = isAuto ? '#4caf50' : '#e67c8a';
     $('blTempPeriod').textContent = periodLabel;
   } else {
     $('blTempVal').textContent = '—°';
