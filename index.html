@@ -41,6 +41,12 @@
   .label { font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--accent); font-weight:500; font-family:var(--font-mono); margin-bottom:4px; }
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
   .baseline-badge { font-family:var(--font-mono); font-size:11px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:4px; display:inline-block; }
+  .baseline-row { display:grid; grid-template-columns:repeat(4,1fr); margin-top:10px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .bl-cell { padding:8px 4px 7px; text-align:center; border-right:1px solid var(--border); }
+  .bl-cell:last-child { border-right:none; }
+  .bl-label { font-family:var(--font-mono); font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+  .bl-value { font-family:var(--font-mono); font-size:17px; font-weight:600; line-height:1.1; }
+  .bl-period { font-family:var(--font-mono); font-size:8px; color:var(--muted); margin-top:2px; }
 
   /* Cards */
   .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
@@ -261,10 +267,27 @@
 
 <div class="header-top">
   <h1>Baseline</h1>
-  <div style="display:flex;gap:6px;margin-top:6px;justify-content:center;flex-wrap:wrap;">
-    <div id="baselineBadge"    style="font-family:var(--font-mono);font-size:11px;color:var(--accent);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:6px;letter-spacing:0;">HRV —</div>
-    <div id="rhrBaselineBadge" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:6px;letter-spacing:0;">RHR —</div>
-    <div id="tempBaselineBadge" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:5px 8px;border-radius:6px;letter-spacing:0;">Tmp —°</div>
+  <div class="baseline-row">
+    <div class="bl-cell">
+      <div class="bl-label">HRV</div>
+      <div class="bl-value" id="blHRVVal" style="color:var(--accent)">—</div>
+      <div class="bl-period" id="blHRVPeriod">baseline</div>
+    </div>
+    <div class="bl-cell">
+      <div class="bl-label">RHR</div>
+      <div class="bl-value" id="blRHRVal" style="color:var(--muted)">—</div>
+      <div class="bl-period" id="blRHRPeriod">—</div>
+    </div>
+    <div class="bl-cell">
+      <div class="bl-label">TEMP</div>
+      <div class="bl-value" id="blTempVal" style="color:var(--muted)">—°</div>
+      <div class="bl-period" id="blTempPeriod">baseline</div>
+    </div>
+    <div class="bl-cell">
+      <div class="bl-label">KCAL</div>
+      <div class="bl-value" id="blKcalVal" style="color:var(--muted)">—</div>
+      <div class="bl-period">42d CTL</div>
+    </div>
   </div>
   <button class="menu-btn" id="menuBtn">≡</button>
   <button class="sync-btn" id="syncBtn" title="GitHub sync">⟳</button>
@@ -1485,6 +1508,7 @@ function saveNote(id, value) {
 
 // ---------- Metrics + Status ----------
 function updateBaseline() {
+  // HRV baseline
   if (!readings.length) { BASELINE = 80; }
   else {
     const cutoff = new Date();
@@ -1492,8 +1516,10 @@ function updateBaseline() {
     const pool = readings.filter(r => new Date(r.date) >= cutoff);
     const src = pool.length > 0 ? pool : readings;
     BASELINE = Math.round(src.reduce((a, b) => a + b.hrv, 0) / src.length);
-    const label = pool.length > 0 ? '12m' : `${readings.length}d`;
-    $('baselineBadge').textContent = `HRV ${BASELINE} · ${label}`;
+    const label = pool.length > 0 ? '12m avg' : `${readings.length}d avg`;
+    $('blHRVVal').textContent = BASELINE;
+    $('blHRVVal').style.color = 'var(--accent)';
+    $('blHRVPeriod').textContent = label;
   }
   ZONE_HIGH = Math.round(BASELINE * 1.10);
   ZONE_GOOD = Math.round(BASELINE * 0.95);
@@ -1502,32 +1528,44 @@ function updateBaseline() {
   $('zoneGood').textContent = `${ZONE_GOOD}–${ZONE_HIGH - 1}`;
   $('zoneOK').textContent   = `${ZONE_OK}–${ZONE_GOOD - 1}`;
   $('zoneLow').textContent  = `<${ZONE_OK}`;
-  // RHR baseline: rolling 90-day average of nightly RHR readings
-  const rhrDates30 = Object.keys(rhrData).sort().slice(-90);
-  rhrBaseline = rhrDates30.length ? Math.round(rhrDates30.reduce((a, d) => a + rhrData[d], 0) / rhrDates30.length) : 40;
-  const rhrBadge = $('rhrBaselineBadge');
-  if (rhrDates30.length) {
-    const rhrLabel = rhrDates30.length >= 90 ? '3m' : `${rhrDates30.length}d`;
-    rhrBadge.textContent = `RHR ${rhrBaseline} · ${rhrLabel}`;
-    rhrBadge.style.color = '#4caf50';
-    rhrBadge.style.borderColor = '#4caf5055';
+  // RHR baseline: rolling 90-day average
+  const rhrDates90 = Object.keys(rhrData).sort().slice(-90);
+  rhrBaseline = rhrDates90.length ? Math.round(rhrDates90.reduce((a, d) => a + rhrData[d], 0) / rhrDates90.length) : 40;
+  if (rhrDates90.length) {
+    const rhrLabel = rhrDates90.length >= 90 ? '90d avg' : `${rhrDates90.length}d avg`;
+    $('blRHRVal').textContent = rhrBaseline;
+    $('blRHRVal').style.color = '#4caf50';
+    $('blRHRPeriod').textContent = rhrLabel;
   } else {
-    rhrBadge.textContent = 'RHR —';
-    rhrBadge.style.color = 'var(--muted)';
-    rhrBadge.style.borderColor = 'var(--border)';
+    $('blRHRVal').textContent = '—';
+    $('blRHRVal').style.color = 'var(--muted)';
+    $('blRHRPeriod').textContent = '—';
   }
-  const tempBadge = $('tempBaselineBadge');
-  const tempDatesAll = Object.keys(tempData).sort();
-  if (tempDatesAll.length) {
-    const latestT = tempData[tempDatesAll.at(-1)];
-    const tc = tempZoneColor(latestT);
-    tempBadge.textContent = `Tmp ${latestT.toFixed(2)}° · ${tempDatesAll.length}d`;
-    tempBadge.style.color = tc;
-    tempBadge.style.borderColor = tc + '55';
+  // TEMP baseline: effective baseline temperature
+  const eb = getEffectiveBaseline();
+  if (eb !== null) {
+    const tempDatesPost = tempBaselineSetDate
+      ? Object.keys(tempData).filter(d => d > tempBaselineSetDate)
+      : Object.keys(tempData);
+    const periodLabel = tempDatesPost.length >= 7 ? 'rolling' : 'set';
+    $('blTempVal').textContent = eb.toFixed(2) + '°';
+    $('blTempVal').style.color = '#4caf50';
+    $('blTempPeriod').textContent = periodLabel;
   } else {
-    tempBadge.textContent = 'Tmp —°';
-    tempBadge.style.color = 'var(--muted)';
-    tempBadge.style.borderColor = 'var(--border)';
+    $('blTempVal').textContent = '—°';
+    $('blTempVal').style.color = 'var(--muted)';
+    $('blTempPeriod').textContent = 'baseline';
+  }
+  // KCAL CTL: 42-day EWMA of daily workout kcal
+  const ctlByDate = computeKcalCTL();
+  const ctlDates = Object.keys(ctlByDate).sort();
+  if (ctlDates.length) {
+    const ctl = Math.round(ctlByDate[ctlDates.at(-1)]);
+    $('blKcalVal').textContent = ctl.toLocaleString();
+    $('blKcalVal').style.color = kcalHeatmapColor(ctl, ctl);
+  } else {
+    $('blKcalVal').textContent = '—';
+    $('blKcalVal').style.color = 'var(--muted)';
   }
 }
 
