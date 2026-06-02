@@ -741,18 +741,18 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
 }
 
 function kcalHeatmapColor(kcal, ctl) {
-  // Hybrid: fixed lower anchors give stable colours before CTL is established;
-  // CTL-adaptive upper anchors scale to the user's actual training load.
-  // Math.min caps fixed anchors so they never exceed base and break sort order.
-  const base = Math.max(400, ctl || 400);
+  // Fixed lower anchors give stable colours before CTL is established (early data).
+  // CTL-adaptive upper anchors: amber = at CTL (normal), scaling to red for heavy load.
+  // Floor raised to 1500 so the fixed green anchor aligns with the CTL transition.
+  const base = Math.max(1500, ctl || 1500);
   const anchors = [
-    [0,                             [21,  101, 192]],  // dark blue — rest
-    [Math.min(300,  base * 0.6),    [30,  136, 229]],  // blue      — light
-    [Math.min(600,  base * 0.85),   [0,   188, 212]],  // cyan      — below baseline
-    [base,                          [76,  175, 80]],   // green     — at CTL (normal)
-    [base * 1.35,                   [255, 193, 7]],    // amber     — 35% above
-    [base * 1.7,                    [255, 87,  34]],   // orange    — 70% above
-    [base * 2.2,                    [244, 67,  54]]    // red       — 2.2× baseline
+    [0,        [21,  101, 192]],  // dark blue — rest/no activity
+    [500,      [30,  136, 229]],  // blue      — very light
+    [1000,     [0,   188, 212]],  // cyan      — light
+    [1500,     [76,  175, 80]],   // green     — easy day
+    [base,     [255, 193, 7]],    // amber     — at CTL (normal training)
+    [base*1.5, [255, 87,  34]],   // orange    — 50% above CTL
+    [base*2.0, [244, 67,  54]]    // red       — double CTL
   ];
   const v = Math.max(0, Math.min(base * 2, kcal));
   let lo = anchors[0], hi = anchors[anchors.length - 1];
