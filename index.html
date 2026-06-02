@@ -1297,7 +1297,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       const dStr = delta === null ? '' : delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`;
       const dColor = delta === null ? COLORS.muted : delta >= 0 ? COLORS.green : COLORS.red;
       const color = colorForHRV(r.hrv);
-      hrvHtml = `<div class="jnl-metric">
+      hrvHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-hrv-id="${r.id}">
         <div class="jnl-metric-label">HRV</div>
         <div class="jnl-metric-delta" style="color:${dColor}">${dStr}</div>
         <span class="jnl-metric-value" style="color:${color}">${Math.round(r.hrv)}</span>
@@ -1315,7 +1315,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       const rhrD = rhrVal - rhrBaseline;
       const rhrDStr = rhrD === 0 ? '' : rhrD > 0 ? `▲${rhrD}` : `▼${Math.abs(rhrD)}`;
       const rhrColor = rhrZoneColor(rhrVal);
-      rhrHtml = `<div class="jnl-metric">
+      rhrHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-rhr-date="${date}">
         <div class="jnl-metric-label">RHR</div>
         <div class="jnl-metric-delta" style="color:${rhrColor}">${rhrDStr}</div>
         <span class="jnl-metric-value" style="color:${rhrColor}">${rhrVal}</span>
@@ -1333,7 +1333,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       const tempDelta = eb !== null ? tempVal - eb : null;
       const tempDStr = tempDelta !== null ? ((tempDelta >= 0 ? '+' : '') + tempDelta.toFixed(2) + '°') : '';
       const tempColor = tempZoneColor(tempVal);
-      tempHtml = `<div class="jnl-metric">
+      tempHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-temp-date="${date}">
         <div class="jnl-metric-label">TEMP</div>
         <div class="jnl-metric-delta" style="color:${tempColor}">${tempDStr}</div>
         <span class="jnl-metric-value" style="color:${tempColor}">${Math.floor(tempVal)}<span style="font-size:14px">.${tempVal.toFixed(2).split('.')[1]}°</span></span>
@@ -1474,13 +1474,37 @@ function showJournalModal() {
   const closeJnl = () => { document.body.style.overflow = ''; overlay.remove(); };
   overlay.querySelector('.jnl-close').addEventListener('click', closeJnl);
   overlay.querySelector('.jnl-body').addEventListener('click', e => {
+    // Full-entry delete (✕ button)
     const delBtn = e.target.closest('[data-jnl-del-id],[data-jnl-del-date]');
-    if (!delBtn) return;
-    const readingId = delBtn.dataset.jnlDelId;
-    const rhrDate   = delBtn.dataset.jnlDelDate;
+    if (delBtn) {
+      const readingId = delBtn.dataset.jnlDelId;
+      const rhrDate   = delBtn.dataset.jnlDelDate;
+      const confirm = openModal(`
+        <div class="modal-title">Delete this entry?</div>
+        <div class="modal-desc">Removes all data for this date — HRV, RHR, and Temp. This cannot be undone.</div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" data-cancel>CANCEL</button>
+          <button class="modal-btn" style="background:var(--red);border-color:var(--red);" data-confirm>DELETE</button>
+        </div>
+      `);
+      confirm.querySelector('[data-cancel]').addEventListener('click', () => confirm.remove());
+      confirm.querySelector('[data-confirm]').addEventListener('click', () => {
+        confirm.remove();
+        if (readingId) deleteReading(readingId); else deleteRHREntry(rhrDate);
+        refreshJournalModal();
+      });
+      return;
+    }
+    // Individual metric delete
+    const hrvEl  = e.target.closest('[data-jnl-hrv-id]');
+    const rhrEl  = e.target.closest('[data-jnl-rhr-date]');
+    const tempEl = e.target.closest('[data-jnl-temp-date]');
+    const metricEl = hrvEl || rhrEl || tempEl;
+    if (!metricEl) return;
+    const label  = hrvEl ? 'HRV' : rhrEl ? 'RHR' : 'Temp';
     const confirm = openModal(`
-      <div class="modal-title">Delete this entry?</div>
-      <div class="modal-desc">Removes all data for this date — HRV, RHR, and Temp. This cannot be undone.</div>
+      <div class="modal-title">Delete ${label}?</div>
+      <div class="modal-desc">Removes only the ${label} reading for this date.</div>
       <div class="modal-actions">
         <button class="modal-btn cancel" data-cancel>CANCEL</button>
         <button class="modal-btn" style="background:var(--red);border-color:var(--red);" data-confirm>DELETE</button>
@@ -1489,7 +1513,9 @@ function showJournalModal() {
     confirm.querySelector('[data-cancel]').addEventListener('click', () => confirm.remove());
     confirm.querySelector('[data-confirm]').addEventListener('click', () => {
       confirm.remove();
-      if (readingId) deleteReading(readingId); else deleteRHREntry(rhrDate);
+      if (hrvEl)  { const id = hrvEl.dataset.jnlHrvId; readings = readings.filter(r => String(r.id) !== String(id)); save(); render(); showToast('HRV removed'); }
+      if (rhrEl)  { delete rhrData[rhrEl.dataset.jnlRhrDate]; saveRHR(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('RHR removed'); }
+      if (tempEl) { delete tempData[tempEl.dataset.jnlTempDate]; saveTemp(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('Temp removed'); }
       refreshJournalModal();
     });
   });
