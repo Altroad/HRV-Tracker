@@ -1784,6 +1784,12 @@ function openModal(innerHTML) {
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `<div class="modal">${innerHTML}</div>`;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.style.overflow = 'hidden';
+  new MutationObserver((_, obs) => {
+    if (overlay.isConnected) return;
+    obs.disconnect();
+    if (!document.querySelector('.modal-overlay, .jnl-overlay')) document.body.style.overflow = '';
+  }).observe(document.body, { childList: true });
   document.body.appendChild(overlay);
   return overlay;
 }
