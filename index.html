@@ -172,9 +172,9 @@
   .note-btn.has-note { opacity:1; }
   .note-row { padding:4px 0 8px 0; display:none; }
   .note-row.open { display:block; }
-  .note-wrap { overflow:hidden; height:31px; border:1px solid var(--border); border-radius:6px; transition:height 0.15s ease, border-color 0.15s; }
-  .note-wrap:focus-within { height:72px; border-color:var(--muted); }
-  .note-input { width:100%; height:72px; background:var(--surface2); border:none; border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:6px 8px; resize:none; outline:none; overflow-y:auto; display:block; }
+  .note-preview { font-family:var(--font-body); font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:6px 9px; border:1px solid var(--border); border-radius:6px; cursor:pointer; line-height:1.4; }
+  .note-preview.note-empty { color:var(--muted); font-style:italic; }
+  .note-input { width:100%; background:var(--surface2); border:1px solid var(--muted); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:6px 8px; resize:none; outline:none; display:none; height:72px; }
   .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:6px; min-width:180px; }
   .tag-picker-item { font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:6px; cursor:pointer; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
   .tag-picker-item:active { opacity:0.7; }
@@ -198,7 +198,7 @@
   .jnl-metric-delta { font-family:var(--font-mono); font-size:9px; min-height:11px; line-height:1; margin-bottom:2px; }
   .jnl-metric-value { font-family:var(--font-display); font-size:20px; line-height:1; }
   .jnl-metric-nil { font-family:var(--font-mono); font-size:12px; color:var(--muted); line-height:1; }
-  .jnl-note { user-select:text; -webkit-user-select:text; }
+  .jnl-note { user-select:text; -webkit-user-select:text; touch-action:manipulation; }
   .jnl-summary { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
   .jnl-summary-metric { flex:1; display:flex; flex-direction:column; align-items:center; padding:10px 4px; }
   .jnl-summary-metric + .jnl-summary-metric { border-left:1px solid var(--border); }
@@ -463,6 +463,7 @@ let tempBaselineSetDate = null;
 
 // ---------- Helpers ----------
 const $ = id => document.getElementById(id);
+const escapeHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
@@ -1128,7 +1129,8 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <button style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;opacity:0.4;flex-shrink:0;line-height:1;" ${delAttr} title="Delete entry">✕</button>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
-      <div class="note-wrap"><textarea class="note-input jnl-note" rows="3" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea></div>
+      <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
+      <textarea class="note-input jnl-note" rows="3" onblur="closeNoteEditor(this,'${noteId}')">${noteVal ? escapeHtml(noteVal) : ''}</textarea>
     </div>`;
   });
 
@@ -1372,6 +1374,21 @@ function saveNote(id, value) {
   r.note = value.trim() || undefined;
   save();
   renderHistory();
+}
+
+function openNoteEditor(ta) {
+  const preview = ta.previousElementSibling;
+  preview.style.display = 'none';
+  ta.style.display = 'block';
+  ta.focus();
+}
+function closeNoteEditor(ta, noteId) {
+  saveNote(noteId, ta.value);
+  ta.style.display = 'none';
+  const preview = ta.previousElementSibling;
+  preview.textContent = ta.value.trim() || '';
+  preview.classList.toggle('note-empty', !ta.value.trim());
+  preview.style.display = '';
 }
 
 // ---------- Metrics + Status ----------
