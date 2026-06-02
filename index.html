@@ -338,18 +338,6 @@
   </div>
 </div>
 
-<div class="card" id="heatmapCard">
-  <div class="chart-header" style="margin-bottom:12px;">
-    <div class="chart-title">Year at a Glance</div>
-    <div class="chart-range-toggle">
-      <button class="range-btn active" id="hmBtnHRV" onclick="setHeatmapMode('hrv')">HRV</button>
-      <button class="range-btn" id="hmBtnRHR" onclick="setHeatmapMode('rhr')">RHR</button>
-      <button class="range-btn" id="hmBtnTag" onclick="setHeatmapMode('tag')">Tags</button>
-    </div>
-  </div>
-  <div id="heatmapWrap"></div>
-</div>
-
 <div class="card">
   <div style="display:none;">
     <input type="date" id="inputDate">
@@ -385,6 +373,18 @@
     <button class="quick-add-btn" id="quickAddBtn" title="Quick Add kcal to previous day">+</button>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
   </div>
+</div>
+
+<div class="card" id="heatmapCard">
+  <div class="chart-header" style="margin-bottom:12px;">
+    <div class="chart-title">Year at a Glance</div>
+    <div class="chart-range-toggle">
+      <button class="range-btn active" id="hmBtnHRV" onclick="setHeatmapMode('hrv')">HRV</button>
+      <button class="range-btn" id="hmBtnRHR" onclick="setHeatmapMode('rhr')">RHR</button>
+      <button class="range-btn" id="hmBtnTag" onclick="setHeatmapMode('tag')">Tags</button>
+    </div>
+  </div>
+  <div id="heatmapWrap"></div>
 </div>
 
 <div style="padding:0 0 16px;">
