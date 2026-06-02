@@ -253,14 +253,14 @@
       <div class="bl-period" id="blRHRPeriod">—</div>
     </div>
     <div class="bl-cell">
-      <div class="bl-label">TEMP</div>
-      <div class="bl-value" id="blTempVal" style="color:var(--muted)">—°</div>
-      <div class="bl-period" id="blTempPeriod">baseline</div>
-    </div>
-    <div class="bl-cell">
       <div class="bl-label">KCAL</div>
       <div class="bl-value" id="blKcalVal" style="color:var(--muted)">—</div>
       <div class="bl-period" id="blKcalPeriod">av</div>
+    </div>
+    <div class="bl-cell">
+      <div class="bl-label">TEMP</div>
+      <div class="bl-value" id="blTempVal" style="color:var(--muted)">—°</div>
+      <div class="bl-period" id="blTempPeriod">baseline</div>
     </div>
   </div>
   <button class="menu-btn" id="menuBtn">≡</button>
@@ -382,8 +382,8 @@
     <div class="chart-range-toggle">
       <button class="range-btn active" id="hmBtnHRV"  onclick="setHeatmapMode('hrv')">HRV</button>
       <button class="range-btn" id="hmBtnRHR"  onclick="setHeatmapMode('rhr')">RHR</button>
-      <button class="range-btn" id="hmBtnTemp" onclick="setHeatmapMode('temp')">Temp</button>
       <button class="range-btn" id="hmBtnKcal" onclick="setHeatmapMode('kcal')">Kcal</button>
+      <button class="range-btn" id="hmBtnTemp" onclick="setHeatmapMode('temp')">Temp</button>
     </div>
   </div>
   <div id="heatmapWrap"></div>
@@ -1659,7 +1659,7 @@ function applyHRVZones() {
 }
 
 function flipMetrics() {
-  const cycle = ['hrv', 'rhr', 'temp', 'kcal'];
+  const cycle = ['hrv', 'rhr', 'kcal', 'temp'];
   const currentIdx = cycle.indexOf(metricsMode);
   let nextMode = null;
   for (let i = 1; i < cycle.length; i++) {
