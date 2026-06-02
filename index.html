@@ -543,6 +543,30 @@ function saveWorkout() {
   try { localStorage.setItem(WORKOUT_KEY, JSON.stringify(workoutData)); } catch {}
 }
 
+// Each workoutData[date] is either a number (legacy/imported) or [{name, kcal}, ...]
+function getKcalTotal(date) {
+  const v = workoutData[date];
+  if (!v) return 0;
+  if (Array.isArray(v)) return v.reduce((s, e) => s + e.kcal, 0);
+  return v;
+}
+function getKcalItems(date) {
+  const v = workoutData[date];
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  return [{ name: 'Activity', kcal: v }];
+}
+function addKcalItem(date, item) {
+  const current = workoutData[date];
+  if (Array.isArray(current)) {
+    workoutData[date] = [...current, item];
+  } else if (current) {
+    workoutData[date] = [{ name: 'Activity', kcal: current }, item];
+  } else {
+    workoutData[date] = [item];
+  }
+}
+
 const QUICK_ADD_DEFAULTS = [
   { name: 'Gym',   kcal: 500 },
   { name: 'Swim',  kcal: 800 },
@@ -776,13 +800,13 @@ function computeKcalCTL() {
   dates.forEach((d, i) => {
     const slice = dates.slice(0, i + 1);
     if (slice.length < 42) {
-      result[d] = slice.reduce((s, dd) => s + workoutData[dd], 0) / slice.length;
+      result[d] = slice.reduce((s, dd) => s + getKcalTotal(dd), 0) / slice.length;
     } else {
       const end = new Date(d + 'T12:00:00Z');
       const start = new Date(end);
       start.setUTCDate(start.getUTCDate() - 41);
       let sum = 0, cur = new Date(start);
-      while (cur <= end) { sum += workoutData[cur.toISOString().slice(0, 10)] || 0; cur.setUTCDate(cur.getUTCDate() + 1); }
+      while (cur <= end) { sum += getKcalTotal(cur.toISOString().slice(0, 10)); cur.setUTCDate(cur.getUTCDate() + 1); }
       result[d] = sum / 42;
     }
   });
@@ -802,7 +826,7 @@ function buildHeatmapPlugin(sortedDates) {
 
       const rollingKcal = sortedDates.map((d, i) => {
         let sum = 0, count = 0;
-        for (let j = Math.max(0, i - 2); j <= i; j++) { sum += workoutData[sortedDates[j]] || 0; count++; }
+        for (let j = Math.max(0, i - 2); j <= i; j++) { sum += getKcalTotal(sortedDates[j]); count++; }
         return sum / count;
       });
 
@@ -1225,7 +1249,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       let va = null, vb = null;
       if (sort === 'hrv')  { va = readings.find(r => r.date === a)?.hrv ?? null; vb = readings.find(r => r.date === b)?.hrv ?? null; }
       if (sort === 'rhr')  { va = rhrData[a]    ?? null; vb = rhrData[b]    ?? null; }
-      if (sort === 'kcal') { va = workoutData[prevDay(a)] ?? null; vb = workoutData[prevDay(b)] ?? null; }
+      if (sort === 'kcal') { va = workoutData[prevDay(a)] !== undefined ? getKcalTotal(prevDay(a)) : null; vb = workoutData[prevDay(b)] !== undefined ? getKcalTotal(prevDay(b)) : null; }
       if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
@@ -1237,7 +1261,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   // Summary stats across filtered dates
   const hrvVals  = dates.map(d => readings.find(r => r.date === d)?.hrv).filter(v => v !== undefined);
   const rhrVals  = dates.map(d => rhrData[d]).filter(v => v !== undefined);
-  const kcalVals = dates.map(d => workoutData[prevDay(d)]).filter(v => v !== undefined);
+  const kcalVals = dates.map(d => workoutData[prevDay(d)] !== undefined ? getKcalTotal(prevDay(d)) : undefined).filter(v => v !== undefined);
   const tempVals = dates.map(d => tempData[d]).filter(v => v !== undefined);
   const avgHrv  = hrvVals.length  ? Math.round(hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length) : null;
   const avgRhr  = rhrVals.length  ? Math.round(rhrVals.reduce((a, b) => a + b, 0) / rhrVals.length) : null;
@@ -1254,9 +1278,11 @@ function buildJournalCards(filter, search, sort, sortDir) {
   let cards = '';
   dates.forEach(date => {
     const r = readings.find(r => r.date === date);
-    const rhrVal  = rhrData[date];
-    const kcalVal = workoutData[prevDay(date)];
-    const tempVal = tempData[date];
+    const rhrVal      = rhrData[date];
+    const activityDate = prevDay(date);
+    const hasKcal     = workoutData[activityDate] !== undefined;
+    const kcalTotal   = hasKcal ? getKcalTotal(activityDate) : 0;
+    const tempVal     = tempData[date];
     const noteId = r ? String(r.id) : `rhr-${date}`;
     const noteVal = r ? (r.note || '') : (rhrNotes[date] || '');
 
@@ -1331,7 +1357,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-date">${dateStr}</span>
         ${tagHtml}
       </div>
-      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${kcalVal !== undefined ? `<div class="jnl-metric"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${Math.round(kcalVal).toLocaleString()}</span></div>` : ''}${tempHtml}</div>
+      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
       <textarea class="note-input jnl-note" rows="2" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
     </div>`;
   });
@@ -1460,7 +1486,7 @@ function refreshJournalModal() {
   if (!overlay) return;
   const body = overlay.querySelector('.jnl-body');
   const scrollTop = body.scrollTop;
-  const { cards, avgHrv, avgRhr, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   body.innerHTML = cards;
   body.scrollTop = scrollTop;
   overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
@@ -1588,13 +1614,13 @@ function updateBaseline() {
     let kcalBaseline, periodLabel;
     const n = wDates.length;
     if (n < 42) {
-      kcalBaseline = Math.round(wDates.reduce((s, d) => s + workoutData[d], 0) / n);
+      kcalBaseline = Math.round(wDates.reduce((s, d) => s + getKcalTotal(d), 0) / n);
       periodLabel = `${n}d av`;
     } else {
       const lastD = new Date(wDates[n-1] + 'T12:00:00Z');
       const startD = new Date(lastD); startD.setUTCDate(startD.getUTCDate() - 41);
       let sum = 0, cur = new Date(startD);
-      while (cur <= lastD) { sum += workoutData[cur.toISOString().slice(0, 10)] || 0; cur.setUTCDate(cur.getUTCDate() + 1); }
+      while (cur <= lastD) { sum += getKcalTotal(cur.toISOString().slice(0, 10)); cur.setUTCDate(cur.getUTCDate() + 1); }
       kcalBaseline = Math.round(sum / 42);
       periodLabel = '42d av';
     }
@@ -2434,7 +2460,7 @@ function runSlowWaveCalc(text, overlay) {
         const kcal = ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
         const dateStr = w.start ? w.start.substring(0, 10) : null;
         if (!dateStr) continue;
-        workoutData[dateStr] = Math.round((workoutData[dateStr] || 0) + kcal);
+        addKcalItem(dateStr, { name: 'Activity', kcal: Math.round(kcal) });
         importedKcal = Math.round((importedKcal || 0) + kcal);
       }
       if (importedKcal !== null) saveWorkout();
@@ -3226,6 +3252,51 @@ function showSyncModal() {
   setTimeout(() => overlay.querySelector('#userInput').focus(), 100);
 }
 
+// ---------- Kcal item editor ----------
+function showKcalItemsModal(activityDate) {
+  function buildBody() {
+    const items = getKcalItems(activityDate);
+    if (!items.length) return `<div style="color:var(--muted);font-family:var(--font-mono);font-size:12px;text-align:center;padding:16px 0;">No entries — all deleted</div>`;
+    const total = items.reduce((s, e) => s + e.kcal, 0);
+    const rows = items.map((item, i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);">
+        <div style="flex:1;font-family:var(--font-body);font-size:14px;color:var(--text);">${item.name}</div>
+        <div style="font-family:var(--font-display);font-size:22px;color:var(--text);">${item.kcal.toLocaleString()}</div>
+        <button style="background:none;border:1px solid rgba(244,67,54,0.4);color:var(--red);border-radius:6px;height:32px;width:32px;font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;" data-del-kcal="${i}">×</button>
+      </div>`).join('');
+    const totalRow = items.length > 1
+      ? `<div style="display:flex;justify-content:space-between;padding:10px 0 2px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;"><span>Total</span><span>${total.toLocaleString()} kcal</span></div>`
+      : '';
+    return rows + totalRow;
+  }
+
+  const overlay = openModal(`
+    <div class="modal-title">Kcal · <span style="color:var(--muted);font-size:9px;font-family:var(--font-mono);">${activityDate}</span></div>
+    <div id="kcalItemsBody">${buildBody()}</div>
+    <button class="modal-btn cancel" data-close style="margin-top:4px;">Close</button>
+  `);
+
+  function bindDel() {
+    overlay.querySelectorAll('[data-del-kcal]').forEach(btn => {
+      btn.onclick = () => {
+        const items = getKcalItems(activityDate);
+        items.splice(parseInt(btn.dataset.delKcal, 10), 1);
+        if (items.length === 0) delete workoutData[activityDate];
+        else workoutData[activityDate] = items;
+        saveWorkout();
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveToGitHub(), 800);
+        overlay.querySelector('#kcalItemsBody').innerHTML = buildBody();
+        bindDel();
+        refreshJournalModal();
+      };
+    });
+  }
+  bindDel();
+
+  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
+}
+
 // ---------- Quick Add ----------
 function showQuickAddSheet() {
   const raw = localStorage.getItem(getLastResultKey());
@@ -3235,7 +3306,7 @@ function showQuickAddSheet() {
   const dt = new Date(savedAt + 'T12:00:00Z');
   dt.setUTCDate(dt.getUTCDate() - 1);
   const targetDate = dt.toISOString().slice(0, 10);
-  const current = workoutData[targetDate] || 0;
+  const current = getKcalTotal(targetDate);
   const tagsHtml = quickAddTags.map((t, i) =>
     `<button class="modal-btn" style="flex:1;min-width:calc(50% - 4px);padding:10px 6px;font-size:13px;letter-spacing:0;" data-qa-idx="${i}">${t.name}<br><span style="font-size:10px;opacity:0.7;font-family:var(--font-mono);">+${t.kcal.toLocaleString()} kcal</span></button>`
   ).join('');
@@ -3249,7 +3320,7 @@ function showQuickAddSheet() {
     const btn = e.target.closest('[data-qa-idx]');
     if (!btn) return;
     const tag = quickAddTags[parseInt(btn.dataset.qaIdx, 10)];
-    workoutData[targetDate] = (workoutData[targetDate] || 0) + tag.kcal;
+    addKcalItem(targetDate, { name: tag.name, kcal: tag.kcal });
     saveWorkout();
     overlay.remove();
     render();
@@ -3368,7 +3439,7 @@ function showLogModal() {
     const hasHRVorRHR = hrv || rhr;
     if (!date) { showToast('Select a date'); return; }
     if (!hasHRVorRHR && !hasKcal) { showToast('Enter at least one value'); return; }
-    if (hasKcal) { workoutData[date] = kcal; saveWorkout(); }
+    if (hasKcal) { addKcalItem(date, { name: 'Manual', kcal }); saveWorkout(); }
     overlay.remove();
     if (hasHRVorRHR) {
       $('inputDate').value = date;
