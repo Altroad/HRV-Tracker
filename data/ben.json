@@ -105,10 +105,9 @@
       "tag": "100-200TSS"
     },
     {
-      "id": 28,
+      "id": 29,
       "date": "2026-06-02",
-      "hrv": 65,
-      "tag": "Active Recovery"
+      "hrv": 65
     }
   ],
   "rhr": {
