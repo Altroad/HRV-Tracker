@@ -55,6 +55,7 @@
   .today-card::after { content:''; position:absolute; bottom:10px; right:12px; width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:0.35; transition:background 0.3s, opacity 0.3s; }
   .today-card.rhr-mode::after { background:var(--accent); opacity:0.7; }
   .today-card.temp-mode::after { background:#e67c8a; opacity:0.7; }
+  .today-card.kcal-mode::after { background:#ff9800; opacity:0.7; }
 
   .metric { text-align:center; overflow:hidden; }
   .metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:6px; }
@@ -448,6 +449,8 @@ let heatmapMode = 'hrv';
 let metricsMode = 'hrv';
 let _rhrMetrics = null;
 let _tempMetrics = null;
+let _kcalMetrics = null;
+let kcalBaseline = 0;
 let rhrBaseline = 40;
 let rhrData = {};
 let rhrNotes = {};
@@ -464,6 +467,7 @@ const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
 const rhrZoneColor = rhr => rhr <= rhrBaseline+1 ? '#4caf50' : rhr <= rhrBaseline+4 ? '#ffab00' : rhr <= rhrBaseline+7 ? '#ff6d00' : '#f44336';
+const kcalZoneColor = kcal => { const kb = kcalBaseline || 1; return kcal >= kb*2.0 ? '#f44336' : kcal >= kb*1.4 ? '#ff9800' : kcal >= kb*0.7 ? '#4caf50' : '#64b5f6'; };
 const rhrLineColor = rhr => { if (rhr === null) return 'transparent'; return rhr <= rhrBaseline+1 ? 'rgba(76,175,80,0.65)' : rhr <= rhrBaseline+4 ? 'rgba(255,171,0,0.65)' : rhr <= rhrBaseline+7 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)'; };
 
 function loadRHR() {
@@ -1422,7 +1426,7 @@ function updateBaseline() {
   // KCAL baseline: simple avg until 42 workout days, then 42-day rolling avg
   const wDates = Object.keys(workoutData).sort();
   if (wDates.length) {
-    let kcalBaseline, periodLabel;
+    let periodLabel;
     const n = wDates.length;
     if (n < 42) {
       kcalBaseline = Math.round(wDates.reduce((s, d) => s + getKcalTotal(d), 0) / n);
@@ -1432,7 +1436,7 @@ function updateBaseline() {
       const startD = new Date(lastD); startD.setUTCDate(startD.getUTCDate() - 41);
       let sum = 0, cur = new Date(startD);
       while (cur <= lastD) { sum += getKcalTotal(cur.toISOString().slice(0, 10)); cur.setUTCDate(cur.getUTCDate() + 1); }
-      kcalBaseline = Math.round(sum / 42);
+      kcalBaseline = Math.round(sum / 42); // assigns global
       periodLabel = '42d av';
     }
     $('blKcalVal').textContent = kcalBaseline.toLocaleString();
@@ -1609,10 +1613,32 @@ function updateMetrics() {
     _tempMetrics = null;
   }
 
-  // If currently in RHR or Temp mode, reset to HRV on data update
-  if (metricsMode === 'rhr' || metricsMode === 'temp') {
+  // Compute kcal metrics
+  const allKcalDates = Object.keys(workoutData).sort();
+  if (allKcalDates.length) {
+    const today = new Date(); today.setUTCHours(12,0,0,0);
+    const d28ago = new Date(today); d28ago.setUTCDate(d28ago.getUTCDate() - 27);
+    const d180ago = new Date(today); d180ago.setUTCDate(d180ago.getUTCDate() - 179);
+    const last28 = allKcalDates.filter(d => new Date(d+'T12:00:00Z') >= d28ago);
+    const last180 = allKcalDates.filter(d => new Date(d+'T12:00:00Z') >= d180ago);
+    const avg28 = last28.length ? Math.round(last28.reduce((s,d) => s + getKcalTotal(d), 0) / last28.length) : 0;
+    const avg180 = last180.length ? Math.round(last180.reduce((s,d) => s + getKcalTotal(d), 0) / last180.length) : 0;
+    const latestKcalDate = allKcalDates.at(-1);
+    const latestKcal = getKcalTotal(latestKcalDate);
+    const kcalDiff = avg28 - (avg180 || kcalBaseline);
+    const pct = (avg180 || kcalBaseline) > 0 ? kcalDiff / (avg180 || kcalBaseline) : 0;
+    const trend = Math.abs(pct) < 0.07 ? '→' : pct > 0 ? '↑' : '↓';
+    const trendColor = Math.abs(pct) < 0.07 ? COLORS.orange : pct > 0 ? COLORS.accent : COLORS.muted;
+    const trendLbl = Math.abs(pct) < 0.07 ? 'stable' : pct > 0 ? 'rising' : 'falling';
+    _kcalMetrics = { latestKcal, latestDate: latestKcalDate, avg28, avg180, last28Count: last28.length, last180Count: last180.length, trend, trendColor, trendLbl };
+  } else {
+    _kcalMetrics = null;
+  }
+
+  // If currently in a non-HRV mode, reset to HRV on data update
+  if (metricsMode === 'rhr' || metricsMode === 'temp' || metricsMode === 'kcal') {
     metricsMode = 'hrv';
-    $('todayCard').classList.remove('rhr-mode', 'temp-mode');
+    $('todayCard').classList.remove('rhr-mode', 'temp-mode', 'kcal-mode');
     $('latestLabel').textContent = 'Latest';
     $('avg3Label').textContent = '3D Avg';
     $('avg7Label').textContent = '7D Avg';
@@ -1633,13 +1659,14 @@ function applyHRVZones() {
 }
 
 function flipMetrics() {
-  const cycle = ['hrv', 'rhr', 'temp'];
+  const cycle = ['hrv', 'rhr', 'temp', 'kcal'];
   const currentIdx = cycle.indexOf(metricsMode);
   let nextMode = null;
   for (let i = 1; i < cycle.length; i++) {
     const candidate = cycle[(currentIdx + i) % cycle.length];
     if (candidate === 'rhr'  && !_rhrMetrics)  { showToast('No RHR data yet');  continue; }
     if (candidate === 'temp' && !_tempMetrics) { showToast('No temp data yet'); continue; }
+    if (candidate === 'kcal' && !_kcalMetrics) { showToast('No kcal data yet'); continue; }
     nextMode = candidate;
     break;
   }
@@ -1675,7 +1702,7 @@ function flipMetrics() {
       $('avg7dDelta').textContent = m.avg7Delta;    $('avg7dDelta').style.color = 'var(--muted)';
       $('trendValue').textContent = m.trend;        $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLabel;
-      $('todayCard').classList.remove('temp-mode');
+      $('todayCard').classList.remove('temp-mode', 'kcal-mode');
       $('todayCard').classList.add('rhr-mode');
       $('zoneLabelHigh').textContent = 'Excellent'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = `≤${rhrBaseline+1}`;
       $('zoneLabelGood').textContent = 'Good';      $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = `${rhrBaseline+2}–${rhrBaseline+4}`;
@@ -1708,7 +1735,7 @@ function flipMetrics() {
       }
       $('trendValue').textContent = m.trend; $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLbl;
-      $('todayCard').classList.remove('rhr-mode');
+      $('todayCard').classList.remove('rhr-mode', 'kcal-mode');
       $('todayCard').classList.add('temp-mode');
       $('zoneLabelHigh').textContent = 'Low';    $('zoneHigh').style.color = '#64b5f6'; $('zoneHigh').textContent = '<−0.5°';
       $('zoneLabelGood').textContent = 'Normal'; $('zoneGood').style.color = '#e67c8a'; $('zoneGood').textContent = '±0.5°';
@@ -1717,8 +1744,35 @@ function flipMetrics() {
       $('zoneLow').style.color = 'var(--muted)';
       $('zoneLow').textContent = m.eb !== null ? m.eb.toFixed(2) + '°' : '—';
 
-    } else {
+    } else if (nextMode === 'kcal') {
+      const m = _kcalMetrics;
+      const fmt = v => v >= 1000 ? (v/1000).toFixed(1)+'k' : String(v);
+      $('latestLabel').textContent = 'Latest';
+      $('latestHRV').textContent = fmt(m.latestKcal); $('latestHRV').style.color = kcalZoneColor(m.latestKcal);
+      $('latestUnit').textContent = 'kcal';
+      $('hrvDelta').textContent = m.latestDate; $('hrvDelta').style.color = COLORS.muted;
+      $('avg3Label').textContent = '28D Avg';
+      $('avg3d').textContent = fmt(m.avg28); $('avg3d').style.color = kcalZoneColor(m.avg28);
+      $('avg3Unit').textContent = 'kcal';
+      $('avg3dDelta').textContent = m.last28Count + ' sessions'; $('avg3dDelta').style.color = COLORS.muted;
+      $('avg7Label').textContent = '6M Avg';
+      $('avg7d').textContent = fmt(m.avg180); $('avg7d').style.color = kcalZoneColor(m.avg180);
+      $('avg7Unit').textContent = 'kcal';
+      $('avg7dDelta').textContent = m.last180Count + ' sessions'; $('avg7dDelta').style.color = COLORS.muted;
+      $('trendValue').textContent = m.trend; $('trendValue').style.color = m.trendColor;
+      $('trendLabel').textContent = m.trendLbl;
       $('todayCard').classList.remove('rhr-mode', 'temp-mode');
+      $('todayCard').classList.add('kcal-mode');
+      // Kcal zones relative to baseline
+      const kb = kcalBaseline || 1;
+      const lo = Math.round(kb * 0.7), hi = Math.round(kb * 1.4), ex = Math.round(kb * 2.0);
+      $('zoneLabelHigh').textContent = 'Extreme'; $('zoneHigh').style.color = '#f44336'; $('zoneHigh').textContent = `${fmt(ex)}+`;
+      $('zoneLabelGood').textContent = 'High';    $('zoneGood').style.color = '#ff9800'; $('zoneGood').textContent = `${fmt(hi)}–${fmt(ex-1)}`;
+      $('zoneLabelOK').textContent   = 'Medium';  $('zoneOK').style.color   = '#4caf50'; $('zoneOK').textContent   = `${fmt(lo)}–${fmt(hi-1)}`;
+      $('zoneLabelLow').textContent  = 'Low';     $('zoneLow').style.color  = '#64b5f6'; $('zoneLow').textContent  = `<${fmt(lo)}`;
+
+    } else {
+      $('todayCard').classList.remove('rhr-mode', 'temp-mode', 'kcal-mode');
       $('latestLabel').textContent = 'Latest';
       $('avg3Label').textContent = '3D Avg';
       $('avg7Label').textContent = '7D Avg';
