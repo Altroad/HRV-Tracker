@@ -741,15 +741,18 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
 }
 
 function kcalHeatmapColor(kcal, ctl) {
+  // Hybrid: fixed lower anchors give stable colours before CTL is established;
+  // CTL-adaptive upper anchors scale to the user's actual training load.
+  // Math.min caps fixed anchors so they never exceed base and break sort order.
   const base = Math.max(400, ctl || 400);
   const anchors = [
-    [0,           [21,  101, 192]],  // dark blue  — rest/very low
-    [base * 0.3,  [30,  136, 229]],  // blue       — well below baseline
-    [base * 0.6,  [0,   188, 212]],  // cyan       — below baseline
-    [base * 0.85, [76,  175, 80]],   // green      — near baseline
-    [base,        [255, 193, 7]],    // amber      — at baseline
-    [base * 1.4,  [255, 87,  34]],   // orange     — 40% above
-    [base * 2.0,  [244, 67,  54]]    // red        — double baseline
+    [0,                             [21,  101, 192]],  // dark blue — rest
+    [Math.min(300,  base * 0.6),    [30,  136, 229]],  // blue      — light
+    [Math.min(600,  base * 0.85),   [0,   188, 212]],  // cyan      — below baseline
+    [base,                          [76,  175, 80]],   // green     — at CTL (normal)
+    [base * 1.35,                   [255, 193, 7]],    // amber     — 35% above
+    [base * 1.7,                    [255, 87,  34]],   // orange    — 70% above
+    [base * 2.2,                    [244, 67,  54]]    // red       — 2.2× baseline
   ];
   const v = Math.max(0, Math.min(base * 2, kcal));
   let lo = anchors[0], hi = anchors[anchors.length - 1];
