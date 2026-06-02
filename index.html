@@ -3210,6 +3210,7 @@ function showMenuModal() {
     <div class="modal-title">Tools</div>
     <button class="modal-btn" id="menuOvernight" style="text-align:left;">Overnight Capture</button>
     <button class="modal-btn" id="menuLog"    style="text-align:left;">Log Reading</button>
+    <button class="modal-btn" id="menuKcal"   style="text-align:left;">Log Kcal</button>
     <button class="modal-btn" id="menuCalc"   style="text-align:left;">Manual Sync</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
@@ -3219,6 +3220,7 @@ function showMenuModal() {
   `);
   overlay.querySelector('#menuOvernight').addEventListener('click', () => { overlay.remove(); showSlowWaveModal(); });
   overlay.querySelector('#menuLog').addEventListener('click',    () => { overlay.remove(); showLogModal(); });
+  overlay.querySelector('#menuKcal').addEventListener('click',   () => { overlay.remove(); showKcalLogModal(); });
   overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
   overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportCSVModal(); });
@@ -3267,6 +3269,42 @@ function showLogModal() {
     }
   });
   setTimeout(() => overlay.querySelector('#logHRV').focus(), 50);
+}
+
+function showKcalLogModal() {
+  const today = new Date().toISOString().slice(0, 10);
+  const getExisting = () => workoutData[overlay.querySelector('#kcalDate').value];
+  const overlay = openModal(`
+    <div class="modal-title">Log Kcal</div>
+    <div class="modal-desc" style="margin-bottom:12px;">Enter active energy for the workout date. It shows as yesterday's load on the following day's card.</div>
+    <div class="input-row" style="gap:8px;">
+      <input type="date" id="kcalDate" value="${today}" style="flex:2;min-width:0;">
+      <input type="number" id="kcalValue" placeholder="kcal" min="0" max="15000" style="flex:1;min-width:0;text-align:center;padding:0 6px;" value="${workoutData[today] || ''}">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-save>SAVE</button>
+    </div>
+  `);
+  overlay.querySelector('#kcalDate').addEventListener('change', e => {
+    const ex = workoutData[e.target.value];
+    overlay.querySelector('#kcalValue').value = ex !== undefined ? ex : '';
+  });
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-save]').addEventListener('click', () => {
+    const date = overlay.querySelector('#kcalDate').value;
+    const val  = parseInt(overlay.querySelector('#kcalValue').value, 10);
+    if (!date) { showToast('Select a date'); return; }
+    if (isNaN(val) || val < 0) { showToast('Enter a valid kcal value'); return; }
+    workoutData[date] = val;
+    saveWorkout();
+    overlay.remove();
+    render();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveToGitHub(), 800);
+    showToast(`Logged ${val.toLocaleString()} kcal · ${date}`);
+  });
+  setTimeout(() => overlay.querySelector('#kcalValue').focus(), 50);
 }
 
 function showTempBaselineModal() {
