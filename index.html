@@ -122,8 +122,7 @@
   /* History */
   .history-row { position:relative; overflow:hidden; border-bottom:1px solid var(--border); }
   .history-row:last-child { border-bottom:none; }
-  .row-content { display:flex; align-items:center; padding:10px 0; gap:10px; background:var(--surface); position:relative; z-index:1; will-change:transform; transition:transform 0.25s ease; }
-  .row-delete-bg { position:absolute; right:0; top:0; bottom:0; width:72px; background:var(--red); display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-family:var(--font-mono); letter-spacing:1px; cursor:pointer; user-select:none; opacity:0; }
+  .row-content { display:flex; align-items:center; padding:10px 0; gap:10px; background:var(--surface); position:relative; z-index:1; }
   .history-date { font-size:11px; color:var(--muted); font-family:var(--font-mono); flex:1; display:flex; flex-direction:column; gap:3px; }
   .history-date-line { white-space:nowrap; }
   .history-metrics { display:flex; gap:6px; align-items:flex-end; flex-shrink:0; }
@@ -132,14 +131,11 @@
   .history-metric-hrv { width:30px; }
   .history-metric-rhr { width:36px; }
   .history-metric-temp { width:46px; }
-  .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; cursor:pointer; }
-  .history-rhr { font-family:var(--font-display); font-size:17px; cursor:pointer; }
-  .history-temp { font-family:var(--font-display); font-size:17px; cursor:pointer; }
+  .history-hrv { font-family:var(--font-display); font-size:17px; letter-spacing:1px; }
+  .history-rhr { font-family:var(--font-display); font-size:17px; }
+  .history-temp { font-family:var(--font-display); font-size:17px; }
   .history-col-header { display:flex; align-items:center; padding:5px 0 4px; border-bottom:1px solid var(--border); margin-bottom:2px; }
   .history-col-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-align:center; }
-  .history-rhr.confirming, .history-hrv.confirming, .history-temp.confirming { font-family:var(--font-mono); font-size:10px !important; color:var(--red) !important; letter-spacing:0; border:1px solid rgba(244,67,54,0.4); border-radius:3px; padding:1px 4px; }
-  .delete-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 4px; opacity:0.5; }
-  .delete-btn.confirming { color:var(--red); opacity:1; font-size:10px; font-family:monospace; letter-spacing:1px; border:1px solid rgba(244,67,54,0.4); border-radius:4px; padding:3px 7px; }
   .empty-state { text-align:center; padding:30px; color:var(--muted); font-size:13px; font-family:var(--font-mono); }
   .month-divider { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); font-family:var(--font-mono); padding:14px 0 6px; margin-top:4px; }
   .week-header { display:flex; align-items:center; padding:9px 0; cursor:pointer; border-bottom:1px solid var(--border); -webkit-user-select:none; user-select:none; }
@@ -1138,7 +1134,6 @@ function renderHistoryList() {
         const rhrOTempDelta = (rhrOTempVal !== undefined && rhrOEb !== null) ? (rhrOTempVal - rhrOEb) : null;
         const rhrOTempDStr = rhrOTempDelta !== null ? ((rhrOTempDelta >= 0 ? '+' : '') + rhrOTempDelta.toFixed(2) + '°') : '';
         html += `<div class="history-row" id="rhr-row-${r.date}">
-          <div class="row-delete-bg" data-delete-rhr="${r.date}">DELETE</div>
           <div class="row-content">
             <div class="history-date">
               <span class="history-date-line">${DAY_NAMES[d.getDay()]} ${fmtDate(d)}</span>
@@ -1151,7 +1146,7 @@ function renderHistoryList() {
               </div>
               <div class="history-metric history-metric-rhr">
                 <div class="history-metric-delta" style="color:${rhrZoneColor(r.rhr)}">${rhrDStr}</div>
-                <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}" data-date="${r.date}">${r.rhr}</span>
+                <span class="history-rhr" style="color:${rhrZoneColor(r.rhr)}">${r.rhr}</span>
               </div>
               <div class="history-metric history-metric-temp">
                 <div class="history-metric-delta" style="color:${rhrOTempVal !== undefined ? tempZoneColor(rhrOTempVal) : ''}">${rhrOTempDStr}</div>
@@ -1188,7 +1183,6 @@ function renderHistoryList() {
         <textarea class="note-input" rows="2" placeholder="Add a note…" onblur="saveNote('${r.id}',this.value)">${r.note || ''}</textarea>
       </div>`;
       html += `<div class="history-row" id="row-${r.id}">
-        <div class="row-delete-bg" data-delete-id="${r.id}">DELETE</div>
         <div class="row-content">
           <div class="history-date">
             <span class="history-date-line">${DAY_NAMES[new Date(r.date+'T12:00:00').getDay()]} ${fmtDate(new Date(r.date))}</span>
@@ -1197,15 +1191,15 @@ function renderHistoryList() {
           <div class="history-metrics">
             <div class="history-metric history-metric-hrv">
               <div class="history-metric-delta" style="color:${dColor}">${dStr}</div>
-              <span class="history-hrv" style="color:${color}" data-id="${r.id}">${Math.round(r.hrv)}</span>
+              <span class="history-hrv" style="color:${color}">${Math.round(r.hrv)}</span>
             </div>
             <div class="history-metric history-metric-rhr">
               <div class="history-metric-delta" style="color:${rhrVal !== undefined ? rhrZoneColor(rhrVal) : ''}">${rhrDStr}</div>
-              ${rhrVal !== undefined ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}" data-date="${r.date}">${rhrVal}</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+              ${rhrVal !== undefined ? `<span class="history-rhr" style="color:${rhrZoneColor(rhrVal)}">${rhrVal}</span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
             </div>
             <div class="history-metric history-metric-temp">
               <div class="history-metric-delta" style="color:${tempVal !== undefined ? tempZoneColor(tempVal) : ''}">${tempDStr}</div>
-              ${tempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}" data-date="${r.date}">${Math.floor(tempVal)}<span style="font-size:12px">.${tempVal.toFixed(2).split('.')[1]}°</span></span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
+              ${tempVal !== undefined ? `<span class="history-temp" style="color:${tempZoneColor(tempVal)}">${Math.floor(tempVal)}<span style="font-size:12px">.${tempVal.toFixed(2).split('.')[1]}°</span></span>` : `<span style="font-family:var(--font-display);font-size:17px;line-height:1;">&nbsp;</span>`}
             </div>
           </div>
           ${noteIcon}
@@ -1352,10 +1346,12 @@ function buildJournalCards(filter, search, sort, sortDir) {
       </div>`;
     }
 
+    const delAttr = r ? `data-jnl-del-id="${r.id}"` : `data-jnl-del-date="${date}"`;
     cards += `<div class="jnl-card">
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
         ${tagHtml}
+        <button style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;opacity:0.4;flex-shrink:0;line-height:1;" ${delAttr} title="Delete entry">✕</button>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
       <textarea class="note-input jnl-note" rows="2" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
@@ -1477,6 +1473,26 @@ function showJournalModal() {
   `;
   const closeJnl = () => { document.body.style.overflow = ''; overlay.remove(); };
   overlay.querySelector('.jnl-close').addEventListener('click', closeJnl);
+  overlay.querySelector('.jnl-body').addEventListener('click', e => {
+    const delBtn = e.target.closest('[data-jnl-del-id],[data-jnl-del-date]');
+    if (!delBtn) return;
+    const readingId = delBtn.dataset.jnlDelId;
+    const rhrDate   = delBtn.dataset.jnlDelDate;
+    const confirm = openModal(`
+      <div class="modal-title">Delete this entry?</div>
+      <div class="modal-desc">Removes all data for this date — HRV, RHR, and Temp. This cannot be undone.</div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" data-cancel>CANCEL</button>
+        <button class="modal-btn" style="background:var(--red);border-color:var(--red);" data-confirm>DELETE</button>
+      </div>
+    `);
+    confirm.querySelector('[data-cancel]').addEventListener('click', () => confirm.remove());
+    confirm.querySelector('[data-confirm]').addEventListener('click', () => {
+      confirm.remove();
+      if (readingId) deleteReading(readingId); else deleteRHREntry(rhrDate);
+      refreshJournalModal();
+    });
+  });
   document.body.style.overflow = 'hidden';
   document.body.appendChild(overlay);
 }
@@ -1967,73 +1983,6 @@ function deleteRHREntry(date) {
   showToast('RHR entry removed');
 }
 
-function clearNumConfirming() {
-  document.querySelectorAll('.history-rhr.confirming, .history-hrv.confirming, .history-temp.confirming').forEach(el => {
-    el.classList.remove('confirming');
-    if (el.dataset.orig) el.innerHTML = el.dataset.orig;
-  });
-}
-function armConfirm(el) {
-  clearNumConfirming();
-  el.dataset.orig = el.innerHTML;
-  el.classList.add('confirming');
-  el.textContent = 'DEL?';
-  setTimeout(() => {
-    if (el.isConnected && el.classList.contains('confirming')) {
-      el.classList.remove('confirming');
-      el.innerHTML = el.dataset.orig;
-    }
-  }, 3000);
-}
-function deleteHRVOnly(id) {
-  readings = readings.filter(r => String(r.id) !== String(id));
-  save();
-  render();
-  showToast('HRV removed');
-}
-function deleteRHROnly(date) {
-  delete rhrData[date];
-  saveRHR();
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveToGitHub(), 800);
-  render();
-  showToast('RHR removed');
-}
-function deleteTempOnly(date) {
-  delete tempData[date];
-  saveTemp();
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveToGitHub(), 800);
-  render();
-  showToast('Temp removed');
-}
-function handleHRVTap(el) {
-  if (el.classList.contains('confirming')) { deleteHRVOnly(el.dataset.id); return; }
-  armConfirm(el);
-}
-function handleRHRTap(el) {
-  if (el.classList.contains('confirming')) { deleteRHROnly(el.dataset.date); return; }
-  armConfirm(el);
-}
-function handleTempTap(el) {
-  if (el.classList.contains('confirming')) { deleteTempOnly(el.dataset.date); return; }
-  armConfirm(el);
-}
-
-function handleDeleteClick(btn) {
-  if (btn.classList.contains('confirming')) {
-    btn.dataset.rhrDate ? deleteRHREntry(btn.dataset.rhrDate) : deleteReading(btn.dataset.id);
-    return;
-  }
-  btn.classList.add('confirming');
-  btn.textContent = 'CONFIRM';
-  setTimeout(() => {
-    if (btn.isConnected && btn.classList.contains('confirming')) {
-      btn.classList.remove('confirming');
-      btn.textContent = '✕';
-    }
-  }, 3000);
-}
 
 // ---------- Modals ----------
 function openModal(innerHTML) {
@@ -3745,39 +3694,6 @@ async function init() {
   loadWorkout();
   loadQuickAdd();
   $('quickAddBtn').addEventListener('click', showQuickAddSheet);
-  $('historyList').addEventListener('click', e => {
-    const deleteBg = e.target.closest('.row-delete-bg');
-    if (deleteBg) {
-      const row = deleteBg.closest('.history-row');
-      const content = row.querySelector('.row-content');
-      const rhrDate = deleteBg.dataset.deleteRhr;
-      const readingId = deleteBg.dataset.deleteId;
-      const overlay = openModal(`
-        <div class="modal-title">Delete this reading?</div>
-        <div class="modal-desc">This cannot be undone.</div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" data-cancel>CANCEL</button>
-          <button class="modal-btn" style="background:var(--red);border-color:var(--red);" data-confirm>DELETE</button>
-        </div>
-      `);
-      overlay.querySelector('[data-cancel]').addEventListener('click', () => {
-        overlay.remove();
-        if (content) { content.style.transition = ''; content.style.transform = ''; }
-      });
-      overlay.querySelector('[data-confirm]').addEventListener('click', () => {
-        overlay.remove();
-        if (rhrDate) deleteRHREntry(rhrDate); else deleteReading(readingId);
-      });
-      return;
-    }
-    const hrv = e.target.closest('.history-hrv');
-    if (hrv) { handleHRVTap(hrv); return; }
-    const rhr = e.target.closest('.history-rhr');
-    if (rhr) { handleRHRTap(rhr); return; }
-    const temp = e.target.closest('.history-temp');
-    if (temp) { handleTempTap(temp); return; }
-  });
-  setupSwipeToDelete();
   const _now = new Date();
   const _localToday = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
   $('inputDate').value = sessionStorage.getItem(DATE_KEY) || _localToday;
@@ -3859,65 +3775,6 @@ async function runAutoImportText(text) {
   }, 200);
 }
 
-function setupSwipeToDelete() {
-  const list = $('historyList');
-  let startX, startY, el, elBg, startOffset, isHoriz;
-
-  function closeAllRows(except) {
-    list.querySelectorAll('.row-content').forEach(c => {
-      if (c !== except && c.style.transform) {
-        c.style.transition = ''; c.style.transform = '';
-        const bg = c.parentElement.querySelector('.row-delete-bg');
-        if (bg) bg.style.opacity = '';
-      }
-    });
-  }
-
-  list.addEventListener('touchstart', e => {
-    const row = e.target.closest('.history-row');
-    el = row ? row.querySelector('.row-content') : null;
-    if (!el) return;
-    elBg = row.querySelector('.row-delete-bg');
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    startOffset = parseFloat(el.style.transform.match(/-?\d+/)?.[0] || 0);
-    isHoriz = null;
-  }, { passive: true });
-
-  list.addEventListener('touchmove', e => {
-    if (!el) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if (isHoriz === null) {
-      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-      isHoriz = Math.abs(dx) > Math.abs(dy);
-      if (isHoriz && elBg) elBg.style.opacity = '1';
-    }
-    if (!isHoriz) { el = null; return; }
-    e.preventDefault();
-    const offset = Math.max(-72, Math.min(0, startOffset + dx));
-    el.style.transition = 'none';
-    el.style.transform = offset < 0 ? `translateX(${offset}px)` : '';
-  }, { passive: false });
-
-  list.addEventListener('touchend', () => {
-    if (!el) return;
-    const offset = parseFloat(el.style.transform.match(/-?\d+/)?.[0] || 0);
-    el.style.transition = '';
-    if (offset < -36) {
-      el.style.transform = 'translateX(-72px)';
-      closeAllRows(el);
-    } else {
-      el.style.transform = '';
-      if (elBg) elBg.style.opacity = '';
-    }
-    el = null;
-  }, { passive: true });
-
-  document.addEventListener('touchstart', e => {
-    if (!e.target.closest('#historyList')) closeAllRows(null);
-  }, { passive: true });
-}
 
 async function autoImport() {
   let text;
