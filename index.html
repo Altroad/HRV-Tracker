@@ -172,7 +172,7 @@
   .note-btn.has-note { opacity:1; }
   .note-row { padding:4px 0 8px 0; display:none; }
   .note-row.open { display:block; }
-  .note-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; padding:8px 10px; resize:none; outline:none; }
+  .note-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; padding:6px 8px; resize:none; outline:none; }
   .note-input:focus { border-color:var(--muted); }
   .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:6px; min-width:180px; }
   .tag-picker-item { font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:6px; cursor:pointer; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
@@ -186,17 +186,17 @@
   .jnl-title { font-family:var(--font-mono); font-size:11px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
   .jnl-entry-count { font-family:var(--font-mono); font-size:10px; color:var(--muted); }
   .jnl-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px 8px; line-height:1; }
-  .jnl-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:12px 16px; display:flex; flex-direction:column; gap:12px; min-height:0; touch-action:pan-y; }
-  .jnl-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
-  .jnl-card-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .jnl-date { font-family:var(--font-mono); font-size:11px; color:var(--text); letter-spacing:1px; flex:1; min-width:0; }
+  .jnl-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:8px 12px; display:flex; flex-direction:column; gap:6px; min-height:0; touch-action:pan-y; }
+  .jnl-card { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 10px 8px; display:flex; flex-direction:column; gap:6px; }
+  .jnl-card-top { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .jnl-date { font-family:var(--font-mono); font-size:10px; color:var(--text); letter-spacing:1px; flex:1; min-width:0; }
   .jnl-metrics { display:flex; gap:0; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  .jnl-metric { flex:1; display:flex; flex-direction:column; align-items:center; padding:8px 4px 10px; }
+  .jnl-metric { flex:1; display:flex; flex-direction:column; align-items:center; padding:5px 4px 5px; }
   .jnl-metric + .jnl-metric { border-left:1px solid var(--border); }
-  .jnl-metric-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
-  .jnl-metric-delta { font-family:var(--font-mono); font-size:9px; min-height:12px; line-height:1; margin-bottom:4px; }
-  .jnl-metric-value { font-family:var(--font-display); font-size:24px; line-height:1; }
-  .jnl-metric-nil { font-family:var(--font-mono); font-size:14px; color:var(--muted); line-height:1; }
+  .jnl-metric-label { font-family:var(--font-mono); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:2px; }
+  .jnl-metric-delta { font-family:var(--font-mono); font-size:9px; min-height:11px; line-height:1; margin-bottom:2px; }
+  .jnl-metric-value { font-family:var(--font-display); font-size:20px; line-height:1; }
+  .jnl-metric-nil { font-family:var(--font-mono); font-size:12px; color:var(--muted); line-height:1; }
   .jnl-note { user-select:text; -webkit-user-select:text; }
   .jnl-summary { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
   .jnl-summary-metric { flex:1; display:flex; flex-direction:column; align-items:center; padding:10px 4px; }
@@ -1127,7 +1127,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <button style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;opacity:0.4;flex-shrink:0;line-height:1;" ${delAttr} title="Delete entry">✕</button>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
-      <textarea class="note-input jnl-note" rows="2" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
+      <textarea class="note-input jnl-note" rows="1" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
     </div>`;
   });
 
