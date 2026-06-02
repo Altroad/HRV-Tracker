@@ -172,8 +172,8 @@
   .note-btn.has-note { opacity:1; }
   .note-row { padding:4px 0 8px 0; display:none; }
   .note-row.open { display:block; }
-  .note-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; padding:6px 8px; resize:none; outline:none; overflow:hidden; transition:border-color 0.15s; }
-  .note-input:focus { border-color:var(--muted); }
+  .note-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:6px 8px; resize:none; outline:none; overflow:hidden; height:31px; transition:height 0.15s ease, border-color 0.15s; }
+  .note-input:focus { height:72px; overflow-y:auto; border-color:var(--muted); }
   .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:6px; min-width:180px; }
   .tag-picker-item { font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:6px; cursor:pointer; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
   .tag-picker-item:active { opacity:0.7; }
@@ -1127,7 +1127,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <button style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;opacity:0.4;flex-shrink:0;line-height:1;" ${delAttr} title="Delete entry">✕</button>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
-      <textarea class="note-input jnl-note" rows="1" placeholder="Add a note…" onfocus="this.rows=3;this.style.overflow=''" onblur="this.rows=1;this.style.overflow='hidden';saveNote('${noteId}',this.value)">${noteVal}</textarea>
+      <textarea class="note-input jnl-note" rows="3" placeholder="Add a note…" onblur="saveNote('${noteId}',this.value)">${noteVal}</textarea>
     </div>`;
   });
 
