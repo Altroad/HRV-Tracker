@@ -741,15 +741,15 @@ function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDat
 }
 
 function kcalHeatmapColor(kcal, ctl) {
-  const base = Math.max(2000, ctl || 2000);
+  const base = Math.max(400, ctl || 400);
   const anchors = [
-    [0,        [21, 101, 192]],
-    [500,      [30, 136, 229]],
-    [1000,     [0,  188, 212]],
-    [1500,     [76, 175, 80]],
-    [base,     [255, 193, 7]],
-    [base*1.5, [255, 87, 34]],
-    [base*2.0, [244, 67, 54]]
+    [0,           [21,  101, 192]],  // dark blue  — rest/very low
+    [base * 0.3,  [30,  136, 229]],  // blue       — well below baseline
+    [base * 0.6,  [0,   188, 212]],  // cyan       — below baseline
+    [base * 0.85, [76,  175, 80]],   // green      — near baseline
+    [base,        [255, 193, 7]],    // amber      — at baseline
+    [base * 1.4,  [255, 87,  34]],   // orange     — 40% above
+    [base * 2.0,  [244, 67,  54]]    // red        — double baseline
   ];
   const v = Math.max(0, Math.min(base * 2, kcal));
   let lo = anchors[0], hi = anchors[anchors.length - 1];
