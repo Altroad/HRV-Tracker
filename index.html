@@ -3235,7 +3235,6 @@ function showLogModal() {
       <input type="date" id="logDate" value="${today}" style="flex:2;min-width:0;">
       <input type="number" id="logHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
       <input type="number" id="logRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
-      <input type="number" id="logTemp" placeholder="Temp" min="30" max="42" step="0.01" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
       <input type="number" id="logKcal" placeholder="Kcal" min="0" max="15000" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
     </div>
     <div class="modal-actions">
@@ -3248,14 +3247,11 @@ function showLogModal() {
     const date  = overlay.querySelector('#logDate').value;
     const hrv   = overlay.querySelector('#logHRV').value;
     const rhr   = overlay.querySelector('#logRHR').value;
-    const temp  = parseFloat(overlay.querySelector('#logTemp').value);
     const kcal  = parseInt(overlay.querySelector('#logKcal').value, 10);
-    const hasTemp = !isNaN(temp) && temp > 30 && temp < 42 && date;
     const hasKcal = !isNaN(kcal) && kcal > 0;
     const hasHRVorRHR = hrv || rhr;
     if (!date) { showToast('Select a date'); return; }
-    if (!hasHRVorRHR && !hasTemp && !hasKcal) { showToast('Enter at least one value'); return; }
-    if (hasTemp) { tempData[date] = temp; saveTemp(); }
+    if (!hasHRVorRHR && !hasKcal) { showToast('Enter at least one value'); return; }
     if (hasKcal) { workoutData[date] = kcal; saveWorkout(); }
     overlay.remove();
     if (hasHRVorRHR) {
@@ -3267,7 +3263,7 @@ function showLogModal() {
       render();
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => saveToGitHub(), 800);
-      showToast(`Logged${hasTemp ? ` Temp ${temp.toFixed(2)}°` : ''}${hasKcal ? ` ${kcal.toLocaleString()} kcal` : ''}`);
+      showToast(`Logged ${kcal.toLocaleString()} kcal · ${date}`);
     }
   });
   setTimeout(() => overlay.querySelector('#logHRV').focus(), 50);
