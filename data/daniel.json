@@ -230,6 +230,11 @@
       "id": 175,
       "date": "2026-06-03",
       "hrv": 72
+    },
+    {
+      "id": 176,
+      "date": "2026-06-04",
+      "hrv": 91
     }
   ],
   "rhr": {
@@ -256,7 +261,8 @@
     "2026-05-31": 39,
     "2026-06-01": 37,
     "2026-06-02": 39,
-    "2026-06-03": 38
+    "2026-06-03": 38,
+    "2026-06-04": 39
   },
   "rhrNotes": {},
   "temp": {
@@ -278,7 +284,8 @@
     "2026-05-31": 36.4990119934082,
     "2026-06-01": 36.02615737915039,
     "2026-06-02": 36.456016540527344,
-    "2026-06-03": 36.223514556884766
+    "2026-06-03": 36.223514556884766,
+    "2026-06-04": 36.35828399658203
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -319,28 +326,34 @@
         "name": "Activity",
         "kcal": 1502
       }
+    ],
+    "2026-06-03": [
+      {
+        "name": "Activity",
+        "kcal": 3441
+      }
     ]
   },
   "lastResult": {
-    "savedAt": "2026-06-03",
-    "hrv": "72",
-    "hrvColor": "rgb(255, 152, 0)",
+    "savedAt": "2026-06-04",
+    "hrv": "91",
+    "hrvColor": "rgb(0, 229, 255)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "readings": "<div class=\"calc-chip deep\">22:23 · <strong>56</strong></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:38</span><span class=\"calc-cell-v\">79</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">23:53</span><span class=\"calc-cell-v\">51</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:08</span><span class=\"calc-cell-v\">92</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:23</span><span class=\"calc-cell-v\">111</span></div></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:54</span><span class=\"calc-cell-v\">52</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:08</span><span class=\"calc-cell-v\">80</span></div></div>",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:6\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:23</span><span class=\"calc-cell-v\">70</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:38</span><span class=\"calc-cell-v\">58</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">23:53</span><span class=\"calc-cell-v\">139</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:08</span><span class=\"calc-cell-v\">84</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:23</span><span class=\"calc-cell-v\">137</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:39</span><span class=\"calc-cell-v\">108</span></div></div><div class=\"calc-chip deep dropped\">3:08 · <strong>52</strong></div>",
     "rhrVisible": true,
-    "rhr": "38",
+    "rhr": "39",
     "rhrColor": "rgb(76, 175, 80)",
-    "rhrWindow": "0:59–1:10",
+    "rhrWindow": "3:19–3:29",
     "rhrWindowVisible": true,
     "workoutVisible": true,
-    "workout": "1,502",
+    "workout": "3,441",
     "tempVisible": true,
-    "temp": "36.22",
+    "temp": "36.36",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "-0.03°",
+    "tempDelta": "+0.07°",
     "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "6h 41m asleep · Deep 29m · REM 1h 19m · Core 4h 53m"
+    "sleep": "7h 3m asleep · Deep 44m · REM 1h 31m · Core 4h 48m"
   }
 }
