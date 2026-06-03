@@ -926,8 +926,8 @@ function renderChart() {
   const dataMax = Math.max(...allDisplayVals);
   const maxDist = Math.max(BASELINE - dataMin, dataMax - BASELINE, 15);
   const halfSpan = Math.round((maxDist * 2) / 10) * 10;
-  CHART.minV = Math.max(0,  Math.round((BASELINE - halfSpan * 1.15) / 10) * 10);
-  CHART.maxV =              Math.round((BASELINE + halfSpan * 0.85) / 10) * 10;
+  CHART.minV = Math.max(0,  Math.round((BASELINE - halfSpan * 1.2) / 10) * 10);
+  CHART.maxV =              Math.round((BASELINE + halfSpan * 0.8) / 10) * 10;
   drawYAxis();
 
   if (mainChart) { mainChart.destroy(); mainChart = null; }
