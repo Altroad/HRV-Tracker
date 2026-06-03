@@ -914,7 +914,8 @@ function renderChart() {
   const allDisplayVals = [...values, ...rollingAvg.filter(v => v !== null)];
   const dataMin = Math.min(...allDisplayVals);
   const dataMax = Math.max(...allDisplayVals);
-  const halfSpan = Math.max(BASELINE - dataMin, dataMax - BASELINE, 15) + 10;
+  const maxDist = Math.max(BASELINE - dataMin, dataMax - BASELINE, 15);
+  const halfSpan = Math.round((maxDist * 2) / 10) * 10;
   CHART.minV = Math.max(0,  Math.round((BASELINE - halfSpan) / 10) * 10);
   CHART.maxV =              Math.round((BASELINE + halfSpan) / 10) * 10;
   drawYAxis();
