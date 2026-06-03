@@ -404,12 +404,12 @@ const GH_OWNER = 'Altroad';
 const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
-const RHR_KEY       = 'hrv_rhr_v1';
-const RHR_NOTES_KEY = 'hrv_rhr_notes_v1';
-const TEMP_KEY               = 'hrv_wrist_temp_v1';
-const TEMP_BASELINE_KEY      = 'hrv_temp_baseline_v1';
-const TEMP_BASELINE_DATE_KEY = 'hrv_temp_baseline_date_v1';
-const WORKOUT_KEY            = 'hrv_workout_v1';
+const getRhrKey          = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_${u}_v1`                  : 'hrv_rhr_v1'; };
+const getRhrNotesKey     = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_notes_${u}_v1`            : 'hrv_rhr_notes_v1'; };
+const getTempKey         = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_wrist_temp_${u}_v1`           : 'hrv_wrist_temp_v1'; };
+const getTempBaselineKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_temp_baseline_${u}_v1`        : 'hrv_temp_baseline_v1'; };
+const getTempBaselineDateKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_temp_baseline_date_${u}_v1` : 'hrv_temp_baseline_date_v1'; };
+const getWorkoutKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_workout_${u}_v1`              : 'hrv_workout_v1'; };
 const LAST_RESULT_KEY        = 'hrv_last_result_v1';
 const getLastResultKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_last_result_${u}_v1` : LAST_RESULT_KEY; };
 const QUICK_ADD_KEY          = 'hrv_quickadd_v1';
@@ -467,12 +467,12 @@ const kcalZoneColor = kcal => { const kb = kcalBaseline || 1; return kcal >= kb*
 const rhrLineColor = rhr => { if (rhr === null) return 'transparent'; return rhr <= rhrBaseline+1 ? 'rgba(76,175,80,0.65)' : rhr <= rhrBaseline+4 ? 'rgba(255,171,0,0.65)' : rhr <= rhrBaseline+7 ? 'rgba(255,109,0,0.65)' : 'rgba(244,67,54,0.65)'; };
 
 function loadRHR() {
-  try { const raw = localStorage.getItem(RHR_KEY); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
-  try { const raw = localStorage.getItem(RHR_NOTES_KEY); if (raw) rhrNotes = JSON.parse(raw); } catch { rhrNotes = {}; }
+  try { const raw = localStorage.getItem(getRhrKey()); if (raw) rhrData = JSON.parse(raw); } catch { rhrData = {}; }
+  try { const raw = localStorage.getItem(getRhrNotesKey()); if (raw) rhrNotes = JSON.parse(raw); } catch { rhrNotes = {}; }
 }
 function saveRHR() {
-  try { localStorage.setItem(RHR_KEY, JSON.stringify(rhrData)); } catch {}
-  try { localStorage.setItem(RHR_NOTES_KEY, JSON.stringify(rhrNotes)); } catch {}
+  try { localStorage.setItem(getRhrKey(), JSON.stringify(rhrData)); } catch {}
+  try { localStorage.setItem(getRhrNotesKey(), JSON.stringify(rhrNotes)); } catch {}
 }
 function getRollingMedianBaseline() {
   const vals = Object.entries(tempData)
@@ -494,20 +494,20 @@ const tempZoneColor = temp => {
   return dev > 0.5 ? '#f44336' : dev < -0.5 ? '#64b5f6' : '#e67c8a';
 };
 function loadTemp() {
-  try { const raw = localStorage.getItem(TEMP_KEY); if (raw) tempData = JSON.parse(raw); } catch { tempData = {}; }
-  try { const raw = localStorage.getItem(TEMP_BASELINE_KEY); if (raw !== null) tempBaseline = parseFloat(raw) || null; } catch {}
-  try { const raw = localStorage.getItem(TEMP_BASELINE_DATE_KEY); if (raw) tempBaselineSetDate = raw; } catch {}
+  try { const raw = localStorage.getItem(getTempKey()); if (raw) tempData = JSON.parse(raw); } catch { tempData = {}; }
+  try { const raw = localStorage.getItem(getTempBaselineKey()); if (raw !== null) tempBaseline = parseFloat(raw) || null; } catch {}
+  try { const raw = localStorage.getItem(getTempBaselineDateKey()); if (raw) tempBaselineSetDate = raw; } catch {}
 }
 function saveTemp() {
-  try { localStorage.setItem(TEMP_KEY, JSON.stringify(tempData)); } catch {}
-  if (tempBaseline !== null) try { localStorage.setItem(TEMP_BASELINE_KEY, String(tempBaseline)); } catch {}
-  if (tempBaselineSetDate) try { localStorage.setItem(TEMP_BASELINE_DATE_KEY, tempBaselineSetDate); } catch {}
+  try { localStorage.setItem(getTempKey(), JSON.stringify(tempData)); } catch {}
+  if (tempBaseline !== null) try { localStorage.setItem(getTempBaselineKey(), String(tempBaseline)); } catch {}
+  if (tempBaselineSetDate) try { localStorage.setItem(getTempBaselineDateKey(), tempBaselineSetDate); } catch {}
 }
 function loadWorkout() {
-  try { const raw = localStorage.getItem(WORKOUT_KEY); if (raw) workoutData = JSON.parse(raw); } catch { workoutData = {}; }
+  try { const raw = localStorage.getItem(getWorkoutKey()); if (raw) workoutData = JSON.parse(raw); } catch { workoutData = {}; }
 }
 function saveWorkout() {
-  try { localStorage.setItem(WORKOUT_KEY, JSON.stringify(workoutData)); } catch {}
+  try { localStorage.setItem(getWorkoutKey(), JSON.stringify(workoutData)); } catch {}
 }
 
 // Each workoutData[date] is either a number (legacy/imported) or [{name, kcal}, ...]
@@ -3063,6 +3063,8 @@ function showSyncModal() {
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
     readings = [];
+    rhrData = {}; rhrNotes = {}; tempData = {}; workoutData = {};
+    tempBaseline = null; tempBaselineSetDate = null;
     $('calcResult').classList.remove('show');
     overlay.remove();
     updateSyncStatus();
