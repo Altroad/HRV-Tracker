@@ -413,7 +413,7 @@ const WORKOUT_KEY            = 'hrv_workout_v1';
 const LAST_RESULT_KEY        = 'hrv_last_result_v1';
 const getLastResultKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_last_result_${u}_v1` : LAST_RESULT_KEY; };
 const QUICK_ADD_KEY          = 'hrv_quickadd_v1';
-const RHR_SCALE_MIN = 20, RHR_SCALE_MAX = 130;
+const RHR_SCALE_MIN = 25, RHR_SCALE_MAX = 100;
 
 // ---------- Tags ----------
 const TAGS = [
