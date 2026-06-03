@@ -447,6 +447,7 @@ let _tempMetrics = null;
 let _kcalMetrics = null;
 let kcalBaseline = 0;
 let rhrBaseline = 40;
+let dynRhrMin = 30, dynRhrMax = 90, dynRhrCeil = 90;
 let rhrData = {};
 let rhrNotes = {};
 let tempData = {};
@@ -650,8 +651,8 @@ function drawRHRAxis() {
   const padTop = 10, padBottom = 32, dH = CHART.height - padTop - padBottom;
   ctx.font = '9px monospace';
   ctx.textAlign = 'left';
-  for (let v = RHR_SCALE_MIN; v <= RHR_SCALE_MAX; v += 10) {
-    const y = padTop + dH * (1 - (v - RHR_SCALE_MIN) / (RHR_SCALE_MAX - RHR_SCALE_MIN));
+  for (let v = dynRhrMin; v <= dynRhrCeil; v += 10) {
+    const y = padTop + dH * (1 - (v - dynRhrMin) / (dynRhrMax - dynRhrMin));
     ctx.fillStyle = rhrZoneColor(v);
     ctx.fillText(v, 3, y + 3);
     ctx.strokeStyle = 'rgba(30,42,51,0.8)';
@@ -901,6 +902,15 @@ function renderChart() {
   chartValues = values;
   const rhrValues = sortedDates.map(d => rhrData[d] !== undefined ? rhrData[d] : null);
   const hasRHR = rhrValues.some(v => v !== null);
+  if (hasRHR) {
+    const rf = rhrValues.filter(v => v !== null);
+    const lo = Math.min(...rf), hi = Math.max(...rf);
+    const span = Math.max(hi - lo, 10);
+    dynRhrMin  = Math.max(20, Math.floor((lo - span * 0.5) / 5) * 5);
+    dynRhrCeil = Math.ceil((hi + span * 0.5) / 5) * 5;
+    // Extend max so the data ceiling sits at ~35% from bottom, below HRV's lower bound
+    dynRhrMax  = Math.ceil((dynRhrMin + (dynRhrCeil - dynRhrMin) / 0.35) / 5) * 5;
+  }
   const popup = $('chartPopup'); if (popup) popup.style.display = 'none'; tappedIdx = null;
 
   // Show/hide RHR axis and legend
@@ -949,7 +959,7 @@ function renderChart() {
   };
   if (hasRHR) {
     datasets.push({ data: rhrValues, yAxisID: 'yRHR', borderWidth: 6, borderDash: [5,4], pointRadius: 0, fill: false, tension: 0.3, spanGaps: true, segment: { borderColor: ctx => rhrLineColor(rhrValues[ctx.p1DataIndex]) } });
-    chartScales.yRHR = { display: false, position: 'right', min: RHR_SCALE_MIN, max: RHR_SCALE_MAX };
+    chartScales.yRHR = { display: false, position: 'right', min: dynRhrMin, max: dynRhrMax };
   }
 
   mainChart = new Chart(canvas.getContext('2d'), {
