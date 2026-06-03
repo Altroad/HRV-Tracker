@@ -910,6 +910,15 @@ function renderChart() {
   const rhrLegendItem = $('rhrLegendItem');
   if (rhrLegendItem) rhrLegendItem.style.display = hasRHR ? '' : 'none';
 
+  // Dynamic Y-axis: centre on BASELINE with symmetric range covering all data
+  const allDisplayVals = [...values, ...rollingAvg.filter(v => v !== null)];
+  const dataMin = Math.min(...allDisplayVals);
+  const dataMax = Math.max(...allDisplayVals);
+  const halfSpan = Math.max(BASELINE - dataMin, dataMax - BASELINE, 15) + 10;
+  CHART.minV = Math.max(0,  Math.round((BASELINE - halfSpan) / 10) * 10);
+  CHART.maxV =              Math.round((BASELINE + halfSpan) / 10) * 10;
+  drawYAxis();
+
   if (mainChart) { mainChart.destroy(); mainChart = null; }
 
   const canvas = sizeChartCanvas(n);
