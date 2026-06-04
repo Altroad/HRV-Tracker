@@ -137,7 +137,7 @@
   .calc-chip.core  { background:rgba(0,229,255,0.08); border:1px solid var(--accent); color:var(--accent); }
   .calc-chip.deep.dropped { color:#ff5252; border:1px solid rgba(255,82,82,0.5); background:rgba(255,82,82,0.12); }
   .calc-chip.core.dropped { color:#ef9a9a; border:1px solid rgba(239,154,154,0.4); background:rgba(244,67,54,0.08); }
-  .calc-chip.mini { font-size:9px; padding:2px 8px; min-width:0; letter-spacing:1px; }
+  .calc-chip.mini { font-size:7px; padding:1px 6px; min-width:0; letter-spacing:1px; }
   .calc-group { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; width:calc(var(--ncells) * 52px); max-width:100%; border:1px solid rgba(160,180,192,0.2); border-radius:6px; overflow:hidden; }
   .calc-cell { display:flex; flex-direction:column; align-items:center; padding:4px 5px; }
   .calc-cell + .calc-cell { border-left:1px solid rgba(160,180,192,0.12); }
@@ -369,10 +369,12 @@
     <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;"></div>
     <div id="calcLabel" style="display:none;">trimmed mean · drop highest + lowest</div>
     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0 12px;">
-      <span class="calc-chip deep mini">DEEP</span>
-      <span class="calc-chip core mini">CORE</span>
       <span style="display:flex;gap:2px;">
-        <span class="calc-chip dropped mini">TRIM</span>
+        <span class="calc-chip deep mini">DEEP</span>
+        <span class="calc-chip deep dropped mini">TRIM</span>
+      </span>
+      <span style="display:flex;gap:2px;">
+        <span class="calc-chip core mini">CORE</span>
         <span class="calc-chip core dropped mini">TRIM</span>
       </span>
     </div>
