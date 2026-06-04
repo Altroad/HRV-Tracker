@@ -366,8 +366,8 @@
         <div class="calc-temp-delta" id="calcTempDelta" style="display:none;"></div>
       </div>
     </div>
-    <canvas id="sleepTimeline" style="display:none;border-radius:4px;margin-bottom:6px;"></canvas>
-    <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;"></div>
+    <canvas id="sleepTimeline" style="display:none;width:100%;border-radius:4px;margin:12px 0 8px;"></canvas>
+    <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;margin-bottom:4px;"></div>
     <div id="calcLabel" style="display:none;">trimmed mean · drop highest + lowest</div>
     <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0 12px;">
       <span style="display:flex;gap:2px;">
@@ -695,11 +695,12 @@ function renderSleepTimeline() {
   const { segs, winStart, winEnd } = lastSleepStages;
   const totalMs = winEnd - winStart;
   if (totalMs <= 0) { c.style.display = 'none'; return; }
+  c.style.display = 'block'; // must be visible before measuring
   const dpr = window.devicePixelRatio || 1;
-  const W = (c.parentElement?.clientWidth || 280);
+  const W = c.offsetWidth || 260;   // offsetWidth respects width:100% inside padded parent
   const H = 12;
   c.width = W * dpr; c.height = H * dpr;
-  c.style.width = W + 'px'; c.style.height = H + 'px'; c.style.display = 'block';
+  c.style.height = H + 'px';
   const ctx = c.getContext('2d');
   ctx.scale(dpr, dpr);
   const r = 4;
