@@ -368,7 +368,10 @@
     <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;"></div>
     <div class="calc-result-label" id="calcLabel">trimmed mean · drop highest + lowest</div>
     <div class="calc-readings" id="calcReadings"></div>
-    <button class="quick-add-btn" id="quickAddBtn" title="Quick Add kcal to previous day">+</button>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:6px 0 2px;">
+      <button class="quick-add-btn" id="quickAddBtn" style="margin:0;" title="Quick Add kcal to previous day">+</button>
+      <span id="calcTagBtn" class="tag-empty" style="display:none;" onclick="openCalcTagPicker(event)">TAG</span>
+    </div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
   </div>
 </div>
@@ -1378,6 +1381,36 @@ function applyTag(id, tag) {
   save();
   renderHistory();
   refreshJournalModal();
+  updateCalcTagBtn();
+}
+
+function updateCalcTagBtn() {
+  const btn = $('calcTagBtn');
+  if (!btn) return;
+  const raw = localStorage.getItem(getLastResultKey());
+  let savedAt;
+  try { savedAt = JSON.parse(raw).savedAt; } catch { btn.style.display = 'none'; return; }
+  if (!savedAt) { btn.style.display = 'none'; return; }
+  const r = readings.find(r => r.date === savedAt);
+  if (!r) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  btn.dataset.readingId = r.id;
+  if (r.tag) {
+    const color = TAG_MAP[r.tag];
+    btn.className = 'tag-chip';
+    btn.style.cssText = `border-color:${color};color:${color};`;
+    btn.textContent = r.tag.toUpperCase();
+  } else {
+    btn.className = 'tag-empty';
+    btn.style.cssText = '';
+    btn.textContent = 'TAG';
+  }
+}
+
+function openCalcTagPicker(e) {
+  const btn = $('calcTagBtn');
+  if (!btn || !btn.dataset.readingId) return;
+  openTagPicker(e, btn.dataset.readingId);
 }
 
 
@@ -3560,6 +3593,7 @@ function saveCalcResult() {
   };
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
   setResultDate(savedAt);
+  updateCalcTagBtn();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToGitHub(), 800);
 }
@@ -3591,6 +3625,7 @@ function restoreCalcResult() {
     $('calcAnotherBtn').style.display = 'none';
     setResultDate(s.savedAt || '');
     $('calcResult').classList.add('show');
+    updateCalcTagBtn();
   } catch(e) {}
 }
 
