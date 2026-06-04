@@ -1249,10 +1249,15 @@ function showJournalModal() {
   `;
   const closeJnl = () => { document.body.style.overflow = ''; overlay.remove(); };
   overlay.querySelector('.jnl-close').addEventListener('click', closeJnl);
-  // Swipe-to-delete
-  let swipeEl = null, swipeX0 = 0, swipeDx = 0;
+  // Swipe-to-delete: swipe left to reveal strip, tap strip to delete
+  const STRIP_W = 80;
+  let swipeEl = null, swipeX0 = 0, swipeDx = 0, openCard = null;
   const jnlBody = overlay.querySelector('.jnl-body');
+  const snapBack = card => { card.style.transition = 'transform 0.25s ease'; card.style.transform = ''; };
+
   jnlBody.addEventListener('touchstart', e => {
+    if (e.target.closest('.jnl-swipe-bg')) return; // let click handle strip tap
+    if (openCard) { snapBack(openCard); openCard = null; }
     const card = e.target.closest('.jnl-card');
     if (!card || e.target.closest('textarea,.tag-chip,.tag-empty,.note-preview')) return;
     swipeEl = card; swipeX0 = e.touches[0].clientX; swipeDx = 0;
@@ -1262,34 +1267,36 @@ function showJournalModal() {
     if (!swipeEl) return;
     swipeDx = e.touches[0].clientX - swipeX0;
     if (swipeDx > 0) { swipeDx = 0; return; }
-    swipeEl.style.transform = `translateX(${swipeDx}px)`;
+    swipeEl.style.transform = `translateX(${Math.max(swipeDx, -STRIP_W * 1.2)}px)`;
   }, { passive: true });
-  const snapBack = card => { card.style.transition = 'transform 0.25s ease'; card.style.transform = ''; };
   jnlBody.addEventListener('touchend', () => {
     if (!swipeEl) return;
     const card = swipeEl; swipeEl = null;
-    if (Math.abs(swipeDx) > card.offsetWidth * 0.35) {
-      snapBack(card);
-      const delId = card.dataset.swipeDelId, delDate = card.dataset.swipeDelDate;
-      const confirm = openModal(`
-        <div class="modal-title">Delete this entry?</div>
-        <div class="modal-desc">Removes all data for this date — HRV, RHR, and Temp. This cannot be undone.</div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" data-cancel>CANCEL</button>
-          <button class="modal-btn" style="background:var(--red);border-color:var(--red);" data-confirm>DELETE</button>
-        </div>
-      `);
-      confirm.querySelector('[data-cancel]').addEventListener('click', () => confirm.remove());
-      confirm.querySelector('[data-confirm]').addEventListener('click', () => {
-        confirm.remove();
-        if (delId) deleteReading(delId); else deleteRHREntry(delDate);
-        refreshJournalModal();
-      });
+    if (Math.abs(swipeDx) > STRIP_W * 0.4) {
+      card.style.transition = 'transform 0.25s ease';
+      card.style.transform = `translateX(-${STRIP_W}px)`;
+      openCard = card;
     } else { snapBack(card); }
   }, { passive: true });
   jnlBody.addEventListener('touchcancel', () => { if (swipeEl) { snapBack(swipeEl); swipeEl = null; } }, { passive: true });
 
   jnlBody.addEventListener('click', e => {
+    // Tap red strip → delete immediately
+    const bg = e.target.closest('.jnl-swipe-bg');
+    if (bg) {
+      const card = bg.nextElementSibling;
+      if (card && card === openCard) {
+        openCard = null;
+        card.style.transition = 'transform 0.2s ease';
+        card.style.transform = 'translateX(-100%)';
+        const delId = card.dataset.swipeDelId, delDate = card.dataset.swipeDelDate;
+        setTimeout(() => {
+          if (delId) deleteReading(delId); else deleteRHREntry(delDate);
+          refreshJournalModal();
+        }, 200);
+      }
+      return;
+    }
     // Individual metric delete
     const hrvEl  = e.target.closest('[data-jnl-hrv-id]');
     const rhrEl  = e.target.closest('[data-jnl-rhr-date]');
