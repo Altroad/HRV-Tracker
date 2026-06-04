@@ -161,7 +161,7 @@
 
   /* Tags */
   .tag-chip { display:inline-block; font-family:var(--font-mono); font-size:9px; letter-spacing:1px; padding:2px 7px; border-radius:10px; cursor:pointer; flex-shrink:0; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
-  .tag-empty { font-family:var(--font-mono); font-size:10px; color:var(--border); cursor:pointer; padding:2px 4px; flex-shrink:0; }
+  .tag-empty { font-family:var(--font-mono); font-size:15px; line-height:1; color:var(--muted); cursor:pointer; padding:0 4px; flex-shrink:0; }
   .tag-empty:hover, .tag-empty:active { color:var(--muted); }
   .note-btn { background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; flex-shrink:0; opacity:0.35; }
   .note-btn.has-note { opacity:1; }
@@ -1125,7 +1125,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
         ${tagHtml}
-        <button style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;opacity:0.4;flex-shrink:0;line-height:1;" ${delAttr} title="Delete entry">✕</button>
+        <button style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;opacity:0.6;flex-shrink:0;line-height:1;" ${delAttr} title="Delete entry">✕</button>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
