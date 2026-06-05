@@ -3830,6 +3830,7 @@ async function runAutoImportText(text) {
   }
 
   addEntry();
+  updateCalcTagBtn();
   clearTimeout(saveTimer);
   saveToGitHub();
   const fab = $('importFab');
