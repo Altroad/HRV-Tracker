@@ -182,7 +182,7 @@
   .jnl-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px 8px; line-height:1; }
   .jnl-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:8px 12px; display:flex; flex-direction:column; gap:6px; min-height:0; touch-action:pan-y; }
   .jnl-swipe-wrap { position:relative; overflow:hidden; border-radius:8px; flex-shrink:0; transform:translateZ(0); -webkit-transform:translateZ(0); }
-  .jnl-swipe-bg { position:absolute; right:0; top:0; bottom:0; width:80px; background:#f44336; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:9px; letter-spacing:1px; color:#fff; }
+  .jnl-swipe-bg { position:absolute; right:0; top:0; bottom:0; width:80px; background:#f44336; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:9px; letter-spacing:1px; color:#fff; opacity:0; }
   .jnl-card { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 10px 8px; display:flex; flex-direction:column; gap:6px; position:relative; will-change:transform; }
   .jnl-card-top { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .jnl-date { font-family:var(--font-mono); font-size:10px; color:var(--text); letter-spacing:1px; flex:1; min-width:0; }
@@ -1319,10 +1319,17 @@ function showJournalModal() {
   const STRIP_W = 80;
   let swipeEl = null, swipeX0 = 0, swipeDx = 0, openCard = null;
   const jnlBody = overlay.querySelector('.jnl-body');
-  const snapBack = card => { card.style.transition = 'transform 0.25s ease'; card.style.transform = ''; };
+  const getBg   = card => card.previousElementSibling;
+  const showBg  = card => { const b = getBg(card); if (b) b.style.opacity = '1'; };
+  const hideBg  = card => { const b = getBg(card); if (b) b.style.opacity = '0'; };
+  const snapBack = card => {
+    card.style.transition = 'transform 0.25s ease';
+    card.style.transform = '';
+    hideBg(card);
+  };
 
   jnlBody.addEventListener('touchstart', e => {
-    if (e.target.closest('.jnl-swipe-bg')) return; // let click handle strip tap
+    if (e.target.closest('.jnl-swipe-bg')) return;
     if (openCard) { snapBack(openCard); openCard = null; }
     const card = e.target.closest('.jnl-card');
     if (!card || e.target.closest('textarea,.tag-chip,.tag-empty,.note-preview')) return;
@@ -1333,6 +1340,7 @@ function showJournalModal() {
     if (!swipeEl) return;
     swipeDx = e.touches[0].clientX - swipeX0;
     if (swipeDx > 0) { swipeDx = 0; return; }
+    showBg(swipeEl);
     swipeEl.style.transform = `translateX(${Math.max(swipeDx, -STRIP_W * 1.2)}px)`;
   }, { passive: true });
   jnlBody.addEventListener('touchend', () => {
