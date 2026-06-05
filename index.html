@@ -126,7 +126,7 @@
   .calc-metric-label { font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
   .calc-result-value { font-family:var(--font-display); font-size:30px; letter-spacing:2px; text-align:center; line-height:1; }
   .calc-result-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); text-align:center; margin-top:10px; margin-bottom:12px; }
-  .calc-sleep-stats { font-family:var(--font-mono); font-size:11px; letter-spacing:0.5px; color:var(--muted); text-align:center; margin-top:10px; }
+  .calc-sleep-stats { font-family:var(--font-mono); font-size:10px; letter-spacing:0.5px; color:var(--muted); text-align:center; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); letter-spacing:2px; margin-top:4px; white-space:nowrap; }
   .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; justify-content:center; }
@@ -2467,17 +2467,17 @@ function runSlowWaveCalc(text, overlay) {
     ].filter(s => s.end > s.start);
     lastSleepStages = tlSegs.length ? { segs:tlSegs, winStart:Math.min(...tlSegs.map(s=>s.start)), winEnd:Math.max(...tlSegs.map(s=>s.end)) } : null;
     if (granularTotal > 0) {
-      const parts = [`${fmtMins(granularTotal)} asleep`];
+      const parts = [fmtMins(granularTotal)];
       if (deepM > 0) parts.push(`Deep ${fmtMins(deepM)}`);
-      if (remM  > 0) parts.push(`REM ${fmtMins(remM)}`);
       if (coreM > 0) parts.push(`Core ${fmtMins(coreM)}`);
+      if (remM  > 0) parts.push(`REM ${fmtMins(remM)}`);
       $('calcSleepDisplay').textContent = parts.join(' · ');
       $('calcSleepDisplay').style.display = '';
     } else {
       // Fallback: sum any 'Asleep' records from any source
       const asleepTotal = sumDur(sleepMetric.data.filter(s => s.value === 'Asleep'));
       if (asleepTotal > 0) {
-        $('calcSleepDisplay').textContent = `${fmtMins(asleepTotal)} asleep`;
+        $('calcSleepDisplay').textContent = fmtMins(asleepTotal);
         $('calcSleepDisplay').style.display = '';
       } else {
         $('calcSleepDisplay').style.display = 'none';
