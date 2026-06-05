@@ -3696,11 +3696,23 @@ function restoreCalcResult() {
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
     try {
       lastSleepNums = s.sleepNums ? JSON.parse(s.sleepNums) : null;
+      if (!lastSleepNums && s.sleep && !s.sleep.includes('<')) {
+        // Parse legacy plain-text: "5h 30m · Deep 1h 20m · Core 2h 0m · REM 2h 10m"
+        const parseM = str => { const hm = str.match(/(\d+)h\s*(\d+)m/); if (hm) return +hm[1]*60 + +hm[2]; const h = str.match(/(\d+)h/); if (h) return +h[1]*60; const m = str.match(/(\d+)m/); return m ? +m[1] : 0; };
+        let total=0, deep=0, core=0, rem=0;
+        s.sleep.split(/\s*·\s*/).forEach(p => {
+          p = p.replace(/\s*asleep/i,'').trim();
+          if (/^deep\s/i.test(p))      deep  = parseM(p);
+          else if (/^core\s/i.test(p)) core  = parseM(p);
+          else if (/^rem\s/i.test(p))  rem   = parseM(p);
+          else if (parseM(p) > 0)      total = parseM(p);
+        });
+        if (total > 0) lastSleepNums = { total, deep, core, rem };
+      }
       if (lastSleepNums) {
         $('calcSleepDisplay').innerHTML = buildSleepHtml(lastSleepNums.total, lastSleepNums.deep, lastSleepNums.core, lastSleepNums.rem);
       } else {
-        // Legacy plain-text fallback: strip labels and 'asleep'
-        $('calcSleepDisplay').innerHTML = (s.sleep || '').replace(/\b(Deep|Core|REM)\s*/gi, '').replace(/\s*asleep/gi, '');
+        $('calcSleepDisplay').innerHTML = '';
       }
     } catch { lastSleepNums = null; }
     $('calcSleepDisplay').style.display = s.sleepVisible ? '' : 'none';
