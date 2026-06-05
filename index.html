@@ -2466,18 +2466,20 @@ function runSlowWaveCalc(text, overlay) {
       ...remStages.map(s  => ({ type:'rem',  start:parseSleepTs(s.start).getTime(), end:parseSleepTs(s.end).getTime() })),
     ].filter(s => s.end > s.start);
     lastSleepStages = tlSegs.length ? { segs:tlSegs, winStart:Math.min(...tlSegs.map(s=>s.start)), winEnd:Math.max(...tlSegs.map(s=>s.end)) } : null;
+    const SEP = '<span style="color:var(--muted)"> · </span>';
+    const sleepSpan = (t, col) => `<span style="color:${col}">${fmtMins(t)}</span>`;
     if (granularTotal > 0) {
-      const parts = [fmtMins(granularTotal)];
-      if (deepM > 0) parts.push(`Deep ${fmtMins(deepM)}`);
-      if (coreM > 0) parts.push(`Core ${fmtMins(coreM)}`);
-      if (remM  > 0) parts.push(`REM ${fmtMins(remM)}`);
-      $('calcSleepDisplay').textContent = parts.join(' · ');
+      let html = sleepSpan(granularTotal, 'var(--text)');
+      if (deepM > 0) html += SEP + sleepSpan(deepM, '#6686ff');
+      if (coreM > 0) html += SEP + sleepSpan(coreM, '#00e5ff');
+      if (remM  > 0) html += SEP + sleepSpan(remM,  '#ce93d8');
+      $('calcSleepDisplay').innerHTML = html;
       $('calcSleepDisplay').style.display = '';
     } else {
       // Fallback: sum any 'Asleep' records from any source
       const asleepTotal = sumDur(sleepMetric.data.filter(s => s.value === 'Asleep'));
       if (asleepTotal > 0) {
-        $('calcSleepDisplay').textContent = fmtMins(asleepTotal);
+        $('calcSleepDisplay').innerHTML = sleepSpan(asleepTotal, 'var(--text)');
         $('calcSleepDisplay').style.display = '';
       } else {
         $('calcSleepDisplay').style.display = 'none';
@@ -3653,7 +3655,7 @@ function saveCalcResult() {
     tempDeltaColor: $('calcTempDelta').style.color,
     tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
     sleepVisible: $('calcSleepDisplay').style.display !== 'none',
-    sleep: $('calcSleepDisplay').textContent,
+    sleep: $('calcSleepDisplay').innerHTML,
     sleepStages: lastSleepStages ? JSON.stringify(lastSleepStages) : null,
   };
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
@@ -3685,7 +3687,7 @@ function restoreCalcResult() {
     $('calcTempDelta').textContent = s.tempDelta;
     $('calcTempDelta').style.color = s.tempDeltaColor;
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
-    $('calcSleepDisplay').textContent = s.sleep || '';
+    $('calcSleepDisplay').innerHTML = (s.sleep || '').replace(/\s*asleep/gi, '');
     $('calcSleepDisplay').style.display = s.sleepVisible ? '' : 'none';
     try { lastSleepStages = s.sleepStages ? JSON.parse(s.sleepStages) : null; } catch { lastSleepStages = null; }
     $('calcAnotherBtn').style.display = 'none';
