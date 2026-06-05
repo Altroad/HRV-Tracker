@@ -459,6 +459,7 @@ let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
 let lastSleepStages = null;
 let lastSleepNums = null;
+let lastKcalImport = null; // tracks kcal items added by the most recent runSlowWaveCalc
 let heatmapMode = 'hrv';
 let metricsMode = 'hrv';
 let _rhrMetrics = null;
@@ -2402,6 +2403,7 @@ function runSlowWaveCalc(text, overlay) {
     // Extract workout kcal if present
     const workoutBlock = blocks.find(b => b?.data?.workouts?.length > 0);
     let importedKcal = null;
+    lastKcalImport = {};
     if (workoutBlock) {
       for (const w of workoutBlock.data.workouts) {
         const ae = w.activeEnergy;
@@ -2409,7 +2411,10 @@ function runSlowWaveCalc(text, overlay) {
         const kcal = ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
         const dateStr = w.start ? w.start.substring(0, 10) : null;
         if (!dateStr) continue;
-        addKcalItem(dateStr, { name: 'Activity', kcal: Math.round(kcal) });
+        const item = { name: 'Activity', kcal: Math.round(kcal) };
+        if (!lastKcalImport[dateStr]) lastKcalImport[dateStr] = [];
+        lastKcalImport[dateStr].push(item);
+        addKcalItem(dateStr, item);
         importedKcal = Math.round((importedKcal || 0) + kcal);
       }
       if (importedKcal !== null) saveWorkout();
@@ -3781,8 +3786,10 @@ async function runAutoImportText(text) {
   const fakeOverlay = { remove: () => {} };
   const hadResult = $('calcResult').classList.contains('show');
   $('calcResult').classList.remove('show');
+  const kcalSnapshot = JSON.stringify(workoutData); // snapshot before calc appends kcal
   runSlowWaveCalc(text, fakeOverlay);
   if (!$('calcResult').classList.contains('show')) {
+    try { workoutData = JSON.parse(kcalSnapshot); } catch {} // undo any kcal added by failed calc
     if (hadResult) restoreCalcResult();
     return;
   }
@@ -3803,7 +3810,17 @@ async function runAutoImportText(text) {
       overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); resolve(false); });
       overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); resolve(true); });
     });
-    if (!replace) return;
+    if (!replace) {
+      // Undo kcal that runSlowWaveCalc appended
+      try { workoutData = JSON.parse(kcalSnapshot); saveWorkout(); } catch {}
+      return;
+    }
+    // Replace: restore snapshot then write only the freshly-imported kcal
+    try { workoutData = JSON.parse(kcalSnapshot); } catch {}
+    if (lastKcalImport) {
+      Object.entries(lastKcalImport).forEach(([d, items]) => { workoutData[d] = items; });
+      saveWorkout();
+    }
     readings = readings.filter(r => r.date !== date);
     save();
   }
