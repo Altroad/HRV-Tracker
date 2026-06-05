@@ -691,8 +691,8 @@ function drawRHRAxis() {
 // ---------- Chart ----------
 function buildSleepHtml(total, deep, core, rem) {
   const f = m => { const h = Math.floor(m/60), r = Math.round(m%60); return h > 0 ? `${h}h ${r}m` : `${r}m`; };
-  const SEP = '<span style="color:var(--muted)"> · </span>';
-  const lbl = (l, col) => `<span style="color:${col};opacity:0.6;margin-right:2px">${l}</span>`;
+  const SEP = '<span style="color:var(--muted);padding:0 4px"> · </span>';
+  const lbl = (l, col) => `<span style="color:${col};opacity:0.6;margin-right:3px">${l}</span>`;
   let html = lbl('T','var(--text)') + `<span style="color:var(--text)">${f(total)}</span>`;
   if (deep > 0) html += SEP + lbl('D','#6686ff') + `<span style="color:#6686ff">${f(deep)}</span>`;
   if (core > 0) html += SEP + lbl('C','#00e5ff') + `<span style="color:#00e5ff">${f(core)}</span>`;
