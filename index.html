@@ -458,6 +458,7 @@ let nextId = 1;
 let chartRange = 14;
 let lastMonthlyData = null; // session-only, never persisted
 let lastSleepStages = null;
+let lastSleepNums = null;
 let heatmapMode = 'hrv';
 let metricsMode = 'hrv';
 let _rhrMetrics = null;
@@ -688,6 +689,16 @@ function drawRHRAxis() {
 }
 
 // ---------- Chart ----------
+function buildSleepHtml(total, deep, core, rem) {
+  const f = m => { const h = Math.floor(m/60), r = Math.round(m%60); return h > 0 ? `${h}h ${r}m` : `${r}m`; };
+  const SEP = '<span style="color:var(--muted)"> · </span>';
+  let html = `<span style="color:var(--text)">${f(total)}</span>`;
+  if (deep > 0) html += SEP + `<span style="color:#6686ff">${f(deep)}</span>`;
+  if (core > 0) html += SEP + `<span style="color:#00e5ff">${f(core)}</span>`;
+  if (rem  > 0) html += SEP + `<span style="color:#ce93d8">${f(rem)}</span>`;
+  return html;
+}
+
 function renderSleepTimeline() {
   const c = $('sleepTimeline');
   if (!c) return;
@@ -2466,20 +2477,15 @@ function runSlowWaveCalc(text, overlay) {
       ...remStages.map(s  => ({ type:'rem',  start:parseSleepTs(s.start).getTime(), end:parseSleepTs(s.end).getTime() })),
     ].filter(s => s.end > s.start);
     lastSleepStages = tlSegs.length ? { segs:tlSegs, winStart:Math.min(...tlSegs.map(s=>s.start)), winEnd:Math.max(...tlSegs.map(s=>s.end)) } : null;
-    const SEP = '<span style="color:var(--muted)"> · </span>';
-    const sleepSpan = (t, col) => `<span style="color:${col}">${fmtMins(t)}</span>`;
+    lastSleepNums = granularTotal > 0 ? { total: granularTotal, deep: deepM, core: coreM, rem: remM } : null;
     if (granularTotal > 0) {
-      let html = sleepSpan(granularTotal, 'var(--text)');
-      if (deepM > 0) html += SEP + sleepSpan(deepM, '#6686ff');
-      if (coreM > 0) html += SEP + sleepSpan(coreM, '#00e5ff');
-      if (remM  > 0) html += SEP + sleepSpan(remM,  '#ce93d8');
-      $('calcSleepDisplay').innerHTML = html;
+      $('calcSleepDisplay').innerHTML = buildSleepHtml(granularTotal, deepM, coreM, remM);
       $('calcSleepDisplay').style.display = '';
     } else {
       // Fallback: sum any 'Asleep' records from any source
       const asleepTotal = sumDur(sleepMetric.data.filter(s => s.value === 'Asleep'));
       if (asleepTotal > 0) {
-        $('calcSleepDisplay').innerHTML = sleepSpan(asleepTotal, 'var(--text)');
+        $('calcSleepDisplay').innerHTML = buildSleepHtml(asleepTotal, 0, 0, 0);
         $('calcSleepDisplay').style.display = '';
       } else {
         $('calcSleepDisplay').style.display = 'none';
@@ -2609,7 +2615,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   $('calcRHRDisplay').style.display = 'none';
   $('calcRHRWindow').style.display = 'none';
   $('calcSleepDisplay').style.display = 'none';
-  lastSleepStages = null; const _tc = $('sleepTimeline'); if (_tc) _tc.style.display = 'none';
+  lastSleepStages = null; lastSleepNums = null; const _tc = $('sleepTimeline'); if (_tc) _tc.style.display = 'none';
   const chips = filtered.map(r => {
     const qty = Math.round(r.qty);
     const isDropped = values.length >= 3 && (r.qty === values[0] || r.qty === values[values.length - 1]);
@@ -3656,6 +3662,7 @@ function saveCalcResult() {
     tempDeltaVisible: $('calcTempDelta').style.display !== 'none',
     sleepVisible: $('calcSleepDisplay').style.display !== 'none',
     sleep: $('calcSleepDisplay').innerHTML,
+    sleepNums: lastSleepNums ? JSON.stringify(lastSleepNums) : null,
     sleepStages: lastSleepStages ? JSON.stringify(lastSleepStages) : null,
   };
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
@@ -3687,7 +3694,15 @@ function restoreCalcResult() {
     $('calcTempDelta').textContent = s.tempDelta;
     $('calcTempDelta').style.color = s.tempDeltaColor;
     $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
-    $('calcSleepDisplay').innerHTML = (s.sleep || '').replace(/\s*asleep/gi, '');
+    try {
+      lastSleepNums = s.sleepNums ? JSON.parse(s.sleepNums) : null;
+      if (lastSleepNums) {
+        $('calcSleepDisplay').innerHTML = buildSleepHtml(lastSleepNums.total, lastSleepNums.deep, lastSleepNums.core, lastSleepNums.rem);
+      } else {
+        // Legacy plain-text fallback: strip labels and 'asleep'
+        $('calcSleepDisplay').innerHTML = (s.sleep || '').replace(/\b(Deep|Core|REM)\s*/gi, '').replace(/\s*asleep/gi, '');
+      }
+    } catch { lastSleepNums = null; }
     $('calcSleepDisplay').style.display = s.sleepVisible ? '' : 'none';
     try { lastSleepStages = s.sleepStages ? JSON.parse(s.sleepStages) : null; } catch { lastSleepStages = null; }
     $('calcAnotherBtn').style.display = 'none';
