@@ -428,7 +428,6 @@ const getWorkoutKey      = () => { const u = localStorage.getItem(GH_USER_KEY); 
 const LAST_RESULT_KEY        = 'hrv_last_result_v1';
 const getLastResultKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_last_result_${u}_v1` : LAST_RESULT_KEY; };
 const QUICK_ADD_KEY          = 'hrv_quickadd_v1';
-const RHR_SCALE_MIN = 30, RHR_SCALE_MAX = 90;
 
 // ---------- Tags ----------
 const TAGS = [
@@ -761,7 +760,7 @@ function sizeChartCanvas(n) {
   return canvas;
 }
 
-function buildPointsPlugin(values, pr, canvas, sortedDates, rhrByDate, tempByDate) {
+function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate) {
   return {
     id: 'customPoints',
     afterDatasetsDraw(chart) {
@@ -1034,7 +1033,7 @@ function renderChart() {
 
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    plugins: [buildPointsPlugin(values, pr, canvas, sortedDates, rhrData, tempData), buildHeatmapPlugin(sortedDates)],
+    plugins: [buildPointsPlugin(values, pr, sortedDates, rhrData, tempData), buildHeatmapPlugin(sortedDates)],
     data: { labels, datasets },
     options: {
       responsive: false, animation: false,
@@ -1062,7 +1061,9 @@ let jnlSortDir = 'desc';
 function buildJournalCards(filter, search, sort, sortDir) {
   const prevDay = d => { const dt = new Date(d + 'T12:00:00Z'); dt.setUTCDate(dt.getUTCDate() - 1); return dt.toISOString().slice(0, 10); };
   const dateSet = new Set();
-  readings.forEach(r => dateSet.add(r.date));
+  // First reading per date (matches previous readings.find semantics)
+  const readingByDate = {};
+  readings.forEach(r => { dateSet.add(r.date); if (!(r.date in readingByDate)) readingByDate[r.date] = r; });
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
 
@@ -1071,11 +1072,11 @@ function buildJournalCards(filter, search, sort, sortDir) {
   const tags = TAGS.map(t => t.label).filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
-  if (filter) dates = dates.filter(date => readings.find(r => r.date === date)?.tag === filter);
+  if (filter) dates = dates.filter(date => readingByDate[date]?.tag === filter);
   if (search) {
     const s = search.toLowerCase();
     dates = dates.filter(date => {
-      const r = readings.find(r => r.date === date);
+      const r = readingByDate[date];
       const note = r ? (r.note || '') : (rhrNotes[date] || '');
       return note.toLowerCase().includes(s);
     });
@@ -1083,7 +1084,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   if (sort) {
     dates.sort((a, b) => {
       let va = null, vb = null;
-      if (sort === 'hrv')  { va = readings.find(r => r.date === a)?.hrv ?? null; vb = readings.find(r => r.date === b)?.hrv ?? null; }
+      if (sort === 'hrv')  { va = readingByDate[a]?.hrv ?? null; vb = readingByDate[b]?.hrv ?? null; }
       if (sort === 'rhr')  { va = rhrData[a]    ?? null; vb = rhrData[b]    ?? null; }
       if (sort === 'kcal') { va = workoutData[prevDay(a)] !== undefined ? getKcalTotal(prevDay(a)) : null; vb = workoutData[prevDay(b)] !== undefined ? getKcalTotal(prevDay(b)) : null; }
       if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
@@ -1095,7 +1096,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   }
 
   // Summary stats across filtered dates
-  const hrvVals  = dates.map(d => readings.find(r => r.date === d)?.hrv).filter(v => v !== undefined);
+  const hrvVals  = dates.map(d => readingByDate[d]?.hrv).filter(v => v !== undefined);
   const rhrVals  = dates.map(d => rhrData[d]).filter(v => v !== undefined);
   const kcalVals = dates.map(d => workoutData[prevDay(d)] !== undefined ? getKcalTotal(prevDay(d)) : undefined).filter(v => v !== undefined);
   const tempVals = dates.map(d => tempData[d]).filter(v => v !== undefined);
@@ -1113,7 +1114,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
 
   let cards = '';
   dates.forEach(date => {
-    const r = readings.find(r => r.date === date);
+    const r = readingByDate[date];
     const rhrVal      = rhrData[date];
     const activityDate = prevDay(date);
     const hasKcal     = workoutData[activityDate] !== undefined;
@@ -1290,13 +1291,8 @@ function showJournalModal() {
   jnlSearch = '';
   jnlSort = null;
   jnlSortDir = 'desc';
-  const dateSet = new Set();
-  readings.forEach(r => dateSet.add(r.date));
-  Object.keys(rhrData).forEach(d => dateSet.add(d));
-  Object.keys(tempData).forEach(d => dateSet.add(d));
-  if (!dateSet.size) { showToast('No data yet'); return; }
-
   const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(null, '', null, 'desc');
+  if (!count) { showToast('No data yet'); return; }
   const overlay = document.createElement('div');
   overlay.className = 'jnl-overlay';
   overlay.innerHTML = `
@@ -1998,101 +1994,6 @@ function openModal(innerHTML) {
   return overlay;
 }
 
-function exportData() {
-  const payload = JSON.stringify({ readings, rhr: rhrData, temp: tempData, tempBaseline, tempBaselineSetDate });
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(payload)
-      .then(() => showToast(`Copied ${readings.length} HRV · ${Object.keys(rhrData).length} RHR · ${Object.keys(tempData).length} Temp to clipboard`))
-      .catch(() => showExportModal(payload));
-  } else {
-    showExportModal(payload);
-  }
-}
-
-function showExportModal(data) {
-  const rhrCount = Object.keys(rhrData).length;
-  const overlay = openModal(`
-    <div class="modal-title">Backup Data — ${readings.length} HRV · ${rhrCount} RHR · ${Object.keys(tempData).length} Temp</div>
-    <div class="modal-desc">Copy this text and save it somewhere safe. To restore later, tap Import and paste it back.</div>
-    <textarea readonly></textarea>
-    <button class="modal-btn" data-close>CLOSE</button>
-  `);
-  const ta = overlay.querySelector('textarea');
-  ta.value = data;
-  ta.addEventListener('click', () => ta.select());
-  overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
-  setTimeout(() => { ta.focus(); ta.select(); }, 100);
-}
-
-function showImportModal() {
-  const overlay = openModal(`
-    <div class="modal-title">Import Backup</div>
-    <div class="modal-desc">Paste your backup text below. HRV, RHR, and Temp data will all be restored. Only new entries will be added — existing data stays intact.</div>
-    <textarea placeholder="Paste backup JSON here..."></textarea>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" data-cancel>CANCEL</button>
-      <button class="modal-btn" data-import>IMPORT</button>
-    </div>
-  `);
-  const ta = overlay.querySelector('textarea');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('[data-import]').addEventListener('click', () => doImport(ta.value, overlay));
-}
-
-function doImport(text, overlay) {
-  try {
-    const parsed = JSON.parse(text.trim());
-    const rawReadings = Array.isArray(parsed) ? parsed : (parsed.readings ?? []);
-    const rawRHR = (!Array.isArray(parsed) && parsed.rhr) ? parsed.rhr : null;
-
-    const valid = rawReadings.filter(r => r && typeof r.date === 'string' && typeof r.hrv === 'number');
-    if (!valid.length && !rawRHR) throw new Error('No valid entries');
-
-    const existing = new Set(readings.map(r => `${r.date}_${r.hrv}`));
-    let added = 0;
-    for (const r of valid) {
-      const key = `${r.date}_${r.hrv}`;
-      if (existing.has(key)) continue;
-      readings.push({ ...r, id: nextId++ });
-      existing.add(key);
-      added++;
-    }
-    if (valid.length) save();
-
-    let rhrAdded = 0;
-    if (rawRHR) {
-      for (const [date, val] of Object.entries(rawRHR)) {
-        if (!(date in rhrData)) { rhrData[date] = val; rhrAdded++; }
-      }
-      if (rhrAdded) saveRHR();
-    }
-
-    let tempAdded = 0;
-    if (!Array.isArray(parsed) && parsed.temp) {
-      for (const [date, val] of Object.entries(parsed.temp)) {
-        if (!(date in tempData)) { tempData[date] = val; tempAdded++; }
-      }
-      if (tempAdded) saveTemp();
-    }
-    if (!Array.isArray(parsed) && parsed.tempBaseline != null && tempBaseline === null) {
-      tempBaseline = parsed.tempBaseline;
-      if (parsed.tempBaselineSetDate) tempBaselineSetDate = parsed.tempBaselineSetDate;
-      saveTemp();
-    }
-
-    overlay.remove();
-    render();
-    const parts = [];
-    if (added) parts.push(`${added} HRV`);
-    if (rhrAdded) parts.push(`${rhrAdded} RHR`);
-    if (tempAdded) parts.push(`${tempAdded} Temp`);
-    const skipped = valid.length - added;
-    showToast(parts.length ? `Added: ${parts.join(' + ')}${skipped ? ` · ${skipped} skipped` : ''}` : 'Nothing new to import');
-  } catch {
-    showToast('Invalid backup data');
-  }
-}
-
 // ---------- CSV Export / Import ----------
 function buildCSV() {
   const hrvByDate = {};
@@ -2566,14 +2467,9 @@ function extractHRVReadings(json) {
   return metric.data;
 }
 
+// Same ISO 8601 normalisation as parseSleepTs, applied to a reading object
 function parseTimestamp(r) {
-  const s = (r.start || r.date).trim();
-  // Normalize to ISO 8601 with colon in offset (+0800 → +08:00) for Safari compatibility
-  return new Date(
-    s.replace(/^(\d{4}-\d{2}-\d{2}) /, '$1T')
-     .replace(/ ([+-])(\d{2})(\d{2})$/, '$1$2:$3')
-     .replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3')
-  );
+  return parseSleepTs(r.start || r.date);
 }
 
 function readingLocalHM(r) {
