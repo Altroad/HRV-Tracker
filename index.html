@@ -3033,7 +3033,66 @@ async function loadFromGitHub() {
   } catch { return false; }
 }
 
-async function saveToGitHub() {
+// Merge remote readings into local ones without dropping entries unique to either side.
+// Same-id entries with different content came from independent devices reusing an id —
+// keep both, renumbering the remote one so it doesn't clobber the local entry.
+function mergeReadings(remote, local) {
+  const localById = new Map(local.map(r => [String(r.id), r]));
+  const merged = local.slice();
+  let maxId = local.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
+  remote.forEach(rr => {
+    const lr = localById.get(String(rr.id));
+    if (!lr) {
+      maxId = Math.max(maxId, Number(rr.id) || 0);
+      merged.push(rr);
+    } else if (JSON.stringify(lr) !== JSON.stringify(rr)) {
+      maxId += 1;
+      merged.push({ ...rr, id: maxId });
+    }
+  });
+  return { merged, maxId };
+}
+
+// Pull whatever another device saved since our last sync and fold it into local state
+// so a retried save doesn't overwrite it. Returns true if it's safe to retry the save.
+async function mergeRemoteChanges() {
+  const res = await ghRequest('GET');
+  if (!res || !res.ok) return false;
+  const file = await res.json();
+  ghFileSha = file.sha;
+  try {
+    const binary = atob(file.content.replace(/\n/g, ''));
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    const data = JSON.parse(new TextDecoder().decode(bytes));
+    const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
+    const remoteReadings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
+    const { merged, maxId } = mergeReadings(remoteReadings, readings);
+    readings = merged;
+    nextId = Math.max(nextId, maxId + 1);
+    const remoteRhr     = (!Array.isArray(data) && data.rhr)      ? data.rhr      : {};
+    const remoteNotes   = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
+    const remoteTemp    = (!Array.isArray(data) && data.temp)     ? data.temp     : {};
+    const remoteWorkout = (!Array.isArray(data) && data.workout)  ? data.workout  : {};
+    rhrData     = { ...remoteRhr,     ...rhrData     };
+    rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
+    tempData    = { ...remoteTemp,    ...tempData    };
+    workoutData = { ...remoteWorkout, ...workoutData };
+    if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
+      tempBaseline = data.tempBaseline;
+      tempBaselineSetDate = data.tempBaselineSetDate || null;
+    }
+    try {
+      const json = JSON.stringify(readings);
+      localStorage.setItem(STORAGE_KEY, json);
+      localStorage.setItem(BACKUP_KEY, json);
+    } catch {}
+    saveRHR(); saveTemp(); saveWorkout();
+    render();
+    return true;
+  } catch { return false; }
+}
+
+async function saveToGitHub(isRetry) {
   if (!getGHToken()) return false;
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
@@ -3048,11 +3107,14 @@ async function saveToGitHub() {
     ghFileSha = data.content.sha;
     showToast('Saved to GitHub ✓');
     return true;
-  } else {
-    const status = res ? `HTTP ${res.status}` : 'network error';
-    showToast(`GitHub save failed (${status}) — tap ⟳ to check token`);
-    return false;
   }
+  if (res && (res.status === 409 || res.status === 422) && !isRetry) {
+    // Another device saved since our last sync — pull its changes in and retry once.
+    if (await mergeRemoteChanges()) return saveToGitHub(true);
+  }
+  const status = res ? `HTTP ${res.status}` : 'network error';
+  showToast(`GitHub save failed (${status}) — tap ⟳ to check token`);
+  return false;
 }
 
 function updateSyncStatus() {
