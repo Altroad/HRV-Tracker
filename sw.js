@@ -3,7 +3,12 @@ const STATIC = [
   '/HRV-Tracker/manifest.json',
   '/HRV-Tracker/icon-180.png',
   '/HRV-Tracker/icon-192.png',
-  '/HRV-Tracker/icon-512.png'
+  '/HRV-Tracker/icon-512.png',
+  '/HRV-Tracker/fonts/bebas-neue-400.woff2',
+  '/HRV-Tracker/fonts/dm-mono-300.woff2',
+  '/HRV-Tracker/fonts/dm-mono-400.woff2',
+  '/HRV-Tracker/fonts/dm-mono-500.woff2',
+  '/HRV-Tracker/fonts/dm-sans-var.woff2'
 ];
 
 self.addEventListener('install', e => {
