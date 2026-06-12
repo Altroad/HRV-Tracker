@@ -3362,6 +3362,9 @@ function showLogModal() {
       <input type="number" id="logRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
       <input type="number" id="logKcal" placeholder="Kcal" min="0" max="15000" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
     </div>
+    <div class="input-row" style="gap:8px;margin-top:8px;">
+      <input type="number" id="logTemp" placeholder="Temp °C" step="0.01" min="30" max="42" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    </div>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-add>ADD</button>
@@ -3369,15 +3372,20 @@ function showLogModal() {
   `);
   overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
   overlay.querySelector('[data-add]').addEventListener('click', () => {
-    const date  = overlay.querySelector('#logDate').value;
-    const hrv   = overlay.querySelector('#logHRV').value;
-    const rhr   = overlay.querySelector('#logRHR').value;
-    const kcal  = parseInt(overlay.querySelector('#logKcal').value, 10);
+    const date    = overlay.querySelector('#logDate').value;
+    const hrv     = overlay.querySelector('#logHRV').value;
+    const rhr     = overlay.querySelector('#logRHR').value;
+    const kcal    = parseInt(overlay.querySelector('#logKcal').value, 10);
+    const tempStr = overlay.querySelector('#logTemp').value;
+    const temp    = parseFloat(tempStr);
     const hasKcal = !isNaN(kcal) && kcal > 0;
+    const hasTemp = tempStr !== '' && !isNaN(temp);
     const hasHRVorRHR = hrv || rhr;
     if (!date) { showToast('Select a date'); return; }
-    if (!hasHRVorRHR && !hasKcal) { showToast('Enter at least one value'); return; }
+    if (hasTemp && (temp < 30 || temp > 42)) { showToast('Enter a valid temperature (30–42°C)'); return; }
+    if (!hasHRVorRHR && !hasKcal && !hasTemp) { showToast('Enter at least one value'); return; }
     if (hasKcal) { addKcalItem(date, { name: 'Manual', kcal }); saveWorkout(); }
+    if (hasTemp) { tempData[date] = temp; saveTemp(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     overlay.remove();
     if (hasHRVorRHR) {
       $('inputDate').value = date;
@@ -3388,7 +3396,10 @@ function showLogModal() {
       render();
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => saveToGitHub(), 800);
-      showToast(`Logged ${kcal.toLocaleString()} kcal · ${date}`);
+      const parts = [];
+      if (hasKcal) parts.push(`${kcal.toLocaleString()} kcal`);
+      if (hasTemp) parts.push(`${temp.toFixed(2)}°C`);
+      showToast(`Logged ${parts.join(' · ')} · ${date}`);
     }
   });
   setTimeout(() => overlay.querySelector('#logHRV').focus(), 50);
