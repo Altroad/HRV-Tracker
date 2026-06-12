@@ -447,6 +447,10 @@
       {
         "name": "Activity",
         "kcal": 1817
+      },
+      {
+        "name": "Activity",
+        "kcal": 1817
       }
     ]
   },
@@ -461,7 +465,7 @@
     "rhrColor": "rgb(76, 175, 80)",
     "rhrWindow": "1:26–1:36",
     "rhrWindowVisible": true,
-    "workoutVisible": false,
+    "workoutVisible": true,
     "workout": "1,817",
     "tempVisible": false,
     "temp": "36.21",
