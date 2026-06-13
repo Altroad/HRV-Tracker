@@ -482,6 +482,7 @@ const $ = id => document.getElementById(id);
 const escapeHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const newId = () => nextId++;
 const fmtDate = d => `${d.getDate()}/${d.getMonth()+1}`;
+const prevDay = d => { const dt = new Date(d + 'T12:00:00Z'); dt.setUTCDate(dt.getUTCDate() - 1); return dt.toISOString().slice(0, 10); };
 const sortByDate = (arr, dir = 1) => [...arr].sort((a,b) => dir * (new Date(a.date) - new Date(b.date)));
 const colorForHRV = v => v >= ZONE_HIGH ? COLORS.accent : v >= ZONE_GOOD ? COLORS.green : v >= ZONE_OK ? COLORS.orange : COLORS.red;
 const rhrZoneColor = rhr => rhr <= rhrBaseline+1 ? '#4caf50' : rhr <= rhrBaseline+4 ? '#ffab00' : rhr <= rhrBaseline+7 ? '#ff6d00' : '#f44336';
@@ -1063,7 +1064,6 @@ let jnlSort = null;
 let jnlSortDir = 'desc';
 
 function buildJournalCards(filter, search, sort, sortDir) {
-  const prevDay = d => { const dt = new Date(d + 'T12:00:00Z'); dt.setUTCDate(dt.getUTCDate() - 1); return dt.toISOString().slice(0, 10); };
   const dateSet = new Set();
   // First reading per date (matches previous readings.find semantics)
   const readingByDate = {};
@@ -2347,8 +2347,17 @@ function runSlowWaveCalc(text, overlay) {
       $('calcRHRWindow').style.display = 'none';
     }
 
-    if (importedKcal !== null) {
-      $('calcWorkoutValue').textContent = importedKcal.toLocaleString();
+    // Fall back to whatever kcal is already stored for the activity date (yesterday)
+    // if this paste didn't include a workouts export — keeps the results panel in
+    // sync with the journal, which shows workoutData[prevDay(date)] for this entry.
+    const resultDate = $('inputDate').value;
+    const activityDate = resultDate ? prevDay(resultDate) : null;
+    const kcalForResult = importedKcal !== null
+      ? importedKcal
+      : (activityDate && workoutData[activityDate] !== undefined ? getKcalTotal(activityDate) : null);
+
+    if (kcalForResult !== null) {
+      $('calcWorkoutValue').textContent = kcalForResult.toLocaleString();
       $('calcWorkoutDisplay').style.display = '';
     } else {
       $('calcWorkoutDisplay').style.display = 'none';
