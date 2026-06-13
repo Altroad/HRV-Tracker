@@ -278,6 +278,11 @@
       "date": "2026-06-12",
       "hrv": 79,
       "tag": "<100TSS"
+    },
+    {
+      "id": 186,
+      "date": "2026-06-13",
+      "hrv": 94
     }
   ],
   "rhr": {
@@ -313,7 +318,8 @@
     "2026-06-09": 39,
     "2026-06-10": 38,
     "2026-06-11": 39,
-    "2026-06-12": 39
+    "2026-06-12": 39,
+    "2026-06-13": 39
   },
   "rhrNotes": {},
   "temp": {
@@ -470,7 +476,7 @@
     "rhrColor": "rgb(76, 175, 80)",
     "rhrWindow": "1:26–1:36",
     "rhrWindowVisible": true,
-    "workoutVisible": true,
+    "workoutVisible": false,
     "workout": "1,817",
     "tempVisible": false,
     "temp": "36.21",
