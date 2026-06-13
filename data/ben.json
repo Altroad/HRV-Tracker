@@ -300,6 +300,12 @@
         "name": "Run",
         "kcal": 700
       }
+    ],
+    "2026-06-12": [
+      {
+        "name": "Sauna",
+        "kcal": 200
+      }
     ]
   },
   "lastResult": {
