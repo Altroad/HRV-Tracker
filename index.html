@@ -2287,12 +2287,22 @@ function runSlowWaveCalc(text, overlay) {
     const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
     const statLabel = `${selected.length} readings`;
 
-    // Extract wrist temperature if present
+    // Extract wrist temperature if present. Also backfill any earlier nights whose
+    // wrist-temp sample arrived late — Apple Watch can take a day or two to sync this
+    // metric, so a date that was blank in a previous export may now have data.
     const tempBlock = blocks.find(b => b?.data?.metrics?.some(m => m.name === 'apple_sleeping_wrist_temperature'));
     let nightTemp = null;
     if (tempBlock) {
       const tm = tempBlock.data.metrics.find(m => m.name === 'apple_sleeping_wrist_temperature');
-      if (tm?.data?.length) nightTemp = tm.data[0].qty;
+      const resultDate = $('inputDate').value;
+      let backfilled = false;
+      (tm?.data || []).forEach(entry => {
+        const entryDate = (entry.date || '').slice(0, 10);
+        if (!entryDate || entry.qty == null) return;
+        if (entryDate === resultDate) nightTemp = entry.qty;
+        else if (tempData[entryDate] === undefined) { tempData[entryDate] = entry.qty; backfilled = true; }
+      });
+      if (backfilled) saveTemp();
     }
 
     // Try to extract RHR from heart_rate block if present
