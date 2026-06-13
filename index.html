@@ -2165,8 +2165,8 @@ function showSlowWaveModal() {
   const savedScroll = window.pageYOffset || document.documentElement.scrollTop;
   const overlay = openModal(`
     <div class="modal-title">Overnight Capture</div>
-    <div class="modal-desc" id="swModalDesc">Paste all four exports together: previous day HRV, morning HRV, sleep analysis, and heart rate.</div>
-    <textarea placeholder="Paste all 4 JSON blocks here..."></textarea>
+    <div class="modal-desc" id="swModalDesc">Paste all exports together: previous day HRV, morning HRV, sleep analysis, heart rate, plus workouts and wrist temperature if you want kcal and temp included.</div>
+    <textarea placeholder="Paste all JSON blocks here..."></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-calc>CALCULATE</button>
@@ -2181,7 +2181,7 @@ function showSlowWaveModal() {
     desc.textContent = `Processing ${ta.value.length} chars…`; desc.style.color = 'var(--muted)';
     runSlowWaveCalc(ta.value, overlay);
     if (!$('calcResult').classList.contains('show')) {
-      desc.textContent = `Failed (${ta.value.length} chars) — check data has all 4 exports`;
+      desc.textContent = `Failed (${ta.value.length} chars) — check data has HRV, sleep and heart rate exports`;
       desc.style.color = 'var(--red)';
     } else {
       setTimeout(() => window.scrollTo(0, savedScroll), 300);
