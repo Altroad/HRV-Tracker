@@ -3394,7 +3394,7 @@ function showLogModal() {
     if (hasTemp && (temp < 30 || temp > 42)) { showToast('Enter a valid temperature (30–42°C)'); return; }
     if (!hasHRVorRHR && !hasKcal && !hasTemp) { showToast('Enter at least one value'); return; }
     if (hasKcal) { addKcalItem(date, { name: 'Manual', kcal }); saveWorkout(); }
-    if (hasTemp) { tempData[date] = temp; saveTemp(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
+    if (hasTemp) { tempData[date] = temp; saveTemp(); syncResultTempWithData(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     overlay.remove();
     if (hasHRVorRHR) {
       $('inputDate').value = date;
@@ -3717,6 +3717,43 @@ function restoreCalcResult() {
   } catch(e) {}
 }
 
+// Reflect a manually-logged temperature on the results panel when it belongs to the
+// date the panel is currently showing — covers the case where the night's import had
+// no wrist-temp export and the value was backfilled afterwards via Log Reading.
+function syncResultTempWithData() {
+  const raw = localStorage.getItem(getLastResultKey());
+  if (!raw) return;
+  let s;
+  try { s = JSON.parse(raw); } catch { return; }
+  const date = s.savedAt;
+  if (!date) return;
+  const t = tempData[date];
+  if (t === undefined) return;
+  if (s.tempVisible && parseFloat(s.temp) === t) return;
+
+  s.tempVisible = true;
+  s.temp = t.toFixed(2);
+  s.tempColor = tempZoneColor(t);
+  const eb = getEffectiveBaseline();
+  if (eb !== null) {
+    const dev = t - eb;
+    const sign = dev >= 0 ? '+' : '';
+    s.tempDelta = `${sign}${dev.toFixed(2)}°`;
+    s.tempDeltaColor = tempZoneColor(t);
+    s.tempDeltaVisible = true;
+  } else {
+    s.tempDeltaVisible = false;
+  }
+  localStorage.setItem(getLastResultKey(), JSON.stringify(s));
+
+  $('calcTempValue').innerHTML = tempValueHTML(s.temp);
+  $('calcTempValue').style.color = s.tempColor;
+  $('calcTempDelta').textContent = s.tempDelta || '';
+  $('calcTempDelta').style.color = s.tempDeltaColor || '';
+  $('calcTempDelta').style.display = s.tempDeltaVisible ? '' : 'none';
+  $('calcTempDisplay').style.display = '';
+}
+
 async function init() {
   drawYAxis();
   restoreCalcResult();
@@ -3745,6 +3782,7 @@ async function init() {
   } else {
     load();
   }
+  syncResultTempWithData();
   render();
   if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
     history.replaceState(null, '', window.location.pathname);
