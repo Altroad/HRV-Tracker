@@ -1962,6 +1962,7 @@ function deleteReading(id) {
     if (!dateStillUsed) {
       delete tempData[r.date]; saveTemp();
       delete rhrData[r.date];  saveRHR();
+      delete workoutData[prevDay(r.date)]; saveWorkout();
     }
   }
   readings = readings.filter(r => String(r.id) !== String(id));
@@ -1973,8 +1974,10 @@ function deleteReading(id) {
 function deleteRHREntry(date) {
   delete rhrData[date];
   delete tempData[date];
+  delete workoutData[prevDay(date)];
   saveRHR();
   saveTemp();
+  saveWorkout();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToGitHub(), 800);
   render();
