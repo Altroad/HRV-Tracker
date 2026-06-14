@@ -2305,6 +2305,16 @@ function runSlowWaveCalc(text, overlay) {
       if (backfilled) saveTemp();
     }
 
+    // Fall back to a bare number trailing the pasted JSON — the native Health export
+    // (Shortcuts "Get Value" on a wrist-temp sample) returns a raw number, not a block.
+    if (nightTemp === null) {
+      const trailingMatch = text.trim().match(/(-?\d+(?:\.\d+)?)\s*$/);
+      if (trailingMatch) {
+        const v = parseFloat(trailingMatch[1]);
+        if (v >= 30 && v <= 42) nightTemp = v;
+      }
+    }
+
     // Try to extract RHR from heart_rate block if present
     const hrBlock = blocks.find(b => {
       const mx = b?.data?.metrics ?? b?.metrics;
