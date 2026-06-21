@@ -331,7 +331,8 @@
       "id": 196,
       "date": "2026-06-21",
       "hrv": 67,
-      "tag": "300TSS+"
+      "tag": "300TSS+",
+      "note": "After 10 hour ride with Youp. And also weird poisoning from Vanish cleaning product. Terrible sleep."
     }
   ],
   "rhr": {
@@ -584,9 +585,9 @@
     "workout": "6,623",
     "tempVisible": true,
     "temp": "37.12",
-    "tempColor": "rgb(244, 67, 54)",
+    "tempColor": "#f44336",
     "tempDelta": "+0.72°",
-    "tempDeltaColor": "rgb(244, 67, 54)",
+    "tempDeltaColor": "#f44336",
     "tempDeltaVisible": true,
     "sleepVisible": true,
     "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">4h 59m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">28m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">3h 52m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">38m</span>",
