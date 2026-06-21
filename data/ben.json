@@ -212,6 +212,11 @@
       "id": 47,
       "date": "2026-06-20",
       "hrv": 41
+    },
+    {
+      "id": 48,
+      "date": "2026-06-21",
+      "hrv": 102
     }
   ],
   "rhr": {
@@ -252,7 +257,8 @@
     "2026-06-17": 48,
     "2026-06-18": 52,
     "2026-06-19": 47,
-    "2026-06-20": 55
+    "2026-06-20": 55,
+    "2026-06-21": 50
   },
   "rhrNotes": {},
   "temp": {
@@ -286,7 +292,8 @@
     "2026-06-17": 34.89896392822266,
     "2026-06-18": 35.13564682006836,
     "2026-06-19": 35.23448944091797,
-    "2026-06-20": 35.50641250610352
+    "2026-06-20": 35.50641250610352,
+    "2026-06-21": 35.09425735473633
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -389,30 +396,40 @@
         "name": "Activity",
         "kcal": 3535
       }
+    ],
+    "2026-06-20": [
+      {
+        "name": "Activity",
+        "kcal": 155
+      },
+      {
+        "name": "Activity",
+        "kcal": 1287
+      }
     ]
   },
   "lastResult": {
-    "savedAt": "2026-06-20",
-    "hrv": "41",
-    "hrvColor": "rgb(244, 67, 54)",
+    "savedAt": "2026-06-21",
+    "hrv": "102",
+    "hrvColor": "rgb(0, 229, 255)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "readings": "<div class=\"calc-group\" style=\"--ncells:3\"><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">23:41</span><span class=\"calc-cell-v\">30</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:56</span><span class=\"calc-cell-v\">33</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:11</span><span class=\"calc-cell-v\">81</span></div></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:42</span><span class=\"calc-cell-v\">40</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:56</span><span class=\"calc-cell-v\">60</span></div></div><div class=\"calc-chip deep\">1:26 · <strong>31</strong></div><div class=\"calc-chip deep\">3:56 · <strong>40</strong></div>",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:6\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:41</span><span class=\"calc-cell-v\">76</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:56</span><span class=\"calc-cell-v\">67</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:11</span><span class=\"calc-cell-v\">93</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:28</span><span class=\"calc-cell-v\">194</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:41</span><span class=\"calc-cell-v\">141</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:56</span><span class=\"calc-cell-v\">133</span></div></div><div class=\"calc-chip core dropped\">1:56 · <strong>55</strong></div>",
     "rhrVisible": true,
-    "rhr": "55",
-    "rhrColor": "rgb(244, 67, 54)",
-    "rhrWindow": "2:52–3:02",
+    "rhr": "50",
+    "rhrColor": "rgb(255, 109, 0)",
+    "rhrWindow": "2:00–2:17",
     "rhrWindowVisible": true,
     "workoutVisible": true,
-    "workout": "3,535",
+    "workout": "1,442",
     "tempVisible": true,
-    "temp": "35.51",
+    "temp": "35.09",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "+0.22°",
+    "tempDelta": "-0.11°",
     "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">7h 7m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">50m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">4h 6m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">2h 11m</span>",
-    "sleepNums": "{\"total\":426.9666666666667,\"deep\":49.766666666666666,\"core\":246.35000000000002,\"rem\":130.85}",
-    "sleepStages": "{\"segs\":[{\"type\":\"deep\",\"start\":1781904939000,\"end\":1781905835000},{\"type\":\"deep\",\"start\":1781911120000,\"end\":1781911329000},{\"type\":\"deep\",\"start\":1781911448000,\"end\":1781912075000},{\"type\":\"deep\",\"start\":1781920166000,\"end\":1781921420000},{\"type\":\"core\",\"start\":1781903565000,\"end\":1781904073000},{\"type\":\"core\",\"start\":1781904133000,\"end\":1781904939000},{\"type\":\"core\",\"start\":1781905835000,\"end\":1781906850000},{\"type\":\"core\",\"start\":1781906880000,\"end\":1781907238000},{\"type\":\"core\",\"start\":1781908850000,\"end\":1781911120000},{\"type\":\"core\",\"start\":1781911329000,\"end\":1781911448000},{\"type\":\"core\",\"start\":1781912075000,\"end\":1781912553000},{\"type\":\"core\",\"start\":1781912613000,\"end\":1781914912000},{\"type\":\"core\",\"start\":1781917240000,\"end\":1781920166000},{\"type\":\"core\",\"start\":1781921420000,\"end\":1781921600000},{\"type\":\"core\",\"start\":1781923391000,\"end\":1781927213000},{\"type\":\"rem\",\"start\":1781906850000,\"end\":1781906880000},{\"type\":\"rem\",\"start\":1781907238000,\"end\":1781908850000},{\"type\":\"rem\",\"start\":1781914912000,\"end\":1781917240000},{\"type\":\"rem\",\"start\":1781921600000,\"end\":1781923391000},{\"type\":\"rem\",\"start\":1781927213000,\"end\":1781929303000}],\"winStart\":1781903565000,\"winEnd\":1781929303000}"
+    "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">7h 56m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">30m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">5h 16m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">2h 9m</span>",
+    "sleepNums": "{\"total\":475.7166666666667,\"deep\":30.35,\"core\":315.96666666666664,\"rem\":129.4}",
+    "sleepStages": "{\"segs\":[{\"type\":\"deep\",\"start\":1781990101000,\"end\":1781990728000},{\"type\":\"deep\",\"start\":1781991475000,\"end\":1781991803000},{\"type\":\"deep\",\"start\":1781995536000,\"end\":1781995954000},{\"type\":\"deep\",\"start\":1781996222000,\"end\":1781996670000},{\"type\":\"core\",\"start\":1781989116000,\"end\":1781990101000},{\"type\":\"core\",\"start\":1781990728000,\"end\":1781991475000},{\"type\":\"core\",\"start\":1781991803000,\"end\":1781992818000},{\"type\":\"core\",\"start\":1781992998000,\"end\":1781995536000},{\"type\":\"core\",\"start\":1781995954000,\"end\":1781996222000},{\"type\":\"core\",\"start\":1781996670000,\"end\":1781996999000},{\"type\":\"core\",\"start\":1781999268000,\"end\":1782003657000},{\"type\":\"core\",\"start\":1782003717000,\"end\":1782004314000},{\"type\":\"core\",\"start\":1782006494000,\"end\":1782009091000},{\"type\":\"core\",\"start\":1782009241000,\"end\":1782010017000},{\"type\":\"core\",\"start\":1782010047000,\"end\":1782011868000},{\"type\":\"core\",\"start\":1782013421000,\"end\":1782013451000},{\"type\":\"core\",\"start\":1782014108000,\"end\":1782016974000},{\"type\":\"rem\",\"start\":1781992818000,\"end\":1781992998000},{\"type\":\"rem\",\"start\":1781996999000,\"end\":1781999268000},{\"type\":\"rem\",\"start\":1782004314000,\"end\":1782006494000},{\"type\":\"rem\",\"start\":1782011868000,\"end\":1782013301000},{\"type\":\"rem\",\"start\":1782013391000,\"end\":1782013421000},{\"type\":\"rem\",\"start\":1782013451000,\"end\":1782014108000},{\"type\":\"rem\",\"start\":1782016974000,\"end\":1782017989000}],\"winStart\":1781989116000,\"winEnd\":1782017989000}"
   }
 }
