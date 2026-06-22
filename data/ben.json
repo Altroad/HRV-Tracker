@@ -423,6 +423,10 @@
       {
         "name": "Activity",
         "kcal": 1023
+      },
+      {
+        "name": "Manual",
+        "kcal": 2800
       }
     ]
   },
