@@ -229,7 +229,8 @@
     {
       "id": 50,
       "date": "2026-06-23",
-      "hrv": 26
+      "hrv": 26,
+      "note": "Food Poisoning"
     }
   ],
   "rhr": {
