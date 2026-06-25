@@ -355,7 +355,8 @@
     {
       "id": 200,
       "date": "2026-06-25",
-      "hrv": 98
+      "hrv": 98,
+      "tag": "100-200TSS"
     }
   ],
   "rhr": {
@@ -634,9 +635,9 @@
     "workout": "2,863",
     "tempVisible": true,
     "temp": "36.43",
-    "tempColor": "rgb(230, 124, 138)",
+    "tempColor": "#e67c8a",
     "tempDelta": "+0.00°",
-    "tempDeltaColor": "rgb(230, 124, 138)",
+    "tempDeltaColor": "#e67c8a",
     "tempDeltaVisible": true,
     "sleepVisible": true,
     "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">6h 4m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">40m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">4h 8m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">1h 16m</span>",
