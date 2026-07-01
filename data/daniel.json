@@ -711,6 +711,12 @@
         "name": "Activity",
         "kcal": 3105
       }
+    ],
+    "2026-06-29": [
+      {
+        "name": "Manual",
+        "kcal": 423
+      }
     ]
   },
   "lastResult": {
@@ -728,9 +734,9 @@
     "workout": "3,105",
     "tempVisible": true,
     "temp": "36.58",
-    "tempColor": "rgb(230, 124, 138)",
+    "tempColor": "#e67c8a",
     "tempDelta": "+0.08°",
-    "tempDeltaColor": "rgb(230, 124, 138)",
+    "tempDeltaColor": "#e67c8a",
     "tempDeltaVisible": true,
     "sleepVisible": true,
     "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">6h 11m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">34m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">4h 49m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">48m</span>",
