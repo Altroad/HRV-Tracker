@@ -930,6 +930,12 @@
         "name": "Activity",
         "kcal": 2020
       }
+    ],
+    "2026-07-17": [
+      {
+        "name": "Sauna",
+        "kcal": 50
+      }
     ]
   },
   "lastResult": {
@@ -947,9 +953,9 @@
     "workout": "2,020",
     "tempVisible": true,
     "temp": "36.21",
-    "tempColor": "rgb(230, 124, 138)",
+    "tempColor": "#e67c8a",
     "tempDelta": "-0.11°",
-    "tempDeltaColor": "rgb(230, 124, 138)",
+    "tempDeltaColor": "#e67c8a",
     "tempDeltaVisible": true,
     "sleepVisible": true,
     "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">7h 54m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">1h 4m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">5h 4m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">1h 46m</span>",
