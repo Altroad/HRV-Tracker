@@ -556,6 +556,13 @@ function addKcalItem(date, item) {
     workoutData[date] = [item];
   }
 }
+// Replace a date's previously-imported Activity items with a fresh set from an
+// import, preserving any manually-added (non-Activity) items. Idempotent, so
+// re-importing the same day overwrites rather than stacking kcal.
+function applyImportedKcal(date, items) {
+  const manual = getKcalItems(date).filter(it => it.name !== 'Activity');
+  workoutData[date] = [...manual, ...items];
+}
 
 const QUICK_ADD_DEFAULTS = [
   { name: 'Gym',   kcal: 500 },
@@ -2293,7 +2300,9 @@ function runSlowWaveCalc(text, overlay) {
     // Wrist temperature: a bare number trailing the pasted JSON — the native Health
     // export (Shortcuts "Get Value" on a wrist-temp sample) returns a raw number.
     let nightTemp = null;
-    const trailingMatch = text.trim().match(/(-?\d+(?:\.\d+)?)\s*$/);
+    // The appended temp is a standalone number after the JSON; require a whitespace
+    // (or start) boundary so a digit glued to another token isn't mistaken for it.
+    const trailingMatch = text.trim().match(/(?:^|\s)(-?\d+(?:\.\d+)?)\s*$/);
     if (trailingMatch) {
       const v = parseFloat(trailingMatch[1]);
       if (v >= 30 && v <= 42) nightTemp = v;
@@ -2312,7 +2321,9 @@ function runSlowWaveCalc(text, overlay) {
       if (date) rhrResult = extractRHRForSlowWave(hrBlock, date);
     }
 
-    // Extract workout kcal if present
+    // Extract workout kcal if present. Replace (not append) previously-imported
+    // Activity items per date so re-importing the same day can't duplicate kcal;
+    // manual entries are preserved. Idempotent for both the Tools and FAB paths.
     const workoutBlock = blocks.find(b => b?.data?.workouts?.length > 0);
     let importedKcal = null;
     lastKcalImport = {};
@@ -2326,9 +2337,9 @@ function runSlowWaveCalc(text, overlay) {
         const item = { name: 'Activity', kcal: Math.round(kcal) };
         if (!lastKcalImport[dateStr]) lastKcalImport[dateStr] = [];
         lastKcalImport[dateStr].push(item);
-        addKcalItem(dateStr, item);
         importedKcal = Math.round((importedKcal || 0) + kcal);
       }
+      Object.entries(lastKcalImport).forEach(([dateStr, items]) => applyImportedKcal(dateStr, items));
       if (importedKcal !== null) saveWorkout();
     }
 
@@ -3035,8 +3046,12 @@ async function loadFromGitHub() {
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     saveRHR();
     tempData    = { ...remoteTemp,    ...tempData    };
-    tempBaseline        = (!Array.isArray(data) && data.tempBaseline != null) ? data.tempBaseline : null;
-    tempBaselineSetDate = (!Array.isArray(data) && data.tempBaselineSetDate) ? data.tempBaselineSetDate : null;
+    // Take the remote baseline when it has one; otherwise keep whatever was loaded
+    // locally rather than wiping it (matches mergeRemoteChanges' guard).
+    if (!Array.isArray(data) && data.tempBaseline != null) {
+      tempBaseline        = data.tempBaseline;
+      tempBaselineSetDate = data.tempBaselineSetDate || null;
+    }
     saveTemp();
     workoutData = { ...remoteWorkout, ...workoutData };
     saveWorkout();
@@ -3733,7 +3748,7 @@ function syncResultTempWithData() {
   if (!date) return;
   const t = tempData[date];
   if (t === undefined) return;
-  if (s.tempVisible && parseFloat(s.temp) === t) return;
+  if (s.tempVisible && s.temp === t.toFixed(2)) return;
 
   s.tempVisible = true;
   s.temp = t.toFixed(2);
@@ -3846,7 +3861,7 @@ async function runAutoImportText(text) {
     // Replace: restore snapshot then write only the freshly-imported kcal
     try { workoutData = JSON.parse(kcalSnapshot); } catch {}
     if (lastKcalImport) {
-      Object.entries(lastKcalImport).forEach(([d, items]) => { workoutData[d] = items; });
+      Object.entries(lastKcalImport).forEach(([d, items]) => applyImportedKcal(d, items));
       saveWorkout();
     }
     readings = readings.filter(r => r.date !== date);
