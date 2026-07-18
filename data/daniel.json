@@ -930,6 +930,12 @@
         "name": "Activity",
         "kcal": 2020
       }
+    ],
+    "2026-07-17": [
+      {
+        "name": "Activity",
+        "kcal": 1151
+      }
     ]
   },
   "lastResult": {
@@ -938,18 +944,18 @@
     "hrvColor": "rgb(0, 229, 255)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
     "readings": "<div class=\"calc-chip deep dropped\">22:41 · <strong>86</strong></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:41</span><span class=\"calc-cell-v\">91</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">23:56</span><span class=\"calc-cell-v\">174</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:11</span><span class=\"calc-cell-v\">167</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:26</span><span class=\"calc-cell-v\">111</span></div></div><div class=\"calc-chip deep\">1:26 · <strong>124</strong></div><div class=\"calc-chip deep\">1:56 · <strong>110</strong></div>",
-    "rhrVisible": true,
+    "rhrVisible": false,
     "rhr": "33",
     "rhrColor": "rgb(76, 175, 80)",
     "rhrWindow": "1:16–1:26",
-    "rhrWindowVisible": true,
-    "workoutVisible": false,
-    "workout": "2,020",
+    "rhrWindowVisible": false,
+    "workoutVisible": true,
+    "workout": "1,151",
     "tempVisible": true,
     "temp": "36.21",
-    "tempColor": "#e67c8a",
+    "tempColor": "rgb(230, 124, 138)",
     "tempDelta": "-0.11°",
-    "tempDeltaColor": "#e67c8a",
+    "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
     "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">7h 54m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">1h 4m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">5h 4m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">1h 46m</span>",
