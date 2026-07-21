@@ -772,7 +772,7 @@ function sizeChartCanvas(n) {
   return canvas;
 }
 
-function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate) {
+function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate, showRings) {
   return {
     id: 'customPoints',
     afterDatasetsDraw(chart) {
@@ -782,26 +782,31 @@ function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate) {
 
       meta.data.forEach((pt, i) => {
         const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
-        // RHR halo — center pr+4, lw4: inner edge pr+2 (2px gap from HRV dot)
-        if (rhr !== undefined) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
-          ctx.strokeStyle = rhrZoneColor(rhr);
-          ctx.lineWidth = 4;
-          ctx.stroke();
-          ctx.restore();
-        }
-        // Temp halo — center pr+10, lw4: inner edge pr+8 (2px gap from RHR outer)
         const temp = tempByDate ? tempByDate[sortedDates[i]] : undefined;
-        if (temp !== undefined) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + 10, 0, Math.PI * 2);
-          ctx.strokeStyle = tempZoneColor(temp);
-          ctx.lineWidth = 4;
-          ctx.stroke();
-          ctx.restore();
+        // At 60D the per-day RHR/temp rings collide into an unreadable field, so
+        // the trend view drops them — RHR still reads from its own line, and the
+        // bold 7-day-average line carries the HRV story.
+        if (showRings) {
+          // RHR halo — center pr+4, lw4: inner edge pr+2 (2px gap from HRV dot)
+          if (rhr !== undefined) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
+            ctx.strokeStyle = rhrZoneColor(rhr);
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.restore();
+          }
+          // Temp halo — center pr+10, lw4: inner edge pr+8 (2px gap from RHR outer)
+          if (temp !== undefined) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pr + 10, 0, Math.PI * 2);
+            ctx.strokeStyle = tempZoneColor(temp);
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.restore();
+          }
         }
         // HRV dot
         ctx.save();
@@ -810,8 +815,9 @@ function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate) {
         ctx.fillStyle = colorForHRV(values[i]);
         ctx.fill();
         if (tappedIdx === i) {
+          const ringR = showRings ? (temp !== undefined ? 14 : rhr !== undefined ? 8 : 4) : 4;
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, pr + (temp !== undefined ? 14 : rhr !== undefined ? 8 : 4), 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, pr + ringR, 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -1045,7 +1051,7 @@ function renderChart() {
 
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    plugins: [buildPointsPlugin(values, pr, sortedDates, rhrData, tempData), buildHeatmapPlugin(sortedDates)],
+    plugins: [buildPointsPlugin(values, pr, sortedDates, rhrData, tempData, chartRange <= 14 || isSparse), buildHeatmapPlugin(sortedDates)],
     data: { labels, datasets },
     options: {
       responsive: false, animation: false,
