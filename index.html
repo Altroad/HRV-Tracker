@@ -2015,8 +2015,13 @@ function flipMetrics() {
 // ---------- CRUD ----------
 
 // Shared "a reading already exists for this date" prompt. Resolves true to replace.
+// Any dismissal — KEEP, or tapping the backdrop — resolves false so the caller's
+// `await` never hangs (openModal removes the overlay on a background tap without
+// firing a button handler).
 function confirmReplaceEntry(date) {
   return new Promise(resolve => {
+    let settled = false;
+    const done = v => { if (!settled) { settled = true; resolve(v); } };
     const overlay = openModal(`
       <div class="modal-title">Entry Exists</div>
       <div class="modal-desc">A reading for ${resultDateLabel(date) || date} already exists. Replace it with this one?</div>
@@ -2025,8 +2030,9 @@ function confirmReplaceEntry(date) {
         <button class="modal-btn" data-replace>REPLACE</button>
       </div>
     `);
-    overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); resolve(false); });
-    overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); resolve(true); });
+    overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); done(false); });
+    overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); done(true); });
+    overlay.addEventListener('click', e => { if (e.target === overlay) done(false); }); // backdrop tap = keep
   });
 }
 
