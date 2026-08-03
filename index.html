@@ -339,6 +339,12 @@
   </div>
 </div>
 
+<div id="captureBar" onclick="showCaptureWindowModal()" style="display:flex;align-items:center;gap:8px;padding:9px 14px;margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;color:var(--muted);user-select:none;">
+  <span style="font-size:13px;">🌙</span>
+  <span>CAPTURE WINDOW</span>
+  <span id="captureBarValue" style="color:var(--accent);margin-left:auto;font-weight:500;">Default</span>
+</div>
+
 <div class="card">
   <div style="display:none;">
     <input type="date" id="inputDate">
@@ -432,6 +438,28 @@ const getWorkoutKey      = () => { const u = localStorage.getItem(GH_USER_KEY); 
 const LAST_RESULT_KEY        = 'hrv_last_result_v1';
 const getLastResultKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_last_result_${u}_v1` : LAST_RESULT_KEY; };
 const QUICK_ADD_KEY          = 'hrv_quickadd_v1';
+const getCaptureOffsetKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_capture_offset_${u}_v1` : 'hrv_capture_offset_v1'; };
+
+// How much later than the default to shift the overnight-capture windows, in
+// minutes (0–60). Lets a late night slide the fixed Core top-up (23:30–02:00)
+// and RHR (00:00–03:30) windows forward to match when sleep actually happened.
+let captureOffsetMin = 0;
+function loadCaptureOffset() {
+  const v = parseInt(localStorage.getItem(getCaptureOffsetKey()), 10);
+  captureOffsetMin = (!isNaN(v) && v >= 0 && v <= 60) ? v : 0;
+}
+function saveCaptureOffset() { try { localStorage.setItem(getCaptureOffsetKey(), String(captureOffsetMin)); } catch {} }
+// True if a reading at `mins` (minutes-of-day, local) falls inside [startMin,endMin]
+// once both bounds are shifted later by captureOffsetMin. The window may wrap midnight.
+function inCaptureWindow(mins, startMin, endMin) {
+  const s = (((startMin + captureOffsetMin) % 1440) + 1440) % 1440;
+  const e = (((endMin   + captureOffsetMin) % 1440) + 1440) % 1440;
+  return s <= e ? (mins >= s && mins < e) : (mins >= s || mins < e);
+}
+function fmtClock(mins) {
+  const t = (((mins % 1440) + 1440) % 1440);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+}
 
 // ---------- Tags ----------
 const TAGS = [
@@ -2277,8 +2305,8 @@ function runSlowWaveCalc(text, overlay) {
     const remainingDeep = sortedAll.filter(r => deepSet.has(r) && !anchorSet.has(r));
     const coreWindow = sortedAll.filter(r => {
       const { h, m } = readingLocalHM(r);
-      const mins = h * 60 + m;
-      return (mins >= 23 * 60 + 30 || mins < 2 * 60) && inAnyStage(r, coreStages) && !anchorSet.has(r);
+      // Core top-up window: 23:30–02:00, shifted later by the capture offset.
+      return inCaptureWindow(h * 60 + m, 23 * 60 + 30, 2 * 60) && inAnyStage(r, coreStages) && !anchorSet.has(r);
     });
 
     const selected = [...anchor];
@@ -2757,7 +2785,9 @@ function extractRHRForSlowWave(json, dateStr) {
     if (!s) continue;
     const h = parseInt(s.slice(11, 13), 10);
     const m = parseInt(s.slice(14, 16), 10);
-    if (h * 60 + m > 210) continue;
+    const mm = h * 60 + m;
+    // RHR window: 00:00–03:30, shifted later by the capture offset.
+    if (mm < captureOffsetMin || mm > 210 + captureOffsetMin) continue;
     all.push({ ts: parseTimestamp(r).getTime(), avg, h, m, d: s.slice(0, 10) });
   }
   if (!all.length) return null;
@@ -2840,6 +2870,46 @@ function setChartRange(range) {
   $('btn60d').classList.toggle('active', range === 60);
   tappedIdx = null;
   renderChart();
+}
+
+// ---------- Capture window offset ----------
+function updateCaptureBar() {
+  const el = $('captureBarValue');
+  if (el) el.textContent = captureOffsetMin === 0 ? 'Default' : `+${captureOffsetMin} min`;
+}
+
+function showCaptureWindowModal() {
+  const windowsFor = o =>
+    `Core top-up ${fmtClock(23 * 60 + 30 + o)}–${fmtClock(2 * 60 + o)} · RHR ${fmtClock(0 + o)}–${fmtClock(210 + o)}`;
+  const overlay = openModal(`
+    <div class="modal-title">Capture Window</div>
+    <div class="modal-desc">Had a late night? Slide right to push the overnight-capture windows up to an hour later so they still land on your deep and core sleep. Applies to your next import.</div>
+    <input type="range" id="capWinSlider" min="0" max="60" step="5" value="${captureOffsetMin}" style="width:100%;accent-color:var(--accent);margin:2px 0 6px;">
+    <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--muted);">
+      <span>Default</span><span id="capWinVal" style="color:var(--accent);font-weight:500;">${captureOffsetMin === 0 ? 'Default' : '+' + captureOffsetMin + ' min'}</span><span>+1 h</span>
+    </div>
+    <div id="capWinWindows" style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;">${windowsFor(captureOffsetMin)}</div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-save>SAVE</button>
+    </div>
+  `);
+  const slider = overlay.querySelector('#capWinSlider');
+  const valLbl = overlay.querySelector('#capWinVal');
+  const winLbl = overlay.querySelector('#capWinWindows');
+  slider.addEventListener('input', () => {
+    const o = parseInt(slider.value, 10) || 0;
+    valLbl.textContent = o === 0 ? 'Default' : `+${o} min`;
+    winLbl.textContent = windowsFor(o);
+  });
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-save]').addEventListener('click', () => {
+    captureOffsetMin = Math.max(0, Math.min(60, parseInt(slider.value, 10) || 0));
+    saveCaptureOffset();
+    updateCaptureBar();
+    overlay.remove();
+    showToast(captureOffsetMin === 0 ? 'Capture window: default' : `Capture window shifted +${captureOffsetMin} min`);
+  });
 }
 
 // ---------- Render orchestration ----------
@@ -3790,6 +3860,8 @@ async function init() {
   loadTemp();
   loadWorkout();
   loadQuickAdd();
+  loadCaptureOffset();
+  updateCaptureBar();
   $('quickAddBtn').addEventListener('click', showQuickAddSheet);
   const _now = new Date();
   const _localToday = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
