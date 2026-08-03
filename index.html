@@ -354,6 +354,7 @@
   </div>
   <div class="calc-result" id="calcResult">
     <div id="calcResultDate" class="calc-result-date"></div>
+    <div id="calcWindowInfo" style="display:none;text-align:center;font-family:var(--font-mono);font-size:10px;letter-spacing:0.5px;color:var(--muted);margin:2px 0 8px;"></div>
     <div class="calc-result-values">
       <div class="calc-metric">
         <div class="calc-metric-label">HRV</div>
@@ -443,17 +444,52 @@ const getCaptureOffsetKey = () => { const u = localStorage.getItem(GH_USER_KEY);
 // How much later than the default to shift the overnight-capture windows, in
 // minutes (0–60). Lets a late night slide the fixed Core top-up (23:30–02:00)
 // and RHR (00:00–03:30) windows forward to match when sleep actually happened.
+// captureAutoOffset: derive that shift from the night's first Deep cycle instead
+// of the manual slider. activeCaptureOffset: the value actually applied to the
+// current capture (auto or manual) — the window checks read this.
 let captureOffsetMin = 0;
+let captureAutoOffset = false;
+let activeCaptureOffset = 0;
 function loadCaptureOffset() {
-  const v = parseInt(localStorage.getItem(getCaptureOffsetKey()), 10);
-  captureOffsetMin = (!isNaN(v) && v >= 0 && v <= 60) ? v : 0;
+  let min = 0, auto = false;
+  try {
+    const raw = localStorage.getItem(getCaptureOffsetKey());
+    if (raw) {
+      if (raw[0] === '{') { const o = JSON.parse(raw); min = parseInt(o.min, 10) || 0; auto = !!o.auto; }
+      else min = parseInt(raw, 10) || 0; // legacy: plain number
+    }
+  } catch {}
+  captureOffsetMin = (min >= 0 && min <= 60) ? min : 0;
+  captureAutoOffset = auto;
+  activeCaptureOffset = captureOffsetMin;
 }
-function saveCaptureOffset() { try { localStorage.setItem(getCaptureOffsetKey(), String(captureOffsetMin)); } catch {} }
+function saveCaptureOffset() {
+  try { localStorage.setItem(getCaptureOffsetKey(), JSON.stringify({ min: captureOffsetMin, auto: captureAutoOffset })); } catch {}
+}
+// Reference clock time the auto offset measures against — the default Core window
+// start (23:30). A night whose first deep cycle begins later shifts the windows by
+// that much, clamped to 0–60 min and rounded to the slider's 5-min steps.
+const CAPTURE_REF_MIN = 23 * 60 + 30;
+const toNightMin = mins => (((mins - 18 * 60) % 1440) + 1440) % 1440; // minutes since 18:00
+// Earliest Deep-stage onset for the night → { offset, deepStart:'HH:MM' }.
+function autoOffsetFromDeep(deepStages) {
+  let earliest = Infinity, earliestStr = null;
+  (deepStages || []).forEach(s => {
+    if (!s.start) return;
+    const t = parseSleepTs(s.start).getTime();
+    if (t < earliest) { earliest = t; earliestStr = s.start; }
+  });
+  if (!earliestStr) return { offset: 0, deepStart: null };
+  const h = parseInt(earliestStr.slice(11, 13), 10);
+  const m = parseInt(earliestStr.slice(14, 16), 10);
+  const raw = Math.round((toNightMin(h * 60 + m) - toNightMin(CAPTURE_REF_MIN)) / 5) * 5;
+  return { offset: Math.max(0, Math.min(60, raw)), deepStart: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
+}
 // True if a reading at `mins` (minutes-of-day, local) falls inside [startMin,endMin]
-// once both bounds are shifted later by captureOffsetMin. The window may wrap midnight.
+// once both bounds are shifted later by the active offset. The window may wrap midnight.
 function inCaptureWindow(mins, startMin, endMin) {
-  const s = (((startMin + captureOffsetMin) % 1440) + 1440) % 1440;
-  const e = (((endMin   + captureOffsetMin) % 1440) + 1440) % 1440;
+  const s = (((startMin + activeCaptureOffset) % 1440) + 1440) % 1440;
+  const e = (((endMin   + activeCaptureOffset) % 1440) + 1440) % 1440;
   return s <= e ? (mins >= s && mins < e) : (mins >= s || mins < e);
 }
 function fmtClock(mins) {
@@ -2286,6 +2322,11 @@ function runSlowWaveCalc(text, overlay) {
     const coreStages = stages.filter(s => s.value === 'Core');
     const remStages  = stages.filter(s => s.value === 'REM');
 
+    // Resolve the capture-window offset for this night before any window checks.
+    // Auto mode derives it from the first deep cycle; otherwise the manual slider.
+    const autoInfo = autoOffsetFromDeep(deepStages);
+    activeCaptureOffset = captureAutoOffset ? autoInfo.offset : captureOffsetMin;
+
     const inAnyStage = (r, stageList) => {
       const t = parseTimestamp(r).getTime();
       return stageList.some(s => t >= parseSleepTs(s.start).getTime() && t <= parseSleepTs(s.end).getTime());
@@ -2405,6 +2446,14 @@ function runSlowWaveCalc(text, overlay) {
     $('calcValue').textContent = avg;
     $('calcValue').style.color = colorForHRV(avg);
     $('calcLabel').textContent = `Overnight Capture · Deep anchor + top-up · ${statLabel}`;
+
+    // Show which capture window this result used, so any shift is visible at a glance.
+    const winParts = [];
+    if (captureAutoOffset) winParts.push(autoInfo.deepStart ? `AUTO · deep ${autoInfo.deepStart}` : 'AUTO');
+    winParts.push(activeCaptureOffset === 0 ? 'window default' : `window +${activeCaptureOffset} min`);
+    const windowInfo = winParts.join('  ·  ');
+    $('calcWindowInfo').textContent = windowInfo;
+    $('calcWindowInfo').style.display = '';
 
     if (rhrResult) {
       $('calcRHRValue').textContent = rhrResult.rhr;
@@ -2809,8 +2858,8 @@ function extractRHRForSlowWave(json, dateStr) {
     const h = parseInt(s.slice(11, 13), 10);
     const m = parseInt(s.slice(14, 16), 10);
     const mm = h * 60 + m;
-    // RHR window: 00:00–03:30, shifted later by the capture offset.
-    if (mm < captureOffsetMin || mm > 210 + captureOffsetMin) continue;
+    // RHR window: 00:00–03:30, shifted later by the active capture offset.
+    if (mm < activeCaptureOffset || mm > 210 + activeCaptureOffset) continue;
     all.push({ ts: parseTimestamp(r).getTime(), avg, h, m, d: s.slice(0, 10) });
   }
   if (!all.length) return null;
@@ -2898,7 +2947,8 @@ function setChartRange(range) {
 // ---------- Capture window offset ----------
 function updateCaptureBar() {
   const el = $('captureBarValue');
-  if (el) el.textContent = captureOffsetMin === 0 ? 'Default' : `+${captureOffsetMin} min`;
+  if (!el) return;
+  el.textContent = captureAutoOffset ? 'Auto' : (captureOffsetMin === 0 ? 'Default' : `+${captureOffsetMin} min`);
 }
 
 function showCaptureWindowModal() {
@@ -2906,20 +2956,32 @@ function showCaptureWindowModal() {
     `Core top-up ${fmtClock(23 * 60 + 30 + o)}–${fmtClock(2 * 60 + o)} · RHR ${fmtClock(0 + o)}–${fmtClock(210 + o)}`;
   const overlay = openModal(`
     <div class="modal-title">Capture Window</div>
-    <div class="modal-desc">Had a late night? Slide right to push the overnight-capture windows up to an hour later so they still land on your deep and core sleep. Applies to your next import.</div>
-    <input type="range" id="capWinSlider" min="0" max="60" step="5" value="${captureOffsetMin}" style="width:100%;accent-color:var(--accent);margin:2px 0 6px;">
-    <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--muted);">
-      <span>Default</span><span id="capWinVal" style="color:var(--accent);font-weight:500;">${captureOffsetMin === 0 ? 'Default' : '+' + captureOffsetMin + ' min'}</span><span>+1 h</span>
+    <div class="modal-desc">The overnight capture reads your deep/core sleep in a set window. A late night pushes that sleep later, so the window can shift with it.</div>
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;font-family:var(--font-mono);font-size:12px;color:var(--text);">
+      <input type="checkbox" id="capWinAuto" ${captureAutoOffset ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent);">
+      <span>Auto — shift to match your first deep cycle</span>
+    </label>
+    <div id="capWinManual" style="opacity:${captureAutoOffset ? '0.4' : '1'};pointer-events:${captureAutoOffset ? 'none' : 'auto'};transition:opacity 0.2s;">
+      <input type="range" id="capWinSlider" min="0" max="60" step="5" value="${captureOffsetMin}" style="width:100%;accent-color:var(--accent);margin:6px 0;">
+      <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--muted);">
+        <span>Default</span><span id="capWinVal" style="color:var(--accent);font-weight:500;">${captureOffsetMin === 0 ? 'Default' : '+' + captureOffsetMin + ' min'}</span><span>+1 h</span>
+      </div>
+      <div id="capWinWindows" style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;">${windowsFor(captureOffsetMin)}</div>
     </div>
-    <div id="capWinWindows" style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;margin-top:8px;">${windowsFor(captureOffsetMin)}</div>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-save>SAVE</button>
     </div>
   `);
+  const auto   = overlay.querySelector('#capWinAuto');
+  const manual = overlay.querySelector('#capWinManual');
   const slider = overlay.querySelector('#capWinSlider');
   const valLbl = overlay.querySelector('#capWinVal');
   const winLbl = overlay.querySelector('#capWinWindows');
+  auto.addEventListener('change', () => {
+    manual.style.opacity = auto.checked ? '0.4' : '1';
+    manual.style.pointerEvents = auto.checked ? 'none' : 'auto';
+  });
   slider.addEventListener('input', () => {
     const o = parseInt(slider.value, 10) || 0;
     valLbl.textContent = o === 0 ? 'Default' : `+${o} min`;
@@ -2927,11 +2989,14 @@ function showCaptureWindowModal() {
   });
   overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
   overlay.querySelector('[data-save]').addEventListener('click', () => {
+    captureAutoOffset = auto.checked;
     captureOffsetMin = Math.max(0, Math.min(60, parseInt(slider.value, 10) || 0));
+    activeCaptureOffset = captureOffsetMin;
     saveCaptureOffset();
     updateCaptureBar();
     overlay.remove();
-    showToast(captureOffsetMin === 0 ? 'Capture window: default' : `Capture window shifted +${captureOffsetMin} min`);
+    showToast(captureAutoOffset ? 'Capture window: auto (from deep sleep)'
+      : captureOffsetMin === 0 ? 'Capture window: default' : `Capture window shifted +${captureOffsetMin} min`);
   });
 }
 
@@ -3760,6 +3825,8 @@ function saveCalcResult() {
     hrv: $('calcValue').textContent,
     hrvColor: $('calcValue').style.color,
     label: $('calcLabel').textContent,
+    windowInfo: $('calcWindowInfo').textContent,
+    windowInfoVisible: $('calcWindowInfo').style.display !== 'none',
     readings: $('calcReadings').innerHTML,
     rhrVisible: $('calcRHRDisplay').style.display !== 'none',
     rhr: $('calcRHRValue').textContent,
@@ -3794,6 +3861,8 @@ function restoreCalcResult() {
     $('calcValue').textContent = s.hrv;
     $('calcValue').style.color = s.hrvColor;
     $('calcLabel').textContent = s.label;
+    $('calcWindowInfo').textContent = s.windowInfo || '';
+    $('calcWindowInfo').style.display = s.windowInfoVisible ? '' : 'none';
     $('calcReadings').innerHTML = s.readings;
     $('calcRHRDisplay').style.display = s.rhrVisible ? '' : 'none';
     $('calcRHRValue').textContent = s.rhr;
