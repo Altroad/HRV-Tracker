@@ -1174,10 +1174,10 @@
   },
   "lastResult": {
     "savedAt": "2026-08-03",
-    "hrv": "90",
-    "hrvColor": "rgb(76, 175, 80)",
+    "hrv": "72",
+    "hrvColor": "rgb(255, 152, 0)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "readings": "<div class=\"calc-chip deep dropped\">22:42 · <strong>50</strong></div><div class=\"calc-group\" style=\"--ncells:5\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:42</span><span class=\"calc-cell-v\">68</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:57</span><span class=\"calc-cell-v\">87</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:13</span><span class=\"calc-cell-v\">98</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:28</span><span class=\"calc-cell-v\">110</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:42</span><span class=\"calc-cell-v\">113</span></div></div><div class=\"calc-chip core\">2:12 · <strong>88</strong></div>",
+    "readings": "<div class=\"calc-chip deep dropped\">22:42 · <strong>50</strong></div><div class=\"calc-group\" style=\"--ncells:6\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:12</span><span class=\"calc-cell-v\">52</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:27</span><span class=\"calc-cell-v\">53</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:42</span><span class=\"calc-cell-v\">68</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:57</span><span class=\"calc-cell-v\">87</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:13</span><span class=\"calc-cell-v\">98</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:28</span><span class=\"calc-cell-v\">110</span></div></div>",
     "rhrVisible": true,
     "rhr": "38",
     "rhrColor": "rgb(76, 175, 80)",
