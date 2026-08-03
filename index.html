@@ -3283,6 +3283,10 @@ function showSyncModal() {
     readings = [];
     rhrData = {}; rhrNotes = {}; tempData = {}; workoutData = {};
     tempBaseline = null; tempBaselineSetDate = null;
+    // Reload the capture offset for the newly-selected user so one person's
+    // late-night shift can't linger into another user's session on a shared device.
+    loadCaptureOffset();
+    updateCaptureBar();
     $('calcResult').classList.remove('show');
     overlay.remove();
     updateSyncStatus();
