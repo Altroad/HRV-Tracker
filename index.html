@@ -690,6 +690,21 @@ function getAveragedByDate() {
   }));
 }
 
+// Collapse accidental duplicate-date readings to the most recent one (highest id).
+// One reading per date is the norm now that every entry path prompts to replace;
+// leftover duplicates from before that existed would otherwise be averaged on the
+// graph. Returns how many readings were removed. Never touches other users' data.
+function dedupeReadings() {
+  const byDate = new Map();
+  for (const r of readings) {
+    const cur = byDate.get(r.date);
+    if (!cur || (Number(r.id) || 0) > (Number(cur.id) || 0)) byDate.set(r.date, r);
+  }
+  const removed = readings.length - byDate.size;
+  if (removed > 0) readings = [...byDate.values()];
+  return removed;
+}
+
 function rollingAverage(values, window = 7) {
   return values.map((_, i) => {
     const slice = values.slice(Math.max(0, i - window + 1), i + 1);
@@ -3980,6 +3995,11 @@ async function init() {
     }
   } else {
     load();
+  }
+  const removedDupes = dedupeReadings();
+  if (removedDupes > 0) {
+    save();
+    showToast(`Merged ${removedDupes} duplicate reading${removedDupes > 1 ? 's' : ''}`);
   }
   syncResultTempWithData();
   render();
