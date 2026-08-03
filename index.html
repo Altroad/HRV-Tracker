@@ -1978,7 +1978,23 @@ function flipMetrics() {
 
 // ---------- CRUD ----------
 
-function addEntry() {
+// Shared "a reading already exists for this date" prompt. Resolves true to replace.
+function confirmReplaceEntry(date) {
+  return new Promise(resolve => {
+    const overlay = openModal(`
+      <div class="modal-title">Entry Exists</div>
+      <div class="modal-desc">A reading for ${resultDateLabel(date) || date} already exists. Replace it with this one?</div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" data-keep>KEEP</button>
+        <button class="modal-btn" data-replace>REPLACE</button>
+      </div>
+    `);
+    overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); resolve(false); });
+    overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); resolve(true); });
+  });
+}
+
+async function addEntry() {
   const date = $('inputDate').value;
   const hrv = parseInt($('inputHRV').value);
   const rhr = parseInt($('inputRHR').value);
@@ -1986,6 +2002,13 @@ function addEntry() {
   const hasRHR = !isNaN(rhr) && rhr >= 25 && rhr <= 120;
   if (!date) { showToast('Select a date'); return; }
   if (!hasHRV && !hasRHR) { showToast('Enter HRV, RHR, or both'); return; }
+  // A reading already exists for this date — offer to replace rather than stack a
+  // second HRV entry (covers re-running Tools > Overnight Capture and Log Reading).
+  if (hasHRV && readings.some(r => r.date === date)) {
+    const replace = await confirmReplaceEntry(date);
+    if (!replace) { showToast('Kept existing entry'); return; }
+    readings = readings.filter(r => r.date !== date);
+  }
   if (hasHRV) { readings.push({ id: newId(), date, hrv }); save(); }
   if (hasRHR) { rhrData[date] = rhr; saveRHR(); }
   $('inputHRV').value = '';
@@ -3923,18 +3946,7 @@ async function runAutoImportText(text) {
   const exists = readings.some(r => r.date === date);
 
   if (exists) {
-    const replace = await new Promise(resolve => {
-      const overlay = openModal(`
-        <div class="modal-title">Entry Exists</div>
-        <div class="modal-desc">A reading for ${resultDateLabel(date) || date} already exists. Replace it with these results?</div>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" data-keep>KEEP</button>
-          <button class="modal-btn" data-replace>REPLACE</button>
-        </div>
-      `);
-      overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); resolve(false); });
-      overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); resolve(true); });
-    });
+    const replace = await confirmReplaceEntry(date);
     if (!replace) {
       // Undo kcal that runSlowWaveCalc appended
       try { workoutData = JSON.parse(kcalSnapshot); saveWorkout(); } catch {}
