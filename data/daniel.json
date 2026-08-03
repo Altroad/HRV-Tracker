@@ -599,6 +599,11 @@
       "note": "Felt like I was in heat stress for hours today. Ectopics were bad second half of ride."
     },
     {
+      "id": 240,
+      "date": "2026-08-03",
+      "hrv": 90
+    },
+    {
       "id": 239,
       "date": "2026-08-03",
       "hrv": 66,
@@ -690,7 +695,7 @@
     "2026-07-31": 39,
     "2026-08-01": 39,
     "2026-08-02": 37,
-    "2026-08-03": 40
+    "2026-08-03": 38
   },
   "rhrNotes": {},
   "temp": {
