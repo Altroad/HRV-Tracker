@@ -608,6 +608,11 @@
       "date": "2026-08-05",
       "hrv": 79,
       "tag": "100-200TSS"
+    },
+    {
+      "id": 247,
+      "date": "2026-08-06",
+      "hrv": 68
     }
   ],
   "rhr": {
@@ -696,7 +701,8 @@
     "2026-08-02": 37,
     "2026-08-03": 40,
     "2026-08-04": 39,
-    "2026-08-05": 39
+    "2026-08-05": 39,
+    "2026-08-06": 39
   },
   "rhrNotes": {},
   "temp": {
@@ -780,7 +786,8 @@
     "2026-08-02": 36.02330780029297,
     "2026-08-03": 36.2242546081543,
     "2026-08-04": 36.27582931518555,
-    "2026-08-05": 36.3220100402832
+    "2026-08-05": 36.3220100402832,
+    "2026-08-06": 36.31830596923828
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -1179,16 +1186,22 @@
         "name": "Activity",
         "kcal": 1899
       }
+    ],
+    "2026-08-05": [
+      {
+        "name": "Activity",
+        "kcal": 2611
+      }
     ]
   },
   "lastResult": {
     "savedAt": "2026-08-06",
-    "hrv": "81",
-    "hrvColor": "rgb(76, 175, 80)",
+    "hrv": "68",
+    "hrvColor": "rgb(255, 152, 0)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "windowInfo": "window +60 min",
+    "windowInfo": "AUTO · deep 23:02  ·  window default",
     "windowInfoVisible": true,
-    "readings": "<div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:12</span><span class=\"calc-cell-v\">65</span></div><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">23:27</span><span class=\"calc-cell-v\">61</span></div></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:42</span><span class=\"calc-cell-v\">62</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:57</span><span class=\"calc-cell-v\">91</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:12</span><span class=\"calc-cell-v\">71</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:27</span><span class=\"calc-cell-v\">123</span></div></div><div class=\"calc-chip deep\">4:12 · <strong>114</strong></div>",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:5\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:12</span><span class=\"calc-cell-v\">65</span></div><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">23:27</span><span class=\"calc-cell-v\">61</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:42</span><span class=\"calc-cell-v\">71</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:58</span><span class=\"calc-cell-v\">74</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:12</span><span class=\"calc-cell-v\">68</span></div></div><div class=\"calc-chip deep\">0:42 · <strong>62</strong></div><div class=\"calc-chip deep dropped\">4:12 · <strong>114</strong></div>",
     "rhrVisible": true,
     "rhr": "39",
     "rhrColor": "rgb(76, 175, 80)",
