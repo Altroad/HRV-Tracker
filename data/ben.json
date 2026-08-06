@@ -408,6 +408,11 @@
       "id": 89,
       "date": "2026-08-05",
       "hrv": 69
+    },
+    {
+      "id": 90,
+      "date": "2026-08-06",
+      "hrv": 45
     }
   ],
   "rhr": {
@@ -488,7 +493,8 @@
     "2026-08-02": 45,
     "2026-08-03": 44,
     "2026-08-04": 41,
-    "2026-08-05": 42
+    "2026-08-05": 42,
+    "2026-08-06": 47
   },
   "rhrNotes": {},
   "temp": {
@@ -562,7 +568,8 @@
     "2026-08-02": 35.92933654785156,
     "2026-08-03": 35.43408203125,
     "2026-08-04": 35.39875411987305,
-    "2026-08-05": 35.66031265258789
+    "2026-08-05": 35.66031265258789,
+    "2026-08-06": 35.83615112304688
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -801,6 +808,12 @@
         "name": "Activity",
         "kcal": 374
       }
+    ],
+    "2026-08-05": [
+      {
+        "name": "Activity",
+        "kcal": 550
+      }
     ]
   },
   "lastResult": {
@@ -808,7 +821,7 @@
     "hrv": "45",
     "hrvColor": "rgb(244, 67, 54)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "windowInfo": "window +30 min",
+    "windowInfo": "window default",
     "windowInfoVisible": true,
     "readings": "<div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:11</span><span class=\"calc-cell-v\">99</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:26</span><span class=\"calc-cell-v\">55</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:41</span><span class=\"calc-cell-v\">35</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:56</span><span class=\"calc-cell-v\">36</span></div></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">1:41</span><span class=\"calc-cell-v\">52</span></div><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">1:56</span><span class=\"calc-cell-v\">26</span></div></div><div class=\"calc-chip deep\">8:11 · <strong>50</strong></div>",
     "rhrVisible": true,
