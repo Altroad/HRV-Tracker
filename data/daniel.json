@@ -812,7 +812,8 @@
     "2026-08-06": 36.31830596923828,
     "2026-08-07": 36.31783676147461,
     "2026-08-08": 36.10441207885742,
-    "2026-08-09": 36.16080093383789
+    "2026-08-09": 36.16080093383789,
+    "2026-08-10": 36.08431243896484
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -1235,20 +1236,26 @@
         "name": "Activity",
         "kcal": 2701
       }
+    ],
+    "2026-08-09": [
+      {
+        "name": "Activity",
+        "kcal": 2626
+      }
     ]
   },
   "lastResult": {
     "savedAt": "2026-08-10",
-    "hrv": "64",
-    "hrvColor": "rgb(244, 67, 54)",
+    "hrv": "69",
+    "hrvColor": "rgb(255, 152, 0)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "windowInfo": "window +60 min",
+    "windowInfo": "AUTO · deep 22:26  ·  window default",
     "windowInfoVisible": true,
-    "readings": "<div class=\"calc-chip deep dropped\">22:27 · <strong>47</strong></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:42</span><span class=\"calc-cell-v\">53</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:57</span><span class=\"calc-cell-v\">61</span></div></div><div class=\"calc-chip deep\">0:42 · <strong>84</strong></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:27</span><span class=\"calc-cell-v\">96</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:43</span><span class=\"calc-cell-v\">66</span></div></div><div class=\"calc-chip deep\">4:12 · <strong>55</strong></div>",
+    "readings": "<div class=\"calc-chip deep dropped\">22:27 · <strong>47</strong></div><div class=\"calc-group\" style=\"--ncells:5\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:42</span><span class=\"calc-cell-v\">53</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:57</span><span class=\"calc-cell-v\">61</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:12</span><span class=\"calc-cell-v\">123</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:27</span><span class=\"calc-cell-v\">92</span></div><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">0:42</span><span class=\"calc-cell-v\">84</span></div></div><div class=\"calc-chip deep\">4:12 · <strong>55</strong></div>",
     "rhrVisible": true,
-    "rhr": "39",
+    "rhr": "38",
     "rhrColor": "rgb(76, 175, 80)",
-    "rhrWindow": "2:07–2:19",
+    "rhrWindow": "0:51–1:01",
     "rhrWindowVisible": true,
     "workoutVisible": true,
     "workout": "2,626",
