@@ -2416,15 +2416,25 @@ function runSlowWaveCalc(text, overlay) {
     const avg = Math.round(trimmed.reduce((a, b) => a + b.qty, 0) / trimmed.length);
     const statLabel = `${selected.length} readings`;
 
-    // Wrist temperature: a bare number trailing the pasted JSON — the native Health
-    // export (Shortcuts "Get Value" on a wrist-temp sample) returns a raw number.
+    // Wrist temperature, two supported shapes:
+    //  1) A Health Auto Export JSON block: metric "apple_sleeping_wrist_temperature".
+    //  2) A bare number trailing the pasted JSON (older Shortcut "Get Value" setup).
     let nightTemp = null;
-    // The appended temp is a standalone number after the JSON; require a whitespace
-    // (or start) boundary so a digit glued to another token isn't mistaken for it.
-    const trailingMatch = text.trim().match(/(?:^|\s)(-?\d+(?:\.\d+)?)\s*$/);
-    if (trailingMatch) {
-      const v = parseFloat(trailingMatch[1]);
-      if (v >= 30 && v <= 42) nightTemp = v;
+    const tempBlock = blocks.find(b => b?.data?.metrics?.some(m => m.name === 'apple_sleeping_wrist_temperature'));
+    if (tempBlock) {
+      const tm = tempBlock.data.metrics.find(m => m.name === 'apple_sleeping_wrist_temperature');
+      const pt = tm?.data?.length ? tm.data[tm.data.length - 1] : null; // most recent sample
+      const q = pt && typeof pt.qty === 'number' ? pt.qty : null;
+      if (q !== null && q >= 30 && q <= 42) nightTemp = q;
+    }
+    if (nightTemp === null) {
+      // Fallback: a standalone number after the JSON; require a whitespace (or start)
+      // boundary so a digit glued to another token isn't mistaken for it.
+      const trailingMatch = text.trim().match(/(?:^|\s)(-?\d+(?:\.\d+)?)\s*$/);
+      if (trailingMatch) {
+        const v = parseFloat(trailingMatch[1]);
+        if (v >= 30 && v <= 42) nightTemp = v;
+      }
     }
 
     // Try to extract RHR from heart_rate block if present
