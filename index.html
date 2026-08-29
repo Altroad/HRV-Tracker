@@ -75,8 +75,10 @@
   @keyframes cardIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
   .card-enter { animation: cardIn 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
   .today-card, .status-bar, .zones, #captureBar { transition: transform 0.12s ease; }
-  .today-card:active, .status-bar:active, .zones:active, #captureBar:active { transform: scale(0.985); }
-  .menu-btn:active, .sync-btn:active, .info-btn:active, .range-btn:active, .modal-btn:active, .quick-add-btn:active { transform: scale(0.92); }
+  .today-card:active, .status-bar:active, .zones:active, #captureBar:active,
+  .today-card.pressed, .status-bar.pressed, .zones.pressed, #captureBar.pressed { transform: scale(0.985); }
+  .menu-btn:active, .sync-btn:active, .info-btn:active, .range-btn:active, .modal-btn:active, .quick-add-btn:active,
+  .menu-btn.pressed, .sync-btn.pressed, .info-btn.pressed, .range-btn.pressed, .modal-btn.pressed, .quick-add-btn.pressed { transform: scale(0.92); }
   .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn { transition: transform 0.12s ease; }
   .import-fab:active { transform: translateX(-50%) scale(0.94); }
   .update-bar.show:active { transform: translateX(-50%) scale(0.95); }
@@ -437,7 +439,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-29.5';
+const APP_VERSION = '2026-08-29.6';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4046,8 +4048,16 @@ async function init() {
     el.style.animationDelay = `${Math.min(i, 8) * 45}ms`;
     el.classList.add('card-enter');
   });
-  // Empty touchstart listener makes iOS Safari honor :active press states
-  document.addEventListener('touchstart', () => {}, { passive: true });
+  // iOS's :active heuristic is unreliable, so drive press states directly:
+  // touchstart marks the nearest pressable element, touchend/cancel clears it.
+  const PRESSABLE = '.today-card, .status-bar, .zones, #captureBar, .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn, .quick-add-btn';
+  document.body.addEventListener('touchstart', e => {
+    const el = e.target.closest && e.target.closest(PRESSABLE);
+    if (el) el.classList.add('pressed');
+  }, { passive: true });
+  ['touchend', 'touchcancel'].forEach(ev => document.body.addEventListener(ev, () => {
+    document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
+  }, { passive: true }));
   $('versionFooter').textContent = `v${APP_VERSION} · TAP TO CHECK FOR UPDATES`;
   // First launch of a new version: announce it unmissably, then remember it.
   try {
