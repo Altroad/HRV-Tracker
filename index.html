@@ -80,6 +80,8 @@
   .today-card.pressed, .status-bar.pressed, .zones.pressed, #captureBar.pressed { transform: scale(0.985); filter: brightness(1.15); }
   .menu-btn:active, .sync-btn:active, .info-btn:active, .range-btn:active, .modal-btn:active, .quick-add-btn:active,
   .menu-btn.pressed, .sync-btn.pressed, .info-btn.pressed, .range-btn.pressed, .modal-btn.pressed, .quick-add-btn.pressed { transform: scale(0.92); }
+  #versionFooter { transition: transform 0.12s ease; }
+  #versionFooter:active, #versionFooter.pressed { transform: scale(0.94); }
   .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn { transition: transform 0.12s ease; }
   .import-fab:active { transform: translateX(-50%) scale(0.94); }
   .update-bar.show:active { transform: translateX(-50%) scale(0.95); }
@@ -439,7 +441,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-29.8';
+const APP_VERSION = '2026-08-29.9';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -670,21 +672,44 @@ function saveQuickAdd() {
 // a fresh deploy can take that long to be noticed — fine for this purpose.
 let _updateFound = false;
 let _lastUpdateCheck = 0;
+let _checkInFlight = false;
+let _footerRevert = null;
+// The footer doubles as the check's status line: CHECKING… lands instantly on
+// tap (a network round-trip follows, so silence there invited double-taps),
+// then the colored result shows inline before reverting to the idle prompt.
+function footerIdle() {
+  const f = $('versionFooter');
+  f.textContent = `v${APP_VERSION} · TAP TO CHECK FOR UPDATES`;
+  f.style.color = '';
+}
+function footerState(text, color, revertMs) {
+  const f = $('versionFooter');
+  f.textContent = text;
+  f.style.color = color;
+  clearTimeout(_footerRevert);
+  if (revertMs) _footerRevert = setTimeout(footerIdle, revertMs);
+}
 async function checkForUpdate(force) {
+  if (_checkInFlight) return;
   if (_updateFound) { if (force) $('updateBar').classList.add('show'); return; }
   if (!force && Date.now() - _lastUpdateCheck < 5 * 60 * 1000) return;
   _lastUpdateCheck = Date.now();
+  _checkInFlight = true;
+  if (force) footerState('CHECKING…', 'var(--accent)');
   try {
     const res = await fetch('index.html', { cache: 'no-store' });
-    if (!res.ok) { if (force) showToast('Update check failed — try again'); return; }
-    const remote = (await res.text()).match(/APP_VERSION = '([^']+)'/);
+    const remote = res.ok ? (await res.text()).match(/APP_VERSION = '([^']+)'/) : null;
     if (remote && remote[1] !== APP_VERSION) {
       _updateFound = true;
       $('updateBar').classList.add('show');
+      if (force) footerState(`UPDATE FOUND — v${remote[1]}`, 'var(--accent)');
     } else if (force) {
-      showToast(`Up to date ✓ v${APP_VERSION}`);
+      if (remote) footerState(`UP TO DATE ✓ v${APP_VERSION}`, '#4caf50', 2500);
+      else footerState('CHECK FAILED — TAP TO RETRY', '#f44336', 3000);
     }
-  } catch { if (force) showToast('Update check failed — offline?'); }
+  } catch {
+    if (force) footerState('CHECK FAILED — TAP TO RETRY', '#f44336', 3000);
+  } finally { _checkInFlight = false; }
 }
 
 // ---------- Count-up animation ----------
@@ -4052,7 +4077,7 @@ async function init() {
   });
   // iOS's :active heuristic is unreliable, so drive press states directly:
   // touchstart marks the nearest pressable element, touchend/cancel clears it.
-  const PRESSABLE = '.today-card, .status-bar, .zones, #captureBar, .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn, .quick-add-btn';
+  const PRESSABLE = '.today-card, .status-bar, .zones, #captureBar, .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn, .quick-add-btn, #versionFooter';
   document.body.addEventListener('touchstart', e => {
     const el = e.target.closest && e.target.closest(PRESSABLE);
     if (el) el.classList.add('pressed');
@@ -4060,7 +4085,7 @@ async function init() {
   ['touchend', 'touchcancel'].forEach(ev => document.body.addEventListener(ev, () => {
     document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
   }, { passive: true }));
-  $('versionFooter').textContent = `v${APP_VERSION} · TAP TO CHECK FOR UPDATES`;
+  footerIdle();
   // First launch of a new version: announce it unmissably, then remember it.
   try {
     if (localStorage.getItem('hrv_seen_version') !== APP_VERSION) {
