@@ -217,6 +217,8 @@
   /* Toast */
   .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; padding:10px 20px; border-radius:8px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
   .toast.show { opacity:1; }
+  .update-bar { position:fixed; bottom:calc(env(safe-area-inset-bottom, 0px) + 64px); left:50%; transform:translateX(-50%) translateY(8px); background:var(--accent); color:#000; padding:11px 22px; border-radius:22px; font-family:var(--font-mono); font-size:12px; letter-spacing:1px; font-weight:500; cursor:pointer; z-index:998; box-shadow:0 4px 16px rgba(0,0,0,0.45); opacity:0; pointer-events:none; transition:opacity 0.3s, transform 0.3s; white-space:nowrap; }
+  .update-bar.show { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
   .import-fab { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; border:none; border-radius:20px; font-family:var(--font-mono); font-size:11px; letter-spacing:2px; padding:10px 18px; cursor:pointer; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.4); transition:opacity 0.6s; }
 
   /* Modal */
@@ -415,11 +417,14 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="update-bar" id="updateBar" onclick="location.reload()">↻ UPDATE READY — TAP TO REFRESH</div>
 <button class="import-fab" id="importFab" style="display:none;">IMPORT</button>
 <div style="text-align:right;padding:8px 4px 4px;font-family:var(--font-mono);font-size:9px;color:var(--muted);opacity:0.4;">v2026-05-19.2</div>
 
 <script>
 // ---------- Config ----------
+// Bump on every deploy — the update banner compares this against the deployed file.
+const APP_VERSION = '2026-08-29.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -641,6 +646,28 @@ function loadQuickAdd() {
 }
 function saveQuickAdd() {
   try { localStorage.setItem(QUICK_ADD_KEY, JSON.stringify(quickAddTags)); } catch {}
+}
+
+// ---------- Update check ----------
+// Fetch the deployed index.html (bypassing the browser cache; the service worker
+// passes the request straight to the network) and compare its APP_VERSION stamp
+// against the running copy's. GitHub Pages' CDN caches for up to ~10 minutes, so
+// a fresh deploy can take that long to be noticed — fine for this purpose.
+let _updateFound = false;
+let _lastUpdateCheck = 0;
+async function checkForUpdate() {
+  if (_updateFound) return;
+  if (Date.now() - _lastUpdateCheck < 5 * 60 * 1000) return;
+  _lastUpdateCheck = Date.now();
+  try {
+    const res = await fetch('index.html', { cache: 'no-store' });
+    if (!res.ok) return;
+    const remote = (await res.text()).match(/APP_VERSION = '([^']+)'/);
+    if (remote && remote[1] !== APP_VERSION) {
+      _updateFound = true;
+      $('updateBar').classList.add('show');
+    }
+  } catch {}
 }
 
 function showToast(msg) {
@@ -4026,12 +4053,14 @@ async function init() {
   let _lastSyncTs = Date.now();
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
+    checkForUpdate();
     if (Date.now() - _lastSyncTs < 3 * 60 * 1000) return;
     if (!getGHToken()) return;
     _lastSyncTs = Date.now();
     await loadFromGitHub();
     render();
   });
+  setTimeout(checkForUpdate, 4000); // also check shortly after launch, off the critical path
 }
 
 async function runAutoImportText(text) {
