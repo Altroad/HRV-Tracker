@@ -426,6 +426,8 @@
   <button class="btn-secondary" style="width:100%;" onclick="showJournalModal()">Data Analysis</button>
 </div>
 
+<div id="versionFooter" onclick="checkForUpdate(true)" style="text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--muted);opacity:0.65;padding:4px 0 20px;cursor:pointer;letter-spacing:1px;"></div>
+
 <div class="toast" id="toast"></div>
 <div class="update-bar" id="updateBar" onclick="location.reload()">↻ UPDATE READY — TAP TO REFRESH</div>
 <button class="import-fab" id="importFab" style="display:none;">IMPORT</button>
@@ -434,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-29.2';
+const APP_VERSION = '2026-08-29.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -665,19 +667,21 @@ function saveQuickAdd() {
 // a fresh deploy can take that long to be noticed — fine for this purpose.
 let _updateFound = false;
 let _lastUpdateCheck = 0;
-async function checkForUpdate() {
-  if (_updateFound) return;
-  if (Date.now() - _lastUpdateCheck < 5 * 60 * 1000) return;
+async function checkForUpdate(force) {
+  if (_updateFound) { if (force) $('updateBar').classList.add('show'); return; }
+  if (!force && Date.now() - _lastUpdateCheck < 5 * 60 * 1000) return;
   _lastUpdateCheck = Date.now();
   try {
     const res = await fetch('index.html', { cache: 'no-store' });
-    if (!res.ok) return;
+    if (!res.ok) { if (force) showToast('Update check failed — try again'); return; }
     const remote = (await res.text()).match(/APP_VERSION = '([^']+)'/);
     if (remote && remote[1] !== APP_VERSION) {
       _updateFound = true;
       $('updateBar').classList.add('show');
+    } else if (force) {
+      showToast(`Up to date ✓ v${APP_VERSION}`);
     }
-  } catch {}
+  } catch { if (force) showToast('Update check failed — offline?'); }
 }
 
 // ---------- Count-up animation ----------
@@ -4043,6 +4047,7 @@ async function init() {
   });
   // Empty touchstart listener makes iOS Safari honor :active press states
   document.addEventListener('touchstart', () => {}, { passive: true });
+  $('versionFooter').textContent = `v${APP_VERSION} · TAP TO CHECK FOR UPDATES`;
   drawYAxis();
   restoreCalcResult();
   $('addBtn').addEventListener('click', addEntry);
