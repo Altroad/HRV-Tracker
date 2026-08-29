@@ -29,7 +29,8 @@
   }
 
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; padding:24px 20px 60px; overscroll-behavior-y:contain; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; padding:24px 20px 60px; overscroll-behavior-y:contain; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  input, textarea { -webkit-user-select:text; user-select:text; }
   .pull-indicator { text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--accent); letter-spacing:2px; height:0; overflow:hidden; opacity:0; transition:height 0.1s, opacity 0.1s; }
   .pull-indicator.visible { height:28px; opacity:1; line-height:28px; }
 
@@ -436,7 +437,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-29.4';
+const APP_VERSION = '2026-08-29.5';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
