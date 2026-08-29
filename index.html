@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-29.3';
+const APP_VERSION = '2026-08-29.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4048,6 +4048,13 @@ async function init() {
   // Empty touchstart listener makes iOS Safari honor :active press states
   document.addEventListener('touchstart', () => {}, { passive: true });
   $('versionFooter').textContent = `v${APP_VERSION} · TAP TO CHECK FOR UPDATES`;
+  // First launch of a new version: announce it unmissably, then remember it.
+  try {
+    if (localStorage.getItem('hrv_seen_version') !== APP_VERSION) {
+      localStorage.setItem('hrv_seen_version', APP_VERSION);
+      setTimeout(() => showToast(`Updated ✓ v${APP_VERSION}`), 900);
+    }
+  } catch {}
   drawYAxis();
   restoreCalcResult();
   $('addBtn').addEventListener('click', addEntry);
