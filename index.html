@@ -70,11 +70,7 @@
   @keyframes metricSlideIn  { 0%{opacity:0;transform:translateY(28px)} 100%{opacity:1;transform:translateY(0)} }
   .metric-anim-out { animation:metricSlideOut 0.17s ease-in forwards; }
   .metric-anim-in  { animation:metricSlideIn  0.2s  ease-out forwards; }
-  /* ---------- Touch feel & entrance motion ---------- */
-  @keyframes cardIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
-  /* 'backwards' fill (not 'both'): a filled animation pins its final transform at
-     animation-level priority forever, which would override the .pressed scale below. */
-  .card-enter { animation: cardIn 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) backwards; }
+  /* ---------- Touch press feedback ---------- */
   .today-card, .status-bar, .zones, #captureBar { transition: transform 0.12s ease, filter 0.12s ease; }
   .today-card:active, .status-bar:active, .zones:active, #captureBar:active,
   .today-card.pressed, .status-bar.pressed, .zones.pressed, #captureBar.pressed { transform: scale(0.985); filter: brightness(1.15); }
@@ -85,7 +81,6 @@
   .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn { transition: transform 0.12s ease; }
   .import-fab:active { transform: translateX(-50%) scale(0.94); }
   .update-bar.show:active { transform: translateX(-50%) scale(0.95); }
-  @media (prefers-reduced-motion: reduce) { .card-enter { animation: none; } }
 
   /* Status */
   .status-bar { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; flex-direction:column; gap:8px; position:relative; }
@@ -441,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-29.9';
+const APP_VERSION = '2026-08-30.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -710,24 +705,6 @@ async function checkForUpdate(force) {
   } catch {
     if (force) footerState('CHECK FAILED — TAP TO RETRY', '#f44336', 3000);
   } finally { _checkInFlight = false; }
-}
-
-// ---------- Count-up animation ----------
-// Rolls a numeric display up to its final value. While animating, the exact
-// final string is kept in data-final so saveCalcResult never persists a
-// partial mid-animation number; it's removed once the animation lands.
-const REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function countUp(el, target, format = v => String(Math.round(v))) {
-  const fin = format(target);
-  if (REDUCED_MOTION) { el.textContent = fin; return; }
-  el.dataset.final = fin;
-  const t0 = performance.now(), dur = 650;
-  const ease = p => 1 - Math.pow(1 - p, 3);
-  (function frame(now) {
-    const p = Math.min(1, (now - t0) / dur);
-    if (p < 1) { el.textContent = format(target * ease(p)); requestAnimationFrame(frame); }
-    else { el.textContent = fin; delete el.dataset.final; }
-  })(t0);
 }
 
 function showToast(msg) {
@@ -2561,7 +2538,7 @@ function runSlowWaveCalc(text, overlay) {
 
     overlay.remove();
     const panel = $('calcResult');
-    countUp($('calcValue'), avg);
+    $('calcValue').textContent = avg;
     $('calcValue').style.color = colorForHRV(avg);
     $('calcLabel').textContent = `Overnight Capture · Deep anchor + top-up · ${statLabel}`;
 
@@ -2574,7 +2551,7 @@ function runSlowWaveCalc(text, overlay) {
     $('calcWindowInfo').style.display = '';
 
     if (rhrResult) {
-      countUp($('calcRHRValue'), rhrResult.rhr);
+      $('calcRHRValue').textContent = rhrResult.rhr;
       $('calcRHRValue').style.color = rhrZoneColor(rhrResult.rhr);
       const wl = rhrResult.windowLabel || '';
       $('calcRHRWindow').textContent = wl;
@@ -2596,7 +2573,7 @@ function runSlowWaveCalc(text, overlay) {
       : (activityDate && workoutData[activityDate] !== undefined ? getKcalTotal(activityDate) : null);
 
     if (kcalForResult !== null) {
-      countUp($('calcWorkoutValue'), kcalForResult, v => Math.round(v).toLocaleString());
+      $('calcWorkoutValue').textContent = kcalForResult.toLocaleString();
       $('calcWorkoutDisplay').style.display = '';
     } else {
       $('calcWorkoutDisplay').style.display = 'none';
@@ -2766,7 +2743,7 @@ function applyCalcResult(filtered, methodLabel, overlay) {
   }
   overlay.remove();
   const panel = $('calcResult');
-  countUp($('calcValue'), avg);
+  $('calcValue').textContent = avg;
   $('calcValue').style.color = colorForHRV(avg);
   $('calcLabel').textContent = `${methodLabel} · ${statLabel}`;
   $('calcRHRDisplay').style.display = 'none';
@@ -3940,20 +3917,19 @@ function saveCalcResult() {
   const savedAt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
   const s = {
     savedAt,
-    // dataset.final holds the exact end value while a count-up is animating
-    hrv: $('calcValue').dataset.final || $('calcValue').textContent,
+    hrv: $('calcValue').textContent,
     hrvColor: $('calcValue').style.color,
     label: $('calcLabel').textContent,
     windowInfo: $('calcWindowInfo').textContent,
     windowInfoVisible: $('calcWindowInfo').style.display !== 'none',
     readings: $('calcReadings').innerHTML,
     rhrVisible: $('calcRHRDisplay').style.display !== 'none',
-    rhr: $('calcRHRValue').dataset.final || $('calcRHRValue').textContent,
+    rhr: $('calcRHRValue').textContent,
     rhrColor: $('calcRHRValue').style.color,
     rhrWindow: $('calcRHRWindow').textContent,
     rhrWindowVisible: $('calcRHRWindow').style.display !== 'none',
     workoutVisible: $('calcWorkoutDisplay').style.display !== 'none',
-    workout: $('calcWorkoutValue').dataset.final || $('calcWorkoutValue').textContent,
+    workout: $('calcWorkoutValue').textContent,
     tempVisible: $('calcTempDisplay').style.display !== 'none',
     temp: $('calcTempValue').textContent,
     tempColor: $('calcTempValue').style.color,
@@ -3977,9 +3953,6 @@ function restoreCalcResult() {
   if (!raw) return;
   try {
     const s = JSON.parse(raw);
-    // Direct restores set exact values; drop any leftover count-up markers so
-    // a later saveCalcResult reads the restored text, not a stale final.
-    ['calcValue', 'calcRHRValue', 'calcWorkoutValue'].forEach(id => { delete $(id).dataset.final; });
     $('calcValue').textContent = s.hrv;
     $('calcValue').style.color = s.hrvColor;
     $('calcLabel').textContent = s.label;
@@ -4068,13 +4041,6 @@ function syncResultTempWithData() {
 }
 
 async function init() {
-  // Staggered card entrance (transform-only, so no layout/canvas reflow)
-  document.querySelectorAll('.card, .status-bar, .zones, #captureBar').forEach((el, i) => {
-    el.style.animationDelay = `${Math.min(i, 8) * 45}ms`;
-    el.classList.add('card-enter');
-    // Drop the class once played so the animation can never pin transform again.
-    el.addEventListener('animationend', () => el.classList.remove('card-enter'), { once: true });
-  });
   // iOS's :active heuristic is unreliable, so drive press states directly:
   // touchstart marks the nearest pressable element, touchend/cancel clears it.
   const PRESSABLE = '.today-card, .status-bar, .zones, #captureBar, .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn, .quick-add-btn, #versionFooter';
