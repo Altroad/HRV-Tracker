@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-17.1';
+const APP_VERSION = '2026-09-17.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2397,6 +2397,12 @@ function runSlowWaveCalc(text, overlay) {
     if (hrvJsons.length < 2) throw new Error('Two HRV exports required');
 
     const allHRV = hrvJsons.flatMap(j => extractHRVReadings(j));
+    // Date the reading from the export itself — its latest HRV sample, i.e. the
+    // morning being captured — rather than from "today". An export collected
+    // from the inbox a day or more after it was written still lands on its own
+    // date instead of the day it happened to be imported.
+    const hrvDates = allHRV.map(readingLocalDate).filter(Boolean).sort();
+    if (hrvDates.length) $('inputDate').value = hrvDates[hrvDates.length - 1];
     const sleepMetric = sleepJson.data.metrics.find(m => m.name === 'sleep_analysis');
     const stages = sleepMetric.data.filter(s => {
       const src = (s.source || '').toLowerCase().replace(/[\s  ]+/g, ' ');
@@ -3257,6 +3263,10 @@ function getGHUser()  { return localStorage.getItem(GH_USER_KEY); }
 function getGHPath()  { const u = getGHUser(); return u ? `data/${u}.json` : 'data/readings.json'; }
 // Drop-box a Shortcut can PUT a raw export into; collected and cleared on launch.
 function getInboxPath() { const u = getGHUser(); return u ? `data/inbox-${u}.json` : 'data/inbox.json'; }
+// Timestamped uploads land in a folder, so a second run the same day creates a
+// new file rather than colliding with the first. The single-file path above is
+// still honoured for older Shortcut setups.
+function getInboxDir()  { const u = getGHUser(); return u ? `data/inbox-${u}` : 'data/inbox'; }
 
 async function ghRequest(method, body, path) {
   const token = getGHToken();
@@ -3281,28 +3291,51 @@ async function ghRequest(method, body, path) {
 // import path, then clear it. Deleting happens even when the import fails: the
 // payload is reproducible by re-running the Shortcut, whereas leaving it would
 // re-import (and re-prompt) on every launch. Returns true if something ran.
+async function importInboxFile(path) {
+  const res = await ghRequest('GET', null, path);
+  if (!res || !res.ok) return false;
+  let text, sha;
+  try {
+    const file = await res.json();
+    sha = file.sha;
+    const binary = atob(file.content.replace(/\n/g, ''));
+    text = new TextDecoder().decode(Uint8Array.from(binary, c => c.charCodeAt(0)));
+  } catch { return false; }
+  if (!text || !text.trim()) return false;
+  showToast('Inbox found — importing…');
+  try { await runAutoImportText(text); }
+  catch (e) { console.error('inbox import:', e); }
+  finally {
+    if (sha) await ghRequest('DELETE', { message: 'Clear inbox', sha }, path);
+  }
+  return true;
+}
+
 let _inboxBusy = false;
 async function checkInbox() {
   if (_inboxBusy || !getGHToken()) return false;
   _inboxBusy = true;
+  let any = false;
   try {
-    const res = await ghRequest('GET', null, getInboxPath());
-    if (!res || !res.ok) return false; // 404 = nothing waiting, the normal case
-    let text, sha;
-    try {
-      const file = await res.json();
-      sha = file.sha;
-      const binary = atob(file.content.replace(/\n/g, ''));
-      text = new TextDecoder().decode(Uint8Array.from(binary, c => c.charCodeAt(0)));
-    } catch { return false; }
-    if (!text || !text.trim()) { sha = null; return false; }
-    showToast('Inbox found — importing…');
-    try { await runAutoImportText(text); }
-    catch (e) { console.error('inbox import:', e); }
-    finally {
-      if (sha) await ghRequest('DELETE', { message: 'Clear inbox', sha }, getInboxPath());
+    // Legacy single-file drop (pre-timestamp Shortcut setups).
+    if (await importInboxFile(getInboxPath())) any = true;
+    // Timestamped folder: process oldest first so a backlog replays in order and
+    // each export dates itself, rather than all landing on today.
+    const dir = await ghRequest('GET', null, getInboxDir());
+    if (dir && dir.ok) {
+      let files = [];
+      try {
+        const listing = await dir.json();
+        if (Array.isArray(listing)) {
+          files = listing.filter(f => f.type === 'file' && /\.json$/i.test(f.name))
+                         .map(f => f.path).sort();
+        }
+      } catch {}
+      for (const path of files) {
+        if (await importInboxFile(path)) any = true;
+      }
     }
-    return true;
+    return any;
   } finally { _inboxBusy = false; }
 }
 
