@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-17.2';
+const APP_VERSION = '2026-09-17.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2401,7 +2401,11 @@ function runSlowWaveCalc(text, overlay) {
     // morning being captured — rather than from "today". An export collected
     // from the inbox a day or more after it was written still lands on its own
     // date instead of the day it happened to be imported.
-    const hrvDates = allHRV.map(readingLocalDate).filter(Boolean).sort();
+    // Read the field directly rather than via readingLocalDate, which throws on a
+    // point carrying neither date nor start; a single malformed sample must not
+    // take down the whole capture.
+    const hrvDates = allHRV.map(r => ((r && (r.start || r.date)) || '').trim().slice(0, 10))
+                           .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
     if (hrvDates.length) $('inputDate').value = hrvDates[hrvDates.length - 1];
     const sleepMetric = sleepJson.data.metrics.find(m => m.name === 'sleep_analysis');
     const stages = sleepMetric.data.filter(s => {
