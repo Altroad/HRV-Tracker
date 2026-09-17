@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-08-30.1';
+const APP_VERSION = '2026-09-17.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3255,11 +3255,13 @@ let ghFileSha = null;
 function getGHToken() { return localStorage.getItem(GH_PAT_KEY); }
 function getGHUser()  { return localStorage.getItem(GH_USER_KEY); }
 function getGHPath()  { const u = getGHUser(); return u ? `data/${u}.json` : 'data/readings.json'; }
+// Drop-box a Shortcut can PUT a raw export into; collected and cleared on launch.
+function getInboxPath() { const u = getGHUser(); return u ? `data/inbox-${u}.json` : 'data/inbox.json'; }
 
-async function ghRequest(method, body) {
+async function ghRequest(method, body, path) {
   const token = getGHToken();
   if (!token) return null;
-  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${getGHPath()}`;
+  const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${path || getGHPath()}`;
   const opts = {
     method,
     mode: 'cors',
@@ -3273,6 +3275,35 @@ async function ghRequest(method, body) {
   };
   if (body) opts.body = JSON.stringify(body);
   try { return await fetch(url, opts); } catch(e) { console.error('ghRequest:', e); return null; }
+}
+
+// Collect a raw export a Shortcut left in the repo, run it through the normal
+// import path, then clear it. Deleting happens even when the import fails: the
+// payload is reproducible by re-running the Shortcut, whereas leaving it would
+// re-import (and re-prompt) on every launch. Returns true if something ran.
+let _inboxBusy = false;
+async function checkInbox() {
+  if (_inboxBusy || !getGHToken()) return false;
+  _inboxBusy = true;
+  try {
+    const res = await ghRequest('GET', null, getInboxPath());
+    if (!res || !res.ok) return false; // 404 = nothing waiting, the normal case
+    let text, sha;
+    try {
+      const file = await res.json();
+      sha = file.sha;
+      const binary = atob(file.content.replace(/\n/g, ''));
+      text = new TextDecoder().decode(Uint8Array.from(binary, c => c.charCodeAt(0)));
+    } catch { return false; }
+    if (!text || !text.trim()) { sha = null; return false; }
+    showToast('Inbox found — importing…');
+    try { await runAutoImportText(text); }
+    catch (e) { console.error('inbox import:', e); }
+    finally {
+      if (sha) await ghRequest('DELETE', { message: 'Clear inbox', sha }, getInboxPath());
+    }
+    return true;
+  } finally { _inboxBusy = false; }
 }
 
 function decodeMojibake(v) {
@@ -4095,10 +4126,13 @@ async function init() {
   }
   syncResultTempWithData();
   render();
+  // A Shortcut upload wins over the clipboard: if it imported, skip both the
+  // ?autoimport= clipboard read and the manual import FAB.
+  const inboxImported = await checkInbox();
   if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
     history.replaceState(null, '', window.location.pathname);
-    autoImport();
-  } else if (navigator.standalone) {
+    if (!inboxImported) autoImport();
+  } else if (!inboxImported && navigator.standalone) {
     const fab = $('importFab');
     fab.style.display = '';
     const fabTimer = setTimeout(() => { fab.style.opacity = '0'; setTimeout(() => { fab.style.display = 'none'; }, 600); }, 3000);
@@ -4109,8 +4143,12 @@ async function init() {
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
     checkForUpdate();
-    if (Date.now() - _lastSyncTs < 3 * 60 * 1000) return;
     if (!getGHToken()) return;
+    // Unthrottled, so a Shortcut run while the app sits in the background is
+    // picked up the moment you switch back. The import syncs itself, so skip
+    // the periodic pull when one ran.
+    if (await checkInbox()) { _lastSyncTs = Date.now(); return; }
+    if (Date.now() - _lastSyncTs < 3 * 60 * 1000) return;
     _lastSyncTs = Date.now();
     await loadFromGitHub();
     render();
