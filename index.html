@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-17.3';
+const APP_VERSION = '2026-09-17.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3305,7 +3305,15 @@ async function importInboxFile(path) {
     const binary = atob(file.content.replace(/\n/g, ''));
     text = new TextDecoder().decode(Uint8Array.from(binary, c => c.charCodeAt(0)));
   } catch { return false; }
-  if (!text || !text.trim()) return false;
+  if (!text || !text.trim()) {
+    // An empty upload (e.g. a background automation whose clipboard read came
+    // back blank) would otherwise sit here forever, 422-ing every later upload.
+    if (sha) {
+      await ghRequest('DELETE', { message: 'Clear empty inbox', sha }, path);
+      showToast('Inbox file was empty — cleared');
+    }
+    return false;
+  }
   showToast('Inbox found — importing…');
   try { await runAutoImportText(text); }
   catch (e) { console.error('inbox import:', e); }
