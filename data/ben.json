@@ -760,7 +760,7 @@
     "2026-09-14": 34.6312255859375,
     "2026-09-15": 35.46833038330078,
     "2026-09-16": 35.09322738647461,
-    "2026-09-17": 35.09322738647461
+    "2026-09-17": 35.10146713256836
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -1203,9 +1203,9 @@
     "workoutVisible": true,
     "workout": "387",
     "tempVisible": true,
-    "temp": "35.09",
+    "temp": "35.10",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "-0.47°",
+    "tempDelta": "-0.46°",
     "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
