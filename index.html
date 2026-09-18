@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-17.4';
+const APP_VERSION = '2026-09-18.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -640,6 +640,38 @@ function addKcalItem(date, item) {
 // Replace a date's previously-imported Activity items with a fresh set from an
 // import, preserving any manually-added (non-Activity) items. Idempotent, so
 // re-importing the same day overwrites rather than stacking kcal.
+// Two services (e.g. Garmin and Strava) can each write the same ride into Health,
+// which would otherwise be summed and roughly double the day's kcal. Their
+// HealthKit ids differ, so the reliable signal is that they cover the same
+// stretch of time: treat workouts overlapping by more than half of the shorter
+// one as a single activity and keep whichever logged more energy. Genuinely
+// separate sessions don't overlap, so they're both kept and still summed.
+function workoutKcal(w) {
+  const ae = w && w.activeEnergy;
+  if (!ae || !ae.qty) return 0;
+  return ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
+}
+function dedupeWorkouts(workouts) {
+  const spans = (workouts || []).map(w => {
+    const s = w && w.start ? parseSleepTs(w.start).getTime() : NaN;
+    let e = w && w.end ? parseSleepTs(w.end).getTime() : NaN;
+    // Fall back to the duration (seconds) when no end timestamp is given.
+    if (isNaN(e) && !isNaN(s) && typeof w.duration === 'number') e = s + w.duration * 1000;
+    return { w, s, e: isNaN(e) ? s : e };
+  }).filter(x => !isNaN(x.s)).sort((a, b) => a.s - b.s);
+  const kept = [];
+  for (const cur of spans) {
+    const dup = kept.find(k => {
+      const overlap = Math.min(k.e, cur.e) - Math.max(k.s, cur.s);
+      const shorter = Math.min(k.e - k.s, cur.e - cur.s);
+      return shorter > 0 && overlap > shorter * 0.5;
+    });
+    if (!dup) kept.push(cur);
+    else if (workoutKcal(cur.w) > workoutKcal(dup.w)) { dup.w = cur.w; dup.s = cur.s; dup.e = cur.e; }
+  }
+  return kept.map(k => k.w);
+}
+
 function applyImportedKcal(date, items) {
   const manual = getKcalItems(date).filter(it => it.name !== 'Activity');
   workoutData[date] = [...manual, ...items];
@@ -2531,10 +2563,9 @@ function runSlowWaveCalc(text, overlay) {
     let importedKcal = null;
     lastKcalImport = {};
     if (workoutBlock) {
-      for (const w of workoutBlock.data.workouts) {
-        const ae = w.activeEnergy;
-        if (!ae || !ae.qty) continue;
-        const kcal = ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
+      for (const w of dedupeWorkouts(workoutBlock.data.workouts)) {
+        const kcal = workoutKcal(w);
+        if (!kcal) continue;
         const dateStr = w.start ? w.start.substring(0, 10) : null;
         if (!dateStr) continue;
         const item = { name: 'Activity', kcal: Math.round(kcal) };
