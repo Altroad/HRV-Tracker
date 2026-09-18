@@ -1742,6 +1742,10 @@
       {
         "name": "Manual",
         "kcal": 1668
+      },
+      {
+        "name": "Activity",
+        "kcal": 1464
       }
     ]
   },
@@ -1758,8 +1762,8 @@
     "rhrColor": "rgb(76, 175, 80)",
     "rhrWindow": "2:01–2:11",
     "rhrWindowVisible": true,
-    "workoutVisible": false,
-    "workout": "2,792",
+    "workoutVisible": true,
+    "workout": "1,464",
     "tempVisible": true,
     "temp": "35.99",
     "tempColor": "rgb(230, 124, 138)",
