@@ -915,6 +915,11 @@
       "tag": "<100TSS"
     },
     {
+      "id": 302,
+      "date": "2026-09-26",
+      "hrv": 84
+    },
+    {
       "id": 301,
       "date": "2026-09-26",
       "hrv": 84
@@ -1190,7 +1195,8 @@
     "2026-09-22": 36.29750061035156,
     "2026-09-23": 36.20211410522461,
     "2026-09-24": 36.02309036254883,
-    "2026-09-25": 36.32290267944336
+    "2026-09-25": 36.32290267944336,
+    "2026-09-26": 36.388431549072266
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -1856,12 +1862,12 @@
     "rhrWindowVisible": true,
     "workoutVisible": true,
     "workout": "1,118",
-    "tempVisible": false,
-    "temp": "36.32",
+    "tempVisible": true,
+    "temp": "36.39",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "+0.24°",
+    "tempDelta": "+0.26°",
     "tempDeltaColor": "rgb(230, 124, 138)",
-    "tempDeltaVisible": false,
+    "tempDeltaVisible": true,
     "sleepVisible": true,
     "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">6h 42m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">27m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">5h 1m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">1h 13m</span>",
     "sleepNums": "{\"total\":401.6,\"deep\":26.983333333333334,\"core\":301.2,\"rem\":73.41666666666667}",
