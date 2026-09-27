@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-18.1';
+const APP_VERSION = '2026-09-27.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -651,6 +651,16 @@ function workoutKcal(w) {
   if (!ae || !ae.qty) return 0;
   return ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
 }
+// The export carries no source field, but Strava and Garmin write complementary
+// fields for the same ride: Strava fills distance and average speed and leaves
+// elevation empty, while Garmin fills elevation and maxSpeed but reports zero
+// distance. That shape is how we tell them apart — a fingerprint, not a real source,
+// so it degrades to the energy comparison rather than guessing if it ever changes.
+function looksLikeStrava(w) {
+  const dist = w && w.distance && w.distance.qty;
+  const speed = w && w.speed && w.speed.qty;
+  return dist > 0 || speed > 0;
+}
 function dedupeWorkouts(workouts) {
   const spans = (workouts || []).map(w => {
     const s = w && w.start ? parseSleepTs(w.start).getTime() : NaN;
@@ -666,8 +676,12 @@ function dedupeWorkouts(workouts) {
       const shorter = Math.min(k.e - k.s, cur.e - cur.s);
       return shorter > 0 && overlap > shorter * 0.5;
     });
-    if (!dup) kept.push(cur);
-    else if (workoutKcal(cur.w) > workoutKcal(dup.w)) { dup.w = cur.w; dup.s = cur.s; dup.e = cur.e; }
+    if (!dup) { kept.push(cur); continue; }
+    // Prefer the Strava copy of a duplicated ride; fall back to whichever logged
+    // more energy when neither (or both) carries the Strava fingerprint.
+    const curS = looksLikeStrava(cur.w), dupS = looksLikeStrava(dup.w);
+    const replace = curS !== dupS ? curS : workoutKcal(cur.w) > workoutKcal(dup.w);
+    if (replace) { dup.w = cur.w; dup.s = cur.s; dup.e = cur.e; }
   }
   return kept.map(k => k.w);
 }
