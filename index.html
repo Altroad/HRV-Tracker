@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-27.1';
+const APP_VERSION = '2026-09-27.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -646,17 +646,29 @@ function addKcalItem(date, item) {
 // stretch of time: treat workouts overlapping by more than half of the shorter
 // one as a single activity and keep whichever logged more energy. Genuinely
 // separate sessions don't overlap, so they're both kept and still summed.
+// v1 puts the workout total in activeEnergy; v2 moves it to activeEnergyBurned
+// and turns activeEnergy into a per-minute array. Handle both, summing the array
+// only as a last resort.
 function workoutKcal(w) {
-  const ae = w && w.activeEnergy;
-  if (!ae || !ae.qty) return 0;
-  return ae.units === 'kJ' ? ae.qty / 4.184 : ae.qty;
+  if (!w) return 0;
+  const toKcal = o => (o && typeof o.qty === 'number') ? (o.units === 'kJ' ? o.qty / 4.184 : o.qty) : 0;
+  const scalar = toKcal(w.activeEnergyBurned) || toKcal(w.activeEnergy);
+  if (scalar) return scalar;
+  if (Array.isArray(w.activeEnergy) && w.activeEnergy.length) {
+    const sum = w.activeEnergy.reduce((s, x) => s + ((x && x.qty) || 0), 0);
+    return (w.activeEnergy[0].units === 'kJ') ? sum / 4.184 : sum;
+  }
+  return 0;
 }
-// The export carries no source field, but Strava and Garmin write complementary
-// fields for the same ride: Strava fills distance and average speed and leaves
-// elevation empty, while Garmin fills elevation and maxSpeed but reports zero
-// distance. That shape is how we tell them apart — a fingerprint, not a real source,
-// so it degrades to the energy comparison rather than guessing if it ever changes.
-function looksLikeStrava(w) {
+// v2 exports name the writing app (e.g. {name:"Strava"}, {name:"Connect"}), so
+// use that when it's there. v1 has no source field at all, but the two write
+// complementary fields for the same ride — Strava fills distance and average
+// speed, Garmin fills elevation and maxSpeed and reports zero distance — so fall
+// back to that fingerprint rather than guessing.
+function isStravaWorkout(w) {
+  const src = w && w.source;
+  const label = src && String(src.name || src.identifier || '');
+  if (label) return /strava/i.test(label);
   const dist = w && w.distance && w.distance.qty;
   const speed = w && w.speed && w.speed.qty;
   return dist > 0 || speed > 0;
@@ -679,7 +691,7 @@ function dedupeWorkouts(workouts) {
     if (!dup) { kept.push(cur); continue; }
     // Prefer the Strava copy of a duplicated ride; fall back to whichever logged
     // more energy when neither (or both) carries the Strava fingerprint.
-    const curS = looksLikeStrava(cur.w), dupS = looksLikeStrava(dup.w);
+    const curS = isStravaWorkout(cur.w), dupS = isStravaWorkout(dup.w);
     const replace = curS !== dupS ? curS : workoutKcal(cur.w) > workoutKcal(dup.w);
     if (replace) { dup.w = cur.w; dup.s = cur.s; dup.e = cur.e; }
   }
