@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-28.1';
+const APP_VERSION = '2026-09-28.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1182,12 +1182,24 @@ function renderChart() {
   const allValues = allSorted.map(r => r.hrv);
   const allRolling = rollingAverage(allValues, chartRange <= 14 ? 7 : 14);
 
-  // 14D: show all data scrollable; 60D: slice to last chartRange; sparse 60D: treat like 14D
+  // 14D (and sparse 60D) scrolls through the last 8 months ending at the latest
+  // reading — the canvas widens by a point per reading, so uncapped history would
+  // make every draw slower indefinitely. 60D shows the last chartRange readings.
+  // Slicing after rollingAverage keeps the average line correct at the left edge.
   const isSparse = chartRange > 14 && allSorted.length < 14;
-  const sorted = (chartRange <= 14 || isSparse) ? allSorted : allSorted.slice(-chartRange);
+  let from;
+  if (chartRange <= 14 || isSparse) {
+    const cut = new Date(allSorted[allSorted.length - 1].date + 'T12:00:00');
+    cut.setMonth(cut.getMonth() - 8);
+    const cutStr = `${cut.getFullYear()}-${String(cut.getMonth() + 1).padStart(2, '0')}-${String(cut.getDate()).padStart(2, '0')}`;
+    from = allSorted.findIndex(r => r.date >= cutStr);
+  } else {
+    from = Math.max(0, allSorted.length - chartRange);
+  }
+  const sorted = allSorted.slice(from);
   const n = sorted.length;
-  const values = (chartRange <= 14 || isSparse) ? allValues : allValues.slice(-chartRange);
-  const rollingAvg = (chartRange <= 14 || isSparse) ? allRolling : allRolling.slice(-chartRange);
+  const values = allValues.slice(from);
+  const rollingAvg = allRolling.slice(from);
   const baselineArr = sorted.map(() => BASELINE);
 
   const sortedDates = sorted.map(r => r.date);
