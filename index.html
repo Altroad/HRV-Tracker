@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Baseline">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="theme-color" content="#0f1218">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
 <style>
   @font-face { font-family:'Bebas Neue'; font-style:normal; font-weight:400; font-display:swap; src:url('fonts/bebas-neue-400.woff2') format('woff2'); }
   @font-face { font-family:'DM Mono'; font-style:normal; font-weight:300; font-display:swap; src:url('fonts/dm-mono-300.woff2') format('woff2'); }
@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-27.2';
+const APP_VERSION = '2026-09-28.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -579,9 +579,10 @@ function saveRHR() {
   try { localStorage.setItem(getRhrNotesKey(), JSON.stringify(rhrNotes)); } catch {}
 }
 function getRollingMedianBaseline() {
-  const vals = Object.entries(tempData)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-14).map(([, v]) => v).sort((a, b) => a - b);
+  // ISO date keys sort chronologically as plain strings, so the native sort
+  // matches the old localeCompare ordering at a fraction of the cost.
+  const vals = Object.keys(tempData).sort().slice(-14)
+    .map(k => tempData[k]).sort((a, b) => a - b);
   if (!vals.length) return null;
   const mid = Math.floor(vals.length / 2);
   return vals.length % 2 === 0 ? (vals[mid - 1] + vals[mid]) / 2 : vals[mid];
@@ -1053,22 +1054,25 @@ function kcalHeatmapColor(kcal, ctl) {
   return `rgb(${Math.round(lo[1][0]+t*(hi[1][0]-lo[1][0]))},${Math.round(lo[1][1]+t*(hi[1][1]-lo[1][1]))},${Math.round(lo[1][2]+t*(hi[1][2]-lo[1][2]))})`;
 }
 
+// Mean kcal over the workout days so far until there are 42 of them, then over
+// the trailing 42 calendar days. Days with no workout contribute 0, so summing
+// just the workout days inside the window, in date order, gives exactly the
+// total a day-by-day walk would — without re-slicing the history per date.
 function computeKcalCTL() {
   const dates = Object.keys(workoutData).sort();
-  if (!dates.length) return {};
+  const kcal = dates.map(getKcalTotal);
   const result = {};
+  let prefix = 0, lo = 0;
   dates.forEach((d, i) => {
-    const slice = dates.slice(0, i + 1);
-    if (slice.length < 42) {
-      result[d] = slice.reduce((s, dd) => s + getKcalTotal(dd), 0) / slice.length;
-    } else {
-      const end = new Date(d + 'T12:00:00Z');
-      const start = new Date(end);
-      start.setUTCDate(start.getUTCDate() - 41);
-      let sum = 0, cur = new Date(start);
-      while (cur <= end) { sum += getKcalTotal(cur.toISOString().slice(0, 10)); cur.setUTCDate(cur.getUTCDate() + 1); }
-      result[d] = sum / 42;
-    }
+    prefix += kcal[i];
+    if (i < 41) { result[d] = prefix / (i + 1); return; }
+    const start = new Date(d + 'T12:00:00Z');
+    start.setUTCDate(start.getUTCDate() - 41);
+    const from = start.toISOString().slice(0, 10);
+    while (dates[lo] < from) lo++;
+    let sum = 0;
+    for (let j = lo; j <= i; j++) sum += kcal[j];
+    result[d] = sum / 42;
   });
   return result;
 }
@@ -1110,7 +1114,8 @@ function attachChartTapHandler(canvas) {
     const meta = mainChart?.getDatasetMeta(0);
     if (!meta) return;
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width) / (window.devicePixelRatio || 1);
+    // Map the tap into the chart's own coordinate space via its actual pixel ratio.
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width) / (mainChart.currentDevicePixelRatio || 1);
     let closest = -1, dist = Infinity;
     meta.data.forEach((pt, i) => {
       const d = Math.abs(pt.x - x);
@@ -1256,7 +1261,11 @@ function renderChart() {
     data: { labels, datasets },
     options: {
       responsive: false, animation: false,
-      devicePixelRatio: window.devicePixelRatio || 1,
+      // sizeChartCanvas already sizes the canvas at device resolution, so Chart.js
+      // must not scale it again — doing so painted DPR² pixels per CSS pixel
+      // (9x the work on a 3x iPhone). Its coordinate space, and so every font,
+      // line width and radius tuned against it, is unchanged.
+      devicePixelRatio: 1,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       scales: chartScales
     }
@@ -2667,7 +2676,6 @@ function runSlowWaveCalc(text, overlay) {
       $('calcTempDelta').style.display = 'none';
     }
 
-    const fmtMins = m => { const h = Math.floor(m / 60), r = Math.round(m % 60); return h > 0 ? `${h}h ${r}m` : `${r}m`; };
     const getStageDur = sg => {
       if (sg.start && sg.end) return (parseSleepTs(sg.end).getTime() - parseSleepTs(sg.start).getTime()) / 60000;
       if (sg.qty != null) return sg.qty * 60;
@@ -2836,26 +2844,6 @@ function openMonthlyPickerAgain() {
   if (!lastMonthlyData) return;
   const overlay = openModal('');
   showMonthlyPicker(lastMonthlyData.allReadings, lastMonthlyData.dates, overlay);
-}
-
-function viableDates(allReadings) {
-  const byDate = {};
-  for (const r of allReadings) {
-    const d = readingLocalDate(r);
-    (byDate[d] = byDate[d] || []).push(r);
-  }
-  const viable = new Set();
-  for (const [date, readings] of Object.entries(byDate)) {
-    const mid = readings.filter(r => { const {h,m} = readingLocalHM(r); return h*60+m >= 90 && h*60+m <= 180; });
-    if (mid.length >= 3) { viable.add(date); continue; }
-    const prevDate = new Date(date + 'T12:00:00');
-    prevDate.setDate(prevDate.getDate() - 1);
-    const prevStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}-${String(prevDate.getDate()).padStart(2,'0')}`;
-    const fromPrev = (byDate[prevStr] || []).filter(r => { const {h,m} = readingLocalHM(r); return h === 23 && m >= 30; });
-    const fromThis = readings.filter(r => { const {h,m} = readingLocalHM(r); return h === 0 || (h === 1 && m <= 29); });
-    if (fromPrev.length + fromThis.length >= 3) viable.add(date);
-  }
-  return viable;
 }
 
 function hasPrevNightData(allReadings, date) {

@@ -44,8 +44,16 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Static assets — cache first
+  // Static assets — cache first. The pinned Chart.js build is kept once fetched,
+  // so cold launches skip the CDN round-trip and the chart still draws offline.
+  // Only a successful (CORS, so its status is readable) response is stored.
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+      if (url.hostname === 'cdnjs.cloudflare.com' && res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+      }
+      return res;
+    }))
   );
 });
