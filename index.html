@@ -189,7 +189,7 @@
   .tag-picker-clear { font-family:var(--font-mono); font-size:10px; color:var(--muted); text-align:center; padding:4px; cursor:pointer; }
 
   /* Journal/Analysis Modal */
-  .jnl-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:9999; display:flex; flex-direction:column; overflow:hidden; touch-action:none; }
+  .jnl-overlay { position:fixed; inset:0; background:linear-gradient(rgba(0,0,0,0.9), rgba(0,0,0,0.9)), var(--bg); z-index:9999; display:flex; flex-direction:column; overflow:hidden; touch-action:none; }
   .jnl-modal { display:flex; flex-direction:column; flex:1; max-width:520px; width:100%; margin:0 auto; min-height:0; }
   .jnl-header { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .jnl-title { font-family:var(--font-mono); font-size:11px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; }
@@ -436,7 +436,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-28.2';
+const APP_VERSION = '2026-09-28.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
