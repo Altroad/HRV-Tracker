@@ -326,32 +326,6 @@
   <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
 </div>
 
-<div class="card">
-  <div class="chart-header" style="margin-bottom:8px;">
-    <div class="chart-title">HRV / RHR / Temp</div>
-    <div class="chart-range-toggle">
-      <button class="range-btn active" id="btn14d" onclick="setChartRange(14)">14D</button>
-      <button class="range-btn" id="btn60d" onclick="setChartRange(60)">60D</button>
-    </div>
-  </div>
-  <div class="chart-legend" style="margin-bottom:12px;flex-wrap:wrap;gap:10px 16px;">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
-      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:var(--green)"></div>RHR</div>
-      <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
-  </div>
-  <div class="chart-outer">
-    <div class="y-axis-wrap"><canvas id="yAxis" width="28" height="260"></canvas></div>
-    <div class="chart-scroll-area" id="chartScroll">
-      <div class="chart-inner" id="chartInner">
-        <canvas id="hrvChart"></canvas>
-      </div>
-    </div>
-    <div class="rhr-axis-wrap" id="rhrAxisWrap" style="display:none"><canvas id="rhrAxis" width="28" height="260"></canvas></div>
-    <div id="chartPopup" class="chart-popup" style="display:none"></div>
-  </div>
-</div>
-
 <div id="captureBar" onclick="showCaptureWindowModal()" style="display:flex;align-items:center;gap:8px;padding:9px 14px;margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;color:var(--muted);user-select:none;">
   <span style="font-size:13px;">🌙</span>
   <span>CAPTURE WINDOW</span>
@@ -411,6 +385,32 @@
   </div>
 </div>
 
+<div class="card">
+  <div class="chart-header" style="margin-bottom:8px;">
+    <div class="chart-title">HRV / RHR / Temp</div>
+    <div class="chart-range-toggle">
+      <button class="range-btn active" id="btn14d" onclick="setChartRange(14)">14D</button>
+      <button class="range-btn" id="btn60d" onclick="setChartRange(60)">60D</button>
+    </div>
+  </div>
+  <div class="chart-legend" style="margin-bottom:12px;flex-wrap:wrap;gap:10px 16px;">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>HRV</div>
+      <div class="legend-item" id="rhrLegendItem" style="display:none"><div class="legend-dot" style="background:var(--green)"></div>RHR</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.85)"></div>Baseline</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div><div class="legend-dot" style="background:var(--red);margin-left:2px"></div>7D Avg</div>
+  </div>
+  <div class="chart-outer">
+    <div class="y-axis-wrap"><canvas id="yAxis" width="28" height="260"></canvas></div>
+    <div class="chart-scroll-area" id="chartScroll">
+      <div class="chart-inner" id="chartInner">
+        <canvas id="hrvChart"></canvas>
+      </div>
+    </div>
+    <div class="rhr-axis-wrap" id="rhrAxisWrap" style="display:none"><canvas id="rhrAxis" width="28" height="260"></canvas></div>
+    <div id="chartPopup" class="chart-popup" style="display:none"></div>
+  </div>
+</div>
+
 <div class="card" id="heatmapCard">
   <div class="chart-header" style="margin-bottom:12px;">
     <div class="chart-title">Year at a Glance</div>
@@ -437,7 +437,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-29.2';
+const APP_VERSION = '2026-09-29.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
