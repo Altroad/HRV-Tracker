@@ -1898,6 +1898,10 @@
       {
         "name": "Activity",
         "kcal": 1624
+      },
+      {
+        "name": "Sauna",
+        "kcal": 50
       }
     ]
   },
