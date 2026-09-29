@@ -437,7 +437,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-29.1';
+const APP_VERSION = '2026-09-29.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2348,7 +2348,7 @@ function buildCSV() {
 
 async function exportCSV() {
   const csv = buildCSV();
-  const file = new File([csv], 'vitals.csv', { type: 'text/csv' });
+  const file = new File([csv], 'Baseline_Backup.csv', { type: 'text/csv' });
   if (navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file] }); return; } catch(e) {}
   }
@@ -4371,7 +4371,7 @@ function showPasteImportModal() {
   const overlay = openModal(`
     <div class="modal-title">Paste to Import</div>
     <div class="modal-desc">Tap the field below, then tap <strong>Paste</strong>.</div>
-    <textarea id="autoImportTA" placeholder="Tap here and paste your vitals data…" style="height:80px;font-size:12px;"></textarea>
+    <textarea id="autoImportTA" placeholder="Tap here and paste your health export…" style="height:80px;font-size:12px;"></textarea>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
       <button class="modal-btn" data-apply>IMPORT</button>
