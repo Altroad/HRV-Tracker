@@ -404,6 +404,7 @@
     <div class="calc-readings" id="calcReadings"></div>
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:30px 0 2px;">
       <button class="quick-add-btn" id="quickAddBtn" style="margin:0;" title="Quick Add kcal to previous day">+</button>
+      <span id="calcExtras" style="display:none;gap:4px;"></span>
       <span id="calcTagBtn" class="tag-empty" style="display:none;" onclick="openCalcTagPicker(event)">TAG</span>
     </div>
     <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
@@ -436,7 +437,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-28.3';
+const APP_VERSION = '2026-09-29.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -526,6 +527,18 @@ const TAGS = [
   { label:'Race',              color:'#f44336' },
 ];
 const TAG_MAP = Object.fromEntries(TAGS.map(t => [t.label, t.color]));
+// Add-on activity tags. A reading has one training-load tag (above) plus any of
+// these alongside it, so a ride day can also be marked Sauna and/or Cold.
+const EXTRA_TAGS = [
+  { label:'Sauna', color:'#ff7043' },
+  { label:'Cold',  color:'#90caf9' },
+];
+const EXTRA_MAP = Object.fromEntries(EXTRA_TAGS.map(t => [t.label, t.color]));
+const tagColorOf = label => TAG_MAP[label] || EXTRA_MAP[label];
+function extraPillsHtml(r, onclick) {
+  return (r.extras || []).filter(x => EXTRA_MAP[x]).map(x =>
+    `<span class="tag-chip" style="border-color:${EXTRA_MAP[x]};color:${EXTRA_MAP[x]};" onclick="${onclick}">${x.toUpperCase()}</span>`).join('');
+}
 
 // ---------- State ----------
 let readings = [];
@@ -709,11 +722,17 @@ const QUICK_ADD_DEFAULTS = [
   { name: 'Swim',  kcal: 800 },
   { name: 'Walk',  kcal: 400 },
   { name: 'Run',   kcal: 700 },
-  { name: 'Sauna', kcal: 200 },
 ];
 function loadQuickAdd() {
   try { const raw = localStorage.getItem(QUICK_ADD_KEY); if (raw) quickAddTags = JSON.parse(raw); } catch {}
   if (!quickAddTags) quickAddTags = QUICK_ADD_DEFAULTS.map(t => ({ ...t }));
+  // Sauna is now an activity tag rather than a kcal preset; drop it from lists
+  // saved before that change, once, so a deliberately re-added one survives.
+  if (!localStorage.getItem('hrv_qa_sauna_removed')) {
+    quickAddTags = quickAddTags.filter(t => t.name !== 'Sauna');
+    saveQuickAdd();
+    try { localStorage.setItem('hrv_qa_sauna_removed', '1'); } catch {}
+  }
 }
 function saveQuickAdd() {
   try { localStorage.setItem(QUICK_ADD_KEY, JSON.stringify(quickAddTags)); } catch {}
@@ -1307,11 +1326,11 @@ function buildJournalCards(filter, search, sort, sortDir) {
   Object.keys(tempData).forEach(d => dateSet.add(d));
 
   // Tags present in data, in TAGS definition order
-  const tagSet = new Set(readings.map(r => r.tag).filter(Boolean));
-  const tags = TAGS.map(t => t.label).filter(l => tagSet.has(l));
+  const tagSet = new Set(readings.flatMap(r => [r.tag, ...(r.extras || [])]).filter(Boolean));
+  const tags = [...TAGS, ...EXTRA_TAGS].map(t => t.label).filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
-  if (filter) dates = dates.filter(date => readingByDate[date]?.tag === filter);
+  if (filter) dates = dates.filter(date => { const r = readingByDate[date]; return r?.tag === filter || !!r?.extras?.includes(filter); });
   if (search) {
     const s = search.toLowerCase();
     dates = dates.filter(date => {
@@ -1432,7 +1451,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
-        ${tagHtml}
+        <span style="display:flex;gap:4px;align-items:center;">${r ? extraPillsHtml(r, `openTagPicker(event,'${r.id}')`) : ''}${tagHtml}</span>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
@@ -1469,7 +1488,7 @@ function buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp) {
 function buildJnlFiltersHtml(tags, activeFilter) {
   let html = `<button class="jnl-filter-chip${!activeFilter ? ' active' : ''}" onclick="setJnlFilter(null)">ALL</button>`;
   tags.forEach(tag => {
-    const color = TAG_MAP[tag];
+    const color = tagColorOf(tag);
     const isActive = activeFilter === tag;
     html += `<button class="jnl-filter-chip" style="${isActive ? `border-color:${color};color:${color};` : ''}" onclick="setJnlFilter('${tag}')">${tag.toUpperCase()}</button>`;
   });
@@ -1667,12 +1686,27 @@ function openTagPicker(e, id) {
   clear.textContent = 'Clear tag';
   clear.addEventListener('click', ev => { ev.stopPropagation(); applyTag(id, null); closeTagPicker(); });
   picker.appendChild(clear);
+  const rd = readings.find(x => String(x.id) === String(id));
+  const also = document.createElement('div');
+  also.className = 'tag-picker-clear';
+  also.style.cssText = 'border-top:1px solid var(--border);margin-top:2px;padding-top:8px;letter-spacing:2px;cursor:default;';
+  also.textContent = 'ALSO';
+  picker.appendChild(also);
+  EXTRA_TAGS.forEach(t => {
+    const on = !!rd?.extras?.includes(t.label);
+    const item = document.createElement('div');
+    item.className = 'tag-picker-item';
+    item.textContent = (on ? '✓ ' : '') + t.label;
+    item.style.cssText = `border-color:${t.color};color:${t.color};${on ? `background:${t.color}22;` : ''}`;
+    item.addEventListener('click', ev => { ev.stopPropagation(); toggleExtraTag(id, t.label); closeTagPicker(); });
+    picker.appendChild(item);
+  });
   document.body.appendChild(picker);
   tagPickerEl = picker;
   const r = e.target.getBoundingClientRect();
   let top = r.bottom + 6;
   let left = r.left;
-  if (top + 280 > window.innerHeight) top = r.top - 280;
+  if (top + 380 > window.innerHeight) top = Math.max(4, r.top - 380);
   if (left + 190 > window.innerWidth) left = window.innerWidth - 196;
   picker.style.top = top + 'px';
   picker.style.left = Math.max(4, left) + 'px';
@@ -1690,14 +1724,28 @@ function applyTag(id, tag) {
   updateCalcTagBtn();
 }
 
+function toggleExtraTag(id, label) {
+  const r = readings.find(r => String(r.id) === String(id));
+  if (!r) return;
+  const on = new Set(r.extras || []);
+  on.has(label) ? on.delete(label) : on.add(label);
+  r.extras = on.size ? EXTRA_TAGS.map(t => t.label).filter(l => on.has(l)) : undefined;
+  save();
+  refreshJournalModal();
+  updateCalcTagBtn();
+}
+
 function updateCalcTagBtn() {
   const btn = $('calcTagBtn');
   if (!btn) return;
   const raw = localStorage.getItem(getLastResultKey());
   let savedAt;
-  try { savedAt = JSON.parse(raw).savedAt; } catch { btn.style.display = 'none'; return; }
-  if (!savedAt) { btn.style.display = 'none'; return; }
+  const clearEx = () => { const ex = $('calcExtras'); if (ex) { ex.innerHTML = ''; ex.style.display = 'none'; } };
+  try { savedAt = JSON.parse(raw).savedAt; } catch { btn.style.display = 'none'; clearEx(); return; }
+  if (!savedAt) { btn.style.display = 'none'; clearEx(); return; }
   const r = readings.find(r => r.date === savedAt);
+  const ex = $('calcExtras');
+  if (ex) { ex.innerHTML = r ? extraPillsHtml(r, 'openCalcTagPicker(event)') : ''; ex.style.display = ex.innerHTML ? 'flex' : 'none'; }
   if (!r) { btn.style.display = 'none'; return; }
   btn.style.display = '';
   btn.dataset.readingId = r.id;
@@ -2280,7 +2328,7 @@ function buildCSV() {
   const escField = v => (v == null || v === '') ? '' : String(v).includes(',') || String(v).includes('"') || String(v).includes('\n')
     ? `"${String(v).replace(/"/g, '""')}"` : String(v);
 
-  const rows = ['date,hrv,rhr,temp,note,tag'];
+  const rows = ['date,hrv,rhr,temp,note,tag,activities'];
   for (const date of allDates) {
     const dayReadings = hrvByDate[date] || [null];
     for (const r of dayReadings) {
@@ -2290,7 +2338,8 @@ function buildCSV() {
         rhrData[date] !== undefined ? rhrData[date] : '',
         tempData[date] !== undefined ? tempData[date].toFixed(2) : '',
         escField(r?.note || ''),
-        escField(r?.tag || '')
+        escField(r?.tag || ''),
+        escField((r?.extras || []).join(';'))
       ].join(','));
     }
   }
@@ -2369,7 +2418,7 @@ function doImportCSV(text, overlay) {
     for (let i = start; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      const [dateStr, hrvStr, rhrStr, tempStr, note, tag] = parseCSVLine(line);
+      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities] = parseCSVLine(line);
       const date = (dateStr || '').trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
@@ -2380,6 +2429,8 @@ function doImportCSV(text, overlay) {
           const entry = { id: nextId++, date, hrv: rounded };
           if (note?.trim()) entry.note = note.trim();
           if (tag?.trim())  entry.tag  = tag.trim();
+          const ex = (activities || '').split(';').map(s => s.trim()).filter(s => EXTRA_MAP[s]);
+          if (ex.length) entry.extras = ex;
           readings.push(entry);
           hrvAdded++;
         } else { skipped++; }
