@@ -439,7 +439,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.6';
+const APP_VERSION = '2026-10-02.7';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3063,25 +3063,7 @@ function runMonthlyCalc(allReadings, date, useMid, useEarly, overlay) {
   }
 }
 
-// ---------- RHR Import ----------
-function findLowestConsecutiveRHR(readings) {
-  const MAX_GAP_MS = 7 * 60 * 1000;
-  const MIN_SPAN_MS = 9 * 60 * 1000;
-  let bestAvg = Infinity;
-  for (let i = 0; i < readings.length; i++) {
-    let sum = readings[i].avg;
-    for (let j = i + 1; j < readings.length; j++) {
-      if (readings[j].ts - readings[j-1].ts > MAX_GAP_MS) break;
-      sum += readings[j].avg;
-      if (readings[j].ts - readings[i].ts >= MIN_SPAN_MS) {
-        const avg = sum / (j - i + 1);
-        if (avg < bestAvg) bestAvg = avg;
-      }
-    }
-  }
-  return bestAvg < Infinity ? Math.round(bestAvg) : null;
-}
-
+// ---------- RHR (Overnight Capture) ----------
 function findRHRWindowDetail(readings) {
   const MAX_GAP_MS = 7 * 60 * 1000;
   const MIN_SPAN_MS = 9 * 60 * 1000;
@@ -3137,64 +3119,6 @@ function extractRHRForSlowWave(json, dateStr) {
   if (!readings.length) readings = all;
   readings.sort((a, b) => a.ts - b.ts);
   return findRHRWindowDetail(readings);
-}
-
-function importRHRFromJSON(json) {
-  const metrics = json?.data?.metrics ?? json?.metrics;
-  if (!Array.isArray(metrics)) throw new Error('Invalid format — paste a Health Auto Export heart_rate JSON');
-  const metric = metrics.find(m =>
-    m.name === 'heart_rate' || m.name === 'Heart Rate' || m.name === 'heart_rate_bpm'
-  );
-  if (!metric) throw new Error(`No heart_rate data found — found: ${metrics.map(m => m.name).join(', ') || 'nothing'}`);
-  const byDate = {};
-  for (const r of metric.data) {
-    const avg = typeof r.Avg === 'number' ? r.Avg : typeof r.avg === 'number' ? r.avg : null;
-    if (avg === null) continue;
-    const s = (r.date ?? r.start ?? '').trim();
-    if (!s) continue;
-    const h = parseInt(s.slice(11, 13), 10);
-    const m = parseInt(s.slice(14, 16), 10);
-    if (h * 60 + m > 210) continue; // only 00:00–03:30
-    const dateStr = s.slice(0, 10);
-    const ts = parseTimestamp(r).getTime();
-    (byDate[dateStr] = byDate[dateStr] || []).push({ ts, avg });
-  }
-  let count = 0;
-  for (const [date, readings] of Object.entries(byDate)) {
-    readings.sort((a, b) => a.ts - b.ts);
-    const rhr = findLowestConsecutiveRHR(readings);
-    if (rhr !== null) { rhrData[date] = rhr; count++; }
-  }
-  return count;
-}
-
-function showRHRImportModal() {
-  const overlay = openModal(`
-    <div class="modal-title">Import RHR Data</div>
-    <div class="modal-desc">Paste one or more Health Auto Export <strong>heart_rate</strong> JSONs — any date range. To backfill several months, export week-by-week and paste them all at once (concatenate in one go) or import in batches. Re-importing the same dates is safe — they'll be updated.<br><br>The app finds the lowest 9-minute consecutive window between midnight and 3:30am as your RHR for each night.<br><br><span style="color:#4caf50">●</span> ≤${rhrBaseline+1} &nbsp;<span style="color:#ffab00">●</span> ${rhrBaseline+2}–${rhrBaseline+4} &nbsp;<span style="color:#ff6d00">●</span> ${rhrBaseline+5}–${rhrBaseline+7} &nbsp;<span style="color:#f44336">●</span> >${rhrBaseline+7}</div>
-    <textarea placeholder="Paste one or more JSON exports here..."></textarea>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" data-cancel>CANCEL</button>
-      <button class="modal-btn" data-import>IMPORT</button>
-    </div>
-  `);
-  const ta = overlay.querySelector('textarea');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('[data-import]').addEventListener('click', () => {
-    try {
-      const jsons = parseJsonBlocks(ta.value.trim());
-      let total = 0;
-      for (const j of jsons) total += importRHRFromJSON(j);
-      saveRHR();
-      overlay.remove();
-      render();
-      const dates = Object.keys(rhrData).sort();
-      const rangeStr = dates.length >= 2 ? ` · ${dates[0]} → ${dates.at(-1)}` : '';
-      showToast(`RHR: ${total} day${total !== 1 ? 's' : ''} imported${rangeStr}`);
-    } catch(e) {
-      showToast(e.message || 'Invalid JSON');
-    }
-  });
 }
 
 // ---------- Chart range toggle ----------
@@ -3872,7 +3796,6 @@ function showMenuModal() {
     <button class="modal-btn" id="menuCalc"   style="text-align:left;">Manual Sync</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
-    <button class="modal-btn" id="menuRHR"    style="text-align:left;">Import RHR Data</button>
     <button class="modal-btn" id="menuTemp"   style="text-align:left;">Set Temp Baseline</button>
     <button class="modal-btn" id="menuQuickAdd" style="text-align:left;">Configure Quick Add</button>
     <button class="modal-btn cancel" data-close>Close</button>
@@ -3882,7 +3805,6 @@ function showMenuModal() {
   overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
   overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportCSVModal(); });
-  overlay.querySelector('#menuRHR').addEventListener('click',    () => { overlay.remove(); showRHRImportModal(); });
   overlay.querySelector('#menuTemp').addEventListener('click',   () => { overlay.remove(); showTempBaselineModal(); });
   overlay.querySelector('#menuQuickAdd').addEventListener('click', () => { overlay.remove(); showQuickAddConfigModal(); });
   overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
@@ -4083,7 +4005,7 @@ function showInfoModal() {
       <span style="color:#f44336">●</span> +8 or above — High<br><br>
 
       <strong>Importing RHR</strong><br>
-      Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV, RHR, and Temp together each morning. To backfill months of RHR, use ≡ → Import RHR Data and paste one or more Health Auto Export heart_rate JSONs.<br><br>
+      Use <em>Overnight Capture</em> (add the heart_rate export as a 4th block) to log HRV, RHR, and Temp together each morning.<br><br>
 
       <strong>Backup &amp; sync</strong><br>
       HRV, RHR, and Temp data are all included in the Export Backup and GitHub sync, so everything is fully restored after a reinstall.
