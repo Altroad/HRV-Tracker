@@ -967,21 +967,12 @@
       "ectopy": 0
     },
     {
-      "id": 312,
+      "id": 313,
       "date": "2026-10-01",
       "hrv": 105,
       "tag": "100-200TSS",
       "extras": [
-        "Sauna"
-      ],
-      "ectopy": 0
-    },
-    {
-      "id": 313,
-      "date": "2026-10-01",
-      "hrv": 105,
-      "tag": "Sick",
-      "extras": [
+        "Sick",
         "Sauna"
       ],
       "ectopy": 0

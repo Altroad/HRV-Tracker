@@ -439,7 +439,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.3';
+const APP_VERSION = '2026-10-02.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -519,7 +519,6 @@ function fmtClock(mins) {
 
 // ---------- Tags ----------
 const TAGS = [
-  { label:'Sick',              color:'#f44336' },
   { label:'Rest',              color:'#4caf50' },
   { label:'Active Recovery',   color:'#00bcd4' },
   { label:'<100TSS',           color:'#ff9800' },
@@ -532,6 +531,7 @@ const TAG_MAP = Object.fromEntries(TAGS.map(t => [t.label, t.color]));
 // Add-on activity tags. A reading has one training-load tag (above) plus any of
 // these alongside it, so a ride day can also be marked Sauna and/or Cold.
 const EXTRA_TAGS = [
+  { label:'Sick',  color:'#f44336' },
   { label:'Sauna', color:'#ff7043' },
   { label:'Cold',  color:'#90caf9' },
 ];
@@ -552,6 +552,20 @@ function ectopyPillHtml(r, onclick) {
   return g ? `<span class="tag-chip" style="border-color:${g.color};color:${g.color};" onclick="${onclick}">${g.label}</span>` : '';
 }
 const tagColorOf = label => TAG_MAP[label] || EXTRA_MAP[label] || ECTOPY_MAP[label]?.color;
+// Sick used to be a training-load tag (one at a time); it's now a toggle so it can
+// sit alongside Active Recovery or <100TSS. Convert entries saved the old way —
+// run on load, on merging another device's data, and on CSV import.
+function migrateSickTag() {
+  let n = 0;
+  readings.forEach(r => {
+    if (r.tag !== 'Sick') return;
+    delete r.tag;
+    const on = new Set([...(r.extras || []), 'Sick']);
+    r.extras = EXTRA_TAGS.map(t => t.label).filter(l => on.has(l));
+    n++;
+  });
+  return n;
+}
 function extraPillsHtml(r, onclick) {
   return (r.extras || []).filter(x => EXTRA_MAP[x]).map(x =>
     `<span class="tag-chip" style="border-color:${EXTRA_MAP[x]};color:${EXTRA_MAP[x]};" onclick="${onclick}">${x.toUpperCase()}</span>`).join('');
@@ -2482,7 +2496,7 @@ function doImportCSV(text, overlay) {
       }
     }
 
-    if (hrvAdded)  save();
+    if (hrvAdded)  { migrateSickTag(); save(); }
     if (rhrAdded)  saveRHR();
     if (tempAdded) saveTemp();
     overlay.remove();
@@ -3588,6 +3602,7 @@ async function mergeRemoteChanges() {
     const remoteReadings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
     const { merged, maxId } = mergeReadings(remoteReadings, readings);
     readings = merged;
+    migrateSickTag();
     nextId = Math.max(nextId, maxId + 1);
     const remoteRhr     = (!Array.isArray(data) && data.rhr)      ? data.rhr      : {};
     const remoteNotes   = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
@@ -4339,6 +4354,7 @@ async function init() {
   } else {
     load();
   }
+  if (migrateSickTag()) save();
   const removedDupes = dedupeReadings();
   if (removedDupes > 0) {
     save();
