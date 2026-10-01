@@ -970,6 +970,16 @@
       "id": 312,
       "date": "2026-10-01",
       "hrv": 105,
+      "tag": "100-200TSS",
+      "extras": [
+        "Sauna"
+      ],
+      "ectopy": 0
+    },
+    {
+      "id": 313,
+      "date": "2026-10-01",
+      "hrv": 105,
       "tag": "Sick",
       "extras": [
         "Sauna"
