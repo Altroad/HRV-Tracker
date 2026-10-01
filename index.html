@@ -437,7 +437,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-09-29.4';
+const APP_VERSION = '2026-10-01.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1703,13 +1703,20 @@ function openTagPicker(e, id) {
   });
   document.body.appendChild(picker);
   tagPickerEl = picker;
-  const r = e.target.getBoundingClientRect();
+  // Place against the picker's real size: below the pill if it fits, else above,
+  // else pinned to the top and scrollable — it's fixed, so the page can't scroll it.
+  const r = e.target.getBoundingClientRect(), vh = window.innerHeight, vw = window.innerWidth, M = 8;
+  const h = picker.offsetHeight, w = picker.offsetWidth;
   let top = r.bottom + 6;
-  let left = r.left;
-  if (top + 380 > window.innerHeight) top = Math.max(4, r.top - 380);
-  if (left + 190 > window.innerWidth) left = window.innerWidth - 196;
+  if (top + h > vh - M) top = r.top - 6 - h;
+  if (top < M) {
+    top = M;
+    picker.style.maxHeight = (vh - 2 * M) + 'px';
+    picker.style.overflowY = 'auto';
+    picker.style.overscrollBehavior = 'contain';
+  }
   picker.style.top = top + 'px';
-  picker.style.left = Math.max(4, left) + 'px';
+  picker.style.left = Math.max(M, Math.min(r.left, vw - w - M)) + 'px';
   setTimeout(() => document.addEventListener('click', closeTagPicker, { once: true }), 0);
 }
 function closeTagPicker() { tagPickerEl?.remove(); tagPickerEl = null; }
@@ -4048,6 +4055,7 @@ function showInfoModal() {
   let startY = 0, pulling = false;
   const indicator = document.getElementById('pullIndicator');
   document.addEventListener('touchstart', e => {
+    if (e.target.closest?.('.tag-picker')) return;  // scrolling inside the tag picker isn't a pull
     if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
   }, { passive: true });
   document.addEventListener('touchmove', e => {
