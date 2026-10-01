@@ -438,7 +438,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-01.3';
+const APP_VERSION = '2026-10-01.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1695,14 +1695,25 @@ function openTagPicker(e, id) {
   fill();
   document.body.appendChild(picker);
   tagPickerEl = picker;
-  // Sit centred at the bottom of the screen, within thumb reach, clear of the home
-  // indicator; scroll inside if a short screen can't fit every option.
-  Object.assign(picker.style, {
-    left: '50%', transform: 'translateX(-50%)', top: 'auto',
-    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-    maxHeight: 'calc(100vh - env(safe-area-inset-bottom, 0px) - 32px)',
-    overflowY: 'auto', overscrollBehavior: 'contain',
-  });
+  // Centre it at the bottom of the screen, in thumb reach, clear of the home
+  // indicator. Plain pixel top/left and scrolling only when it can't fit — the same
+  // styling the anchored version used; a transform + always-scrollable variant
+  // stopped taps and highlighting working on iOS Safari.
+  const vh = window.innerHeight, vw = window.innerWidth, M = 8;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;';
+  document.body.appendChild(probe);
+  const safe = probe.offsetHeight; probe.remove();
+  const h = picker.offsetHeight, w = picker.offsetWidth;
+  let top = vh - safe - 16 - h;
+  if (top < M) {
+    top = M;
+    picker.style.maxHeight = (vh - safe - 16 - M) + 'px';
+    picker.style.overflowY = 'auto';
+    picker.style.overscrollBehavior = 'contain';
+  }
+  picker.style.top = top + 'px';
+  picker.style.left = Math.max(M, Math.round((vw - w) / 2)) + 'px';
   setTimeout(() => document.addEventListener('click', closeTagPicker, { once: true }), 0);
 }
 function closeTagPicker() { tagPickerEl?.remove(); tagPickerEl = null; }
