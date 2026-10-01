@@ -1928,6 +1928,10 @@
       {
         "name": "Activity",
         "kcal": 2005
+      },
+      {
+        "name": "Walk",
+        "kcal": 400
       }
     ]
   },
