@@ -438,7 +438,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-01.4';
+const APP_VERSION = '2026-10-02.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3368,7 +3368,7 @@ function render() {
   updateMetrics();
   renderChart();
   renderHeatmap();
-
+  syncResultKcalWithData();
 }
 
 // ---------- GitHub Sync ----------
@@ -3706,6 +3706,7 @@ function showKcalItemsModal(activityDate) {
         overlay.querySelector('#kcalItemsBody').innerHTML = buildBody();
         bindDel();
         refreshJournalModal();
+        syncResultKcalWithData();
       };
     });
   }
@@ -4195,6 +4196,26 @@ function restoreCalcResult() {
 // Reflect a manually-logged temperature on the results panel when it belongs to the
 // date the panel is currently showing — covers the case where the night's import had
 // no wrist-temp export and the value was backfilled afterwards via Log Reading.
+// Keep the results panel's kcal in step with the stored data for the activity
+// day it shows (the day before the result), so additions and deletions made after
+// the capture — Quick Add, Log Reading, the kcal editor — show up immediately.
+function syncResultKcalWithData() {
+  const raw = localStorage.getItem(getLastResultKey());
+  if (!raw) return;
+  let s;
+  try { s = JSON.parse(raw); } catch { return; }
+  if (!s.savedAt) return;
+  const day = prevDay(s.savedAt);
+  const visible = workoutData[day] !== undefined;
+  const text = visible ? getKcalTotal(day).toLocaleString() : s.workout;
+  if (s.workoutVisible === visible && s.workout === text) return;
+  s.workoutVisible = visible;
+  s.workout = text;
+  localStorage.setItem(getLastResultKey(), JSON.stringify(s));
+  $('calcWorkoutValue').textContent = text || '—';
+  $('calcWorkoutDisplay').style.display = visible ? '' : 'none';
+}
+
 function syncResultTempWithData() {
   const raw = localStorage.getItem(getLastResultKey());
   if (!raw) return;
