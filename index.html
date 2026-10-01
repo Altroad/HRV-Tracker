@@ -439,7 +439,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.5';
+const APP_VERSION = '2026-10-02.6';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -525,7 +525,7 @@ const TAGS = [
   { label:'100-200TSS',        color:'#ffd600' },
   { label:'200-300TSS',        color:'#536dfe' },
   { label:'300TSS+',           color:'#e040fb' },
-  { label:'Race',              color:'#f44336' },
+  { label:'Race',              color:'#ff80ab' },
 ];
 const TAG_MAP = Object.fromEntries(TAGS.map(t => [t.label, t.color]));
 // Add-on activity tags. A reading has one training-load tag (above) plus any of
