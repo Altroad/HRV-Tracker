@@ -413,13 +413,14 @@
 </div>
 
 <div class="card" id="heatmapCard">
-  <div class="chart-header" style="margin-bottom:12px;">
-    <div class="chart-title">Year at a Glance</div>
+  <div class="chart-header" style="margin-bottom:12px;flex-wrap:wrap;row-gap:10px;">
+    <div class="chart-title" style="white-space:nowrap;">Year at a Glance</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="hmBtnHRV"  onclick="setHeatmapMode('hrv')">HRV</button>
       <button class="range-btn" id="hmBtnRHR"  onclick="setHeatmapMode('rhr')">RHR</button>
       <button class="range-btn" id="hmBtnKcal" onclick="setHeatmapMode('kcal')">Kcal</button>
       <button class="range-btn" id="hmBtnTemp" onclick="setHeatmapMode('temp')">Temp</button>
+      <button class="range-btn" id="hmBtnEct" onclick="setHeatmapMode('ectopy')">Ect</button>
     </div>
   </div>
   <div id="heatmapWrap"></div>
@@ -438,7 +439,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.1';
+const APP_VERSION = '2026-10-02.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -535,7 +536,22 @@ const EXTRA_TAGS = [
   { label:'Cold',  color:'#90caf9' },
 ];
 const EXTRA_MAP = Object.fromEntries(EXTRA_TAGS.map(t => [t.label, t.color]));
-const tagColorOf = label => TAG_MAP[label] || EXTRA_MAP[label];
+// Daily ectopy (PAC) grade, set on the morning entry for the previous day's ride —
+// the same activity day the entry's kcal belongs to. 0 = none felt, which is kept
+// distinct from not logged (no value).
+const ECTOPY_GRADES = [
+  { grade:0, label:'ECT 0', desc:'None',             color:'#90a4ae' },
+  { grade:1, label:'ECT 1', desc:'Transitions',      color:'#fbc02d' },
+  { grade:2, label:'ECT 2', desc:'Sustained',        color:'#f57c00' },
+  { grade:3, label:'ECT 3', desc:'Session-breaking', color:'#ff1744' },
+];
+const ECTOPY_MAP = Object.fromEntries(ECTOPY_GRADES.map(g => [g.label, g]));
+const ectopyOf = r => (r && Number.isInteger(r.ectopy) && ECTOPY_GRADES[r.ectopy]) || null;
+function ectopyPillHtml(r, onclick) {
+  const g = ectopyOf(r);
+  return g ? `<span class="tag-chip" style="border-color:${g.color};color:${g.color};" onclick="${onclick}">${g.label}</span>` : '';
+}
+const tagColorOf = label => TAG_MAP[label] || EXTRA_MAP[label] || ECTOPY_MAP[label]?.color;
 function extraPillsHtml(r, onclick) {
   return (r.extras || []).filter(x => EXTRA_MAP[x]).map(x =>
     `<span class="tag-chip" style="border-color:${EXTRA_MAP[x]};color:${EXTRA_MAP[x]};" onclick="${onclick}">${x.toUpperCase()}</span>`).join('');
@@ -1327,11 +1343,11 @@ function buildJournalCards(filter, search, sort, sortDir) {
   Object.keys(tempData).forEach(d => dateSet.add(d));
 
   // Tags present in data, in TAGS definition order
-  const tagSet = new Set(readings.flatMap(r => [r.tag, ...(r.extras || [])]).filter(Boolean));
-  const tags = [...TAGS, ...EXTRA_TAGS].map(t => t.label).filter(l => tagSet.has(l));
+  const tagSet = new Set(readings.flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
+  const tags = [...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label).filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
-  if (filter) dates = dates.filter(date => { const r = readingByDate[date]; return r?.tag === filter || !!r?.extras?.includes(filter); });
+  if (filter) dates = dates.filter(date => { const r = readingByDate[date]; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
   if (search) {
     const s = search.toLowerCase();
     dates = dates.filter(date => {
@@ -1452,7 +1468,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
-        <span style="display:flex;gap:4px;align-items:center;">${r ? extraPillsHtml(r, `openTagPicker(event,'${r.id}')`) : ''}${tagHtml}</span>
+        <span style="display:flex;gap:4px;align-items:center;">${r ? ectopyPillHtml(r, `openTagPicker(event,'${r.id}')`) + extraPillsHtml(r, `openTagPicker(event,'${r.id}')`) : ''}${tagHtml}</span>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
@@ -1690,7 +1706,10 @@ function openTagPicker(e, id) {
     picker.replaceChildren(
       ...TAGS.map(t => item(t, r?.tag === t.label, () => applyTag(id, r?.tag === t.label ? null : t.label))),
       Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
-      ...EXTRA_TAGS.map(t => item(t, !!r?.extras?.includes(t.label), () => toggleExtraTag(id, t.label))));
+      ...EXTRA_TAGS.map(t => item(t, !!r?.extras?.includes(t.label), () => toggleExtraTag(id, t.label))),
+      Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
+      ...ECTOPY_GRADES.map(g => item({ label: `${g.label} · ${g.desc}`, color: g.color }, r?.ectopy === g.grade,
+        () => setEctopy(id, r?.ectopy === g.grade ? null : g.grade))));
   };
   fill();
   document.body.appendChild(picker);
@@ -1728,6 +1747,16 @@ function applyTag(id, tag) {
   updateCalcTagBtn();
 }
 
+function setEctopy(id, grade) {
+  const r = readings.find(r => String(r.id) === String(id));
+  if (!r) return;
+  if (grade === null) delete r.ectopy; else r.ectopy = grade;
+  save();
+  refreshJournalModal();
+  updateCalcTagBtn();
+  if (heatmapMode === 'ectopy') renderHeatmap();
+}
+
 function toggleExtraTag(id, label) {
   const r = readings.find(r => String(r.id) === String(id));
   if (!r) return;
@@ -1749,7 +1778,7 @@ function updateCalcTagBtn() {
   if (!savedAt) { btn.style.display = 'none'; clearEx(); return; }
   const r = readings.find(r => r.date === savedAt);
   const ex = $('calcExtras');
-  if (ex) { ex.innerHTML = r ? extraPillsHtml(r, 'openCalcTagPicker(event)') : ''; ex.style.display = ex.innerHTML ? 'flex' : 'none'; }
+  if (ex) { ex.innerHTML = r ? ectopyPillHtml(r, 'openCalcTagPicker(event)') + extraPillsHtml(r, 'openCalcTagPicker(event)') : ''; ex.style.display = ex.innerHTML ? 'flex' : 'none'; }
   if (!r) { btn.style.display = 'none'; return; }
   btn.style.display = '';
   btn.dataset.readingId = r.id;
@@ -2332,7 +2361,7 @@ function buildCSV() {
   const escField = v => (v == null || v === '') ? '' : String(v).includes(',') || String(v).includes('"') || String(v).includes('\n')
     ? `"${String(v).replace(/"/g, '""')}"` : String(v);
 
-  const rows = ['date,hrv,rhr,temp,note,tag,activities'];
+  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy'];
   for (const date of allDates) {
     const dayReadings = hrvByDate[date] || [null];
     for (const r of dayReadings) {
@@ -2343,7 +2372,8 @@ function buildCSV() {
         tempData[date] !== undefined ? tempData[date].toFixed(2) : '',
         escField(r?.note || ''),
         escField(r?.tag || ''),
-        escField((r?.extras || []).join(';'))
+        escField((r?.extras || []).join(';')),
+        ectopyOf(r) ? r.ectopy : ''
       ].join(','));
     }
   }
@@ -2422,7 +2452,7 @@ function doImportCSV(text, overlay) {
     for (let i = start; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities] = parseCSVLine(line);
+      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy] = parseCSVLine(line);
       const date = (dateStr || '').trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
@@ -2435,6 +2465,7 @@ function doImportCSV(text, overlay) {
           if (tag?.trim())  entry.tag  = tag.trim();
           const ex = (activities || '').split(';').map(s => s.trim()).filter(s => EXTRA_MAP[s]);
           if (ex.length) entry.extras = ex;
+          if (/^[0-3]$/.test((ectopy || '').trim())) entry.ectopy = Number(ectopy.trim());
           readings.push(entry);
           hrvAdded++;
         } else { skipped++; }
@@ -3225,6 +3256,7 @@ function setHeatmapMode(mode) {
   $('hmBtnRHR').classList.toggle('active',  mode === 'rhr');
   $('hmBtnKcal').classList.toggle('active', mode === 'kcal');
   $('hmBtnTemp').classList.toggle('active', mode === 'temp');
+  $('hmBtnEct').classList.toggle('active',  mode === 'ectopy');
   renderHeatmap();
 }
 
@@ -3237,6 +3269,9 @@ function renderHeatmap() {
 
   const tagByDate = {};
   readings.forEach(r => { if (r.tag) tagByDate[r.date] = r.tag; });
+  // Ectopy colours the ride day it describes (the entry's previous day), like Kcal.
+  const ectByDay = {};
+  readings.forEach(r => { const g = ectopyOf(r); if (g) ectByDay[prevDay(r.date)] = g; });
 
   const today = new Date();
   today.setHours(12,0,0,0);
@@ -3314,6 +3349,12 @@ function renderHeatmap() {
           if (workoutData[iso] !== undefined) {
             const ctl = hmKcalCtl[iso] || kcal;
             cell.style.background = kcalHeatmapColor(kcal, ctl);
+            cell.style.color = 'rgba(0,0,0,0.45)';
+          }
+        } else if (heatmapMode === 'ectopy') {
+          const g = ectByDay[iso];
+          if (g) {
+            cell.style.background = g.color;
             cell.style.color = 'rgba(0,0,0,0.45)';
           }
         } else if (heatmapMode === 'temp') {
