@@ -972,7 +972,17 @@
       "id": 313,
       "date": "2026-10-01",
       "hrv": 105,
-      "tag": "<100TSS",
+      "tag": "100-200TSS",
+      "extras": [
+        "Sauna"
+      ],
+      "ectopy": 0
+    },
+    {
+      "id": 314,
+      "date": "2026-10-01",
+      "hrv": 105,
+      "tag": "Race",
       "extras": [
         "Sauna"
       ],
