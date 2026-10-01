@@ -438,7 +438,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-01.2';
+const APP_VERSION = '2026-10-01.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1695,20 +1695,14 @@ function openTagPicker(e, id) {
   fill();
   document.body.appendChild(picker);
   tagPickerEl = picker;
-  // Place against the picker's real size: below the pill if it fits, else above,
-  // else pinned to the top and scrollable — it's fixed, so the page can't scroll it.
-  const r = e.target.getBoundingClientRect(), vh = window.innerHeight, vw = window.innerWidth, M = 8;
-  const h = picker.offsetHeight, w = picker.offsetWidth;
-  let top = r.bottom + 6;
-  if (top + h > vh - M) top = r.top - 6 - h;
-  if (top < M) {
-    top = M;
-    picker.style.maxHeight = (vh - 2 * M) + 'px';
-    picker.style.overflowY = 'auto';
-    picker.style.overscrollBehavior = 'contain';
-  }
-  picker.style.top = top + 'px';
-  picker.style.left = Math.max(M, Math.min(r.left, vw - w - M)) + 'px';
+  // Sit centred at the bottom of the screen, within thumb reach, clear of the home
+  // indicator; scroll inside if a short screen can't fit every option.
+  Object.assign(picker.style, {
+    left: '50%', transform: 'translateX(-50%)', top: 'auto',
+    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+    maxHeight: 'calc(100vh - env(safe-area-inset-bottom, 0px) - 32px)',
+    overflowY: 'auto', overscrollBehavior: 'contain',
+  });
   setTimeout(() => document.addEventListener('click', closeTagPicker, { once: true }), 0);
 }
 function closeTagPicker() { tagPickerEl?.remove(); tagPickerEl = null; }
