@@ -376,7 +376,6 @@
       <span id="calcExtras" style="display:none;gap:4px;"></span>
       <span id="calcTagBtn" class="tag-empty" style="display:none;" onclick="openCalcTagPicker(event)">TAG</span>
     </div>
-    <button class="btn-secondary" id="calcAnotherBtn" style="display:none;margin-top:8px;" onclick="openMonthlyPickerAgain()">Another Date</button>
   </div>
 </div>
 
@@ -439,7 +438,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.7';
+const APP_VERSION = '2026-10-02.8';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -582,7 +581,6 @@ let chartSortedDates = [];
 let chartValues = [];
 let nextId = 1;
 let chartRange = 14;
-let lastMonthlyData = null; // session-only, never persisted
 let lastSleepStages = null;
 let lastSleepNums = null;
 let lastKcalImport = null; // tracks kcal items added by the most recent runSlowWaveCalc
@@ -2513,21 +2511,6 @@ function doImportCSV(text, overlay) {
 }
 
 // ---------- HRV Calculator ----------
-function showCalcModal() {
-  const overlay = openModal(`
-    <div class="modal-title">Calculate from Health Export</div>
-    <div class="modal-desc">Paste one day's export, two consecutive days', or a full monthly export. For monthly data you'll be prompted to choose the date and method.</div>
-    <textarea placeholder="Paste JSON here..."></textarea>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" data-cancel>CANCEL</button>
-      <button class="modal-btn" data-calc>CALCULATE</button>
-    </div>
-  `);
-  const ta = overlay.querySelector('textarea');
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('[data-calc]').addEventListener('click', () => runCalc(ta.value, overlay));
-}
-
 function showSlowWaveModal() {
   const savedScroll = window.pageYOffset || document.documentElement.scrollTop;
   const overlay = openModal(`
@@ -2580,9 +2563,8 @@ function runSlowWaveCalc(text, overlay) {
     // morning being captured — rather than from "today". An export collected
     // from the inbox a day or more after it was written still lands on its own
     // date instead of the day it happened to be imported.
-    // Read the field directly rather than via readingLocalDate, which throws on a
-    // point carrying neither date nor start; a single malformed sample must not
-    // take down the whole capture.
+    // Tolerate a point carrying neither date nor start: a single malformed
+    // sample must not take down the whole capture.
     const hrvDates = allHRV.map(r => ((r && (r.start || r.date)) || '').trim().slice(0, 10))
                            .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
     if (hrvDates.length) $('inputDate').value = hrvDates[hrvDates.length - 1];
@@ -2853,7 +2835,6 @@ function runSlowWaveCalc(text, overlay) {
     $('calcReadings').innerHTML = chipsHtml;
     $('inputHRV').value = avg;
     panel.classList.add('show');
-    $('calcAnotherBtn').style.display = 'none';
     requestAnimationFrame(renderSleepTimeline);
     saveCalcResult();
   } catch(e) {
@@ -2893,175 +2874,6 @@ function readingLocalHM(r) {
   return { h: parseInt(s.slice(11, 13), 10), m: parseInt(s.slice(14, 16), 10), ts: parseTimestamp(r).getTime() || 0 };
 }
 
-function readingLocalDate(r) {
-  return (r.start || r.date).trim().slice(0, 10);
-}
-
-function runCalc(text, overlay) {
-  try {
-    lastMonthlyData = null;
-    const jsons = parseJsonBlocks(text.trim());
-
-    const allReadings = jsons.length === 1
-      ? extractHRVReadings(jsons[0])
-      : [...extractHRVReadings(jsons[0]), ...extractHRVReadings(jsons[1])];
-    const uniqueDates = [...new Set(allReadings.map(r => readingLocalDate(r)))].sort();
-    showMonthlyPicker(allReadings, uniqueDates, overlay);
-    return;
-  } catch(e) {
-    showToast(e.message || 'Invalid export data');
-  }
-}
-
-function applyCalcResult(filtered, methodLabel, overlay) {
-  filtered.sort((a, b) => readingLocalHM(a).ts - readingLocalHM(b).ts);
-  const values = filtered.map(r => r.qty).sort((a, b) => a - b);
-  let avg, statLabel;
-  if (values.length >= 3) {
-    const trimmed = values.slice(1, -1);
-    avg = Math.round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
-    statLabel = `trimmed mean · ${filtered.length} readings`;
-  } else if (values.length === 2) {
-    avg = Math.round((values[0] + values[1]) / 2);
-    statLabel = `average · 2 readings`;
-  } else {
-    avg = Math.round(values[0]);
-    statLabel = `single reading`;
-  }
-  overlay.remove();
-  const panel = $('calcResult');
-  $('calcValue').textContent = avg;
-  $('calcValue').style.color = colorForHRV(avg);
-  $('calcLabel').textContent = `${methodLabel} · ${statLabel}`;
-  $('calcRHRDisplay').style.display = 'none';
-  $('calcRHRWindow').style.display = 'none';
-  $('calcSleepDisplay').style.display = 'none';
-  lastSleepStages = null; lastSleepNums = null; const _tc = $('sleepTimeline'); if (_tc) _tc.style.display = 'none';
-  const chips = filtered.map(r => {
-    const qty = Math.round(r.qty);
-    const isDropped = values.length >= 3 && (r.qty === values[0] || r.qty === values[values.length - 1]);
-    const cls = isDropped ? 'calc-chip dropped' : 'calc-chip used';
-    const { h, m } = readingLocalHM(r);
-    const t = `${h}:${String(m).padStart(2,'0')}`;
-    return `<div class="${cls}">${t} · ${qty}</div>`;
-  });
-  $('calcReadings').innerHTML = chips.join('');
-  $('inputHRV').value = avg;
-  panel.classList.add('show');
-  $('calcAnotherBtn').style.display = lastMonthlyData ? '' : 'none';
-  saveCalcResult();
-}
-
-function openMonthlyPickerAgain() {
-  if (!lastMonthlyData) return;
-  const overlay = openModal('');
-  showMonthlyPicker(lastMonthlyData.allReadings, lastMonthlyData.dates, overlay);
-}
-
-function hasPrevNightData(allReadings, date) {
-  const prevD = new Date(date + 'T12:00:00');
-  prevD.setDate(prevD.getDate() - 1);
-  const prevStr = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2,'0')}-${String(prevD.getDate()).padStart(2,'0')}`;
-  return allReadings.some(r => {
-    if (readingLocalDate(r) !== prevStr) return false;
-    const { h, m } = readingLocalHM(r);
-    return h === 23 && m >= 30;
-  });
-}
-
-function showMonthlyPicker(allReadings, dates, overlay) {
-  lastMonthlyData = { allReadings, dates };
-  const modal = overlay.querySelector('.modal');
-  const sortedDates = [...dates].sort((a, b) => b.localeCompare(a));
-  const dateOptions = sortedDates.map(d => {
-    const dt = new Date(d + 'T12:00:00');
-    const label = dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    return `<option value="${d}">${label}</option>`;
-  }).join('');
-
-  modal.innerHTML = `
-    <div class="modal-title">Import — Choose Date &amp; Stage</div>
-    <div class="modal-desc">Select a date and one or both capture windows.</div>
-    <select id="monthDatePicker" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:var(--text);font-family:var(--font-mono);font-size:14px;width:100%;outline:none;box-sizing:border-box;">${dateOptions}</select>
-    <div style="display:flex;flex-direction:column;gap:10px;font-family:var(--font-mono);font-size:12px;color:var(--text);padding:2px 0;">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="methodMid" checked style="accent-color:var(--accent);width:14px;height:14px;">Mid Sleep Capture · 1:30–3:00am
-      </label>
-      <label id="earlyLabel" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="methodEarly" style="accent-color:var(--accent);width:14px;height:14px;">Early Sleep Capture · 11:30pm–1:29am
-      </label>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" data-cancel>CANCEL</button>
-      <button class="modal-btn" data-apply>CALCULATE</button>
-    </div>
-  `;
-
-  const updateEarly = date => {
-    const hasData = hasPrevNightData(allReadings, date);
-    const earlyCheck = overlay.querySelector('#methodEarly');
-    const earlyLabel = overlay.querySelector('#earlyLabel');
-    earlyCheck.disabled = !hasData;
-    earlyLabel.style.opacity = hasData ? '' : '0.35';
-    earlyLabel.style.cursor = hasData ? 'pointer' : 'not-allowed';
-    if (!hasData) earlyCheck.checked = false;
-  };
-
-  const datePicker = overlay.querySelector('#monthDatePicker');
-  updateEarly(datePicker.value);
-  datePicker.addEventListener('change', e => updateEarly(e.target.value));
-
-  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('[data-apply]').addEventListener('click', () => {
-    const date = datePicker.value;
-    const useMid = overlay.querySelector('#methodMid').checked;
-    const useEarly = overlay.querySelector('#methodEarly').checked;
-    if (!useMid && !useEarly) { showToast('Select at least one capture window'); return; }
-    runMonthlyCalc(allReadings, date, useMid, useEarly, overlay);
-  });
-}
-
-function runMonthlyCalc(allReadings, date, useMid, useEarly, overlay) {
-  try {
-    const prevD = new Date(date + 'T12:00:00');
-    prevD.setDate(prevD.getDate() - 1);
-    const prevStr = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2,'0')}-${String(prevD.getDate()).padStart(2,'0')}`;
-
-    const midReadings = allReadings.filter(r => {
-      if (readingLocalDate(r) !== date) return false;
-      const { h, m } = readingLocalHM(r);
-      return h * 60 + m >= 90 && h * 60 + m <= 180;
-    });
-    const earlyReadings = [
-      ...allReadings.filter(r => {
-        if (readingLocalDate(r) !== prevStr) return false;
-        const { h, m } = readingLocalHM(r);
-        return h === 23 && m >= 30;
-      }),
-      ...allReadings.filter(r => {
-        if (readingLocalDate(r) !== date) return false;
-        const { h, m } = readingLocalHM(r);
-        return h === 0 || (h === 1 && m <= 29);
-      })
-    ];
-
-    const filtered = [
-      ...(useMid ? midReadings : []),
-      ...(useEarly ? earlyReadings : [])
-    ];
-
-    let methodLabel;
-    if (useMid && useEarly)       methodLabel = 'Mid + Early Sleep · 11:30pm–3:00am';
-    else if (useMid)              methodLabel = 'Mid Sleep Capture · 1:30am–3:00am';
-    else                          methodLabel = 'Early Sleep Capture · 11:30pm–1:29am';
-
-    if (filtered.length === 0) throw new Error(`No readings in selected window(s) for ${date}`);
-
-    applyCalcResult(filtered, methodLabel, overlay);
-  } catch(e) {
-    showToast(e.message || 'Calculation error');
-  }
-}
 
 // ---------- RHR (Overnight Capture) ----------
 function findRHRWindowDetail(readings) {
@@ -3793,7 +3605,6 @@ function showMenuModal() {
     <div class="modal-title">Tools</div>
     <button class="modal-btn" id="menuOvernight" style="text-align:left;">Overnight Capture</button>
     <button class="modal-btn" id="menuLog"    style="text-align:left;">Log Reading</button>
-    <button class="modal-btn" id="menuCalc"   style="text-align:left;">Manual Sync</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
     <button class="modal-btn" id="menuTemp"   style="text-align:left;">Set Temp Baseline</button>
@@ -3802,7 +3613,6 @@ function showMenuModal() {
   `);
   overlay.querySelector('#menuOvernight').addEventListener('click', () => { overlay.remove(); showSlowWaveModal(); });
   overlay.querySelector('#menuLog').addEventListener('click',    () => { overlay.remove(); showLogModal(); });
-  overlay.querySelector('#menuCalc').addEventListener('click',   () => { overlay.remove(); showCalcModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
   overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportCSVModal(); });
   overlay.querySelector('#menuTemp').addEventListener('click',   () => { overlay.remove(); showTempBaselineModal(); });
@@ -4163,7 +3973,6 @@ function restoreCalcResult() {
     } catch { lastSleepNums = null; }
     $('calcSleepDisplay').style.display = s.sleepVisible ? '' : 'none';
     try { lastSleepStages = s.sleepStages ? JSON.parse(s.sleepStages) : null; } catch { lastSleepStages = null; }
-    $('calcAnotherBtn').style.display = 'none';
     setResultDate(s.savedAt || '');
     $('calcResult').classList.add('show');
     updateCalcTagBtn();
