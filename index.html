@@ -54,7 +54,7 @@
   /* Cards */
   .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
   .today-card { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; cursor:pointer; position:relative; user-select:none; }
-  .today-card .metric-value { font-size:34px; }
+  .today-card .metric-value { font-size:30px; }
   /* Compact top-of-screen block (metrics, status, zones) so more of Today fits */
   .today-card { padding:14px 10px 12px; margin-bottom:10px; }
   .today-card .metric-label { margin-bottom:4px; }
@@ -443,7 +443,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.2';
+const APP_VERSION = '2026-10-03.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
