@@ -185,8 +185,9 @@
   .note-input { width:100%; background:var(--surface2); border:1px solid var(--muted); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:6px 8px; resize:none; outline:none; display:none; height:72px; }
   .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:6px; min-width:180px; }
   .tag-picker-item { font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:6px; cursor:pointer; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
+  .tag-picker-item:not(.on) { opacity:0.45; }
   .tag-picker-item:active { opacity:0.7; }
-  .tag-picker-clear { font-family:var(--font-mono); font-size:10px; color:var(--muted); text-align:center; padding:4px; cursor:pointer; }
+  .tag-picker-divider { border-top:1px solid var(--border); margin:2px 0; }
 
   /* Journal/Analysis Modal */
   .jnl-overlay { position:fixed; inset:0; background:linear-gradient(rgba(0,0,0,0.9), rgba(0,0,0,0.9)), var(--bg); z-index:9999; display:flex; flex-direction:column; overflow:hidden; touch-action:none; }
@@ -437,7 +438,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-01.1';
+const APP_VERSION = '2026-10-01.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1673,34 +1674,25 @@ function openTagPicker(e, id) {
   closeTagPicker();
   const picker = document.createElement('div');
   picker.className = 'tag-picker';
-  TAGS.forEach(t => {
-    const item = document.createElement('div');
-    item.className = 'tag-picker-item';
-    item.textContent = t.label;
-    item.style.cssText = `border-color:${t.color};color:${t.color};`;
-    item.addEventListener('click', ev => { ev.stopPropagation(); applyTag(id, t.label); closeTagPicker(); });
-    picker.appendChild(item);
-  });
-  const clear = document.createElement('div');
-  clear.className = 'tag-picker-clear';
-  clear.textContent = 'Clear tag';
-  clear.addEventListener('click', ev => { ev.stopPropagation(); applyTag(id, null); closeTagPicker(); });
-  picker.appendChild(clear);
-  const rd = readings.find(x => String(x.id) === String(id));
-  const also = document.createElement('div');
-  also.className = 'tag-picker-clear';
-  also.style.cssText = 'border-top:1px solid var(--border);margin-top:2px;padding-top:8px;letter-spacing:2px;cursor:default;';
-  also.textContent = 'ALSO';
-  picker.appendChild(also);
-  EXTRA_TAGS.forEach(t => {
-    const on = !!rd?.extras?.includes(t.label);
-    const item = document.createElement('div');
-    item.className = 'tag-picker-item';
-    item.textContent = (on ? '✓ ' : '') + t.label;
-    item.style.cssText = `border-color:${t.color};color:${t.color};${on ? `background:${t.color}22;` : ''}`;
-    item.addEventListener('click', ev => { ev.stopPropagation(); toggleExtraTag(id, t.label); closeTagPicker(); });
-    picker.appendChild(item);
-  });
+  // Every option shows dimmed; the active ones light up. Tapping a lit option turns
+  // it off. Training-load tags are one-at-a-time; the activity tags toggle freely.
+  // The picker stays open so a whole day can be tagged in one go — tap outside to close.
+  const item = (t, on, onTap) => {
+    const el = document.createElement('div');
+    el.className = 'tag-picker-item' + (on ? ' on' : '');
+    el.textContent = t.label;
+    el.style.cssText = `border-color:${t.color};color:${t.color};${on ? `background:${t.color}26;` : ''}`;
+    el.addEventListener('click', ev => { ev.stopPropagation(); onTap(); fill(); });
+    return el;
+  };
+  const fill = () => {
+    const r = readings.find(x => String(x.id) === String(id));
+    picker.replaceChildren(
+      ...TAGS.map(t => item(t, r?.tag === t.label, () => applyTag(id, r?.tag === t.label ? null : t.label))),
+      Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
+      ...EXTRA_TAGS.map(t => item(t, !!r?.extras?.includes(t.label), () => toggleExtraTag(id, t.label))));
+  };
+  fill();
   document.body.appendChild(picker);
   tagPickerEl = picker;
   // Place against the picker's real size: below the pill if it fits, else above,
