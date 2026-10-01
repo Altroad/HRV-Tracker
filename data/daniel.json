@@ -974,7 +974,8 @@
       "hrv": 105,
       "tag": "100-200TSS",
       "extras": [
-        "Sauna"
+        "Sauna",
+        "Cold"
       ],
       "ectopy": 0
     }
