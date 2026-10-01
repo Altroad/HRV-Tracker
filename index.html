@@ -438,7 +438,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.8';
+const APP_VERSION = '2026-10-02.9';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3304,8 +3304,10 @@ async function loadFromGitHub() {
 }
 
 // Merge remote readings into local ones without dropping entries unique to either side.
-// Same-id entries with different content came from independent devices reusing an id —
-// keep both, renumbering the remote one so it doesn't clobber the local entry.
+// Same id + same date is one reading edited in two places (e.g. this device saving
+// after the file changed underneath it): this device's version wins, rather than
+// keeping both as a duplicate day. Same id + different date means independent
+// devices reused an id for different readings — keep both, renumbering the remote.
 function mergeReadings(remote, local) {
   const localById = new Map(local.map(r => [String(r.id), r]));
   const merged = local.slice();
@@ -3315,7 +3317,7 @@ function mergeReadings(remote, local) {
     if (!lr) {
       maxId = Math.max(maxId, Number(rr.id) || 0);
       merged.push(rr);
-    } else if (JSON.stringify(lr) !== JSON.stringify(rr)) {
+    } else if (lr.date !== rr.date) {
       maxId += 1;
       merged.push({ ...rr, id: maxId });
     }
