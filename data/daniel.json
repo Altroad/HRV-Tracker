@@ -949,7 +949,8 @@
       "extras": [
         "Sauna"
       ],
-      "tag": "100-200TSS"
+      "tag": "100-200TSS",
+      "ectopy": 0
     },
     {
       "id": 312,
