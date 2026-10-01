@@ -371,7 +371,7 @@
       </span>
     </div>
     <div class="calc-readings" id="calcReadings"></div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:30px 0 2px;">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:30px 0 2px;">
       <button class="quick-add-btn" id="quickAddBtn" style="margin:0;" title="Quick Add kcal to previous day">+</button>
       <span id="calcExtras" style="display:none;gap:4px;"></span>
       <span id="calcTagBtn" class="tag-empty" style="display:none;" onclick="openCalcTagPicker(event)">TAG</span>
@@ -439,7 +439,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-02.2';
+const APP_VERSION = '2026-10-02.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -540,7 +540,7 @@ const EXTRA_MAP = Object.fromEntries(EXTRA_TAGS.map(t => [t.label, t.color]));
 // the same activity day the entry's kcal belongs to. 0 = none felt, which is kept
 // distinct from not logged (no value).
 const ECTOPY_GRADES = [
-  { grade:0, label:'ECT 0', desc:'None',             color:'#90a4ae' },
+  { grade:0, label:'ECT 0', desc:'None',             color:'#66bb6a' },
   { grade:1, label:'ECT 1', desc:'Transitions',      color:'#fbc02d' },
   { grade:2, label:'ECT 2', desc:'Sustained',        color:'#f57c00' },
   { grade:3, label:'ECT 3', desc:'Session-breaking', color:'#ff1744' },
@@ -1778,7 +1778,7 @@ function updateCalcTagBtn() {
   if (!savedAt) { btn.style.display = 'none'; clearEx(); return; }
   const r = readings.find(r => r.date === savedAt);
   const ex = $('calcExtras');
-  if (ex) { ex.innerHTML = r ? ectopyPillHtml(r, 'openCalcTagPicker(event)') + extraPillsHtml(r, 'openCalcTagPicker(event)') : ''; ex.style.display = ex.innerHTML ? 'flex' : 'none'; }
+  if (ex) { ex.innerHTML = r ? ectopyPillHtml(r, 'openCalcTagPicker(event)') + extraPillsHtml(r, 'openCalcTagPicker(event)') : ''; ex.style.display = ex.innerHTML ? 'contents' : 'none'; }
   if (!r) { btn.style.display = 'none'; return; }
   btn.style.display = '';
   btn.dataset.readingId = r.id;
