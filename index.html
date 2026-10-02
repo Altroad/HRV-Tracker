@@ -447,7 +447,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.8';
+const APP_VERSION = '2026-10-03.9';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2141,15 +2141,29 @@ function applyHRVZones() {
   $('zoneLabelLow').textContent  = 'Low';      $('zoneLow').style.color  = 'var(--red)';    $('zoneLow').textContent  = `<${ZONE_OK}`;
 }
 
-function flipMetrics() {
+// Auto-rotate the top card (and zones) every 5s. Any flip — tap or auto —
+// restarts the countdown, so a tapped view gets a full 5s before moving on.
+// Skipped while the app is hidden or a modal/journal is open.
+const AUTO_FLIP_MS = 5000;
+let _autoFlipTimer = null;
+function scheduleAutoFlip() {
+  clearTimeout(_autoFlipTimer);
+  _autoFlipTimer = setTimeout(() => {
+    if (document.hidden || document.querySelector('.modal-overlay, .jnl-overlay')) scheduleAutoFlip();
+    else flipMetrics(true);
+  }, AUTO_FLIP_MS);
+}
+
+function flipMetrics(auto = false) {
+  scheduleAutoFlip();
   const cycle = ['hrv', 'rhr', 'kcal', 'temp'];
   const currentIdx = cycle.indexOf(metricsMode);
   let nextMode = null;
   for (let i = 1; i < cycle.length; i++) {
     const candidate = cycle[(currentIdx + i) % cycle.length];
-    if (candidate === 'rhr'  && !_rhrMetrics)  { showToast('No RHR data yet');  continue; }
-    if (candidate === 'temp' && !_tempMetrics) { showToast('No temp data yet'); continue; }
-    if (candidate === 'kcal' && !_kcalMetrics) { showToast('No kcal data yet'); continue; }
+    if (candidate === 'rhr'  && !_rhrMetrics)  { if (!auto) showToast('No RHR data yet');  continue; }
+    if (candidate === 'temp' && !_tempMetrics) { if (!auto) showToast('No temp data yet'); continue; }
+    if (candidate === 'kcal' && !_kcalMetrics) { if (!auto) showToast('No kcal data yet'); continue; }
     nextMode = candidate;
     break;
   }
@@ -4096,6 +4110,7 @@ async function init() {
   }
   syncResultTempWithData();
   render();
+  scheduleAutoFlip();
   // A Shortcut upload wins over the clipboard: if it imported, skip both the
   // ?autoimport= clipboard read and the manual import FAB.
   const inboxImported = await checkInbox();
