@@ -983,7 +983,10 @@
       "date": "2026-10-02",
       "hrv": 86,
       "tag": "100-200TSS",
-      "ectopy": 0
+      "ectopy": 0,
+      "extras": [
+        "Sick"
+      ]
     }
   ],
   "rhr": {
