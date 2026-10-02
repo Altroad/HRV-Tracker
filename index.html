@@ -447,7 +447,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.10';
+const APP_VERSION = '2026-10-03.11';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2141,13 +2141,16 @@ function applyHRVZones() {
   $('zoneLabelLow').textContent  = 'Low';      $('zoneLow').style.color  = 'var(--red)';    $('zoneLow').textContent  = `<${ZONE_OK}`;
 }
 
-// Auto-rotate the top card (and zones) every 5s. Any flip — tap or auto —
-// restarts the countdown, so a tapped view gets a full 5s before moving on.
-// Skipped while the app is hidden or a modal/journal is open.
+// Auto-rotate the top card (and zones) every 5s until the first tap — a tap
+// turns auto-rotation off for the rest of the session (until the app reloads)
+// and the card is then flipped manually. Skipped while the app is hidden or a
+// modal/journal is open.
 const AUTO_FLIP_MS = 5000;
 let _autoFlipTimer = null;
+let _autoFlipOff = false;
 function scheduleAutoFlip() {
   clearTimeout(_autoFlipTimer);
+  if (_autoFlipOff) return;
   _autoFlipTimer = setTimeout(() => {
     if (document.hidden || document.querySelector('.modal-overlay, .jnl-overlay')) scheduleAutoFlip();
     else flipMetrics(true);
@@ -2155,6 +2158,7 @@ function scheduleAutoFlip() {
 }
 
 function flipMetrics(auto = false) {
+  if (!auto) _autoFlipOff = true;
   scheduleAutoFlip();
   const cycle = ['hrv', 'rhr', 'kcal', 'temp'];
   const currentIdx = cycle.indexOf(metricsMode);
