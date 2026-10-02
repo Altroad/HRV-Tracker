@@ -73,8 +73,8 @@
 
   @keyframes metricSlideOut { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-28px)} }
   @keyframes metricSlideIn  { 0%{opacity:0;transform:translateY(28px)} 100%{opacity:1;transform:translateY(0)} }
-  .metric-anim-out { animation:metricSlideOut 0.17s ease-in forwards; }
-  .metric-anim-in  { animation:metricSlideIn  0.2s  ease-out forwards; }
+  .metric-anim-out { animation:metricSlideOut 0.34s ease-in forwards; }
+  .metric-anim-in  { animation:metricSlideIn  0.4s  ease-out forwards; }
   /* ---------- Touch press feedback ---------- */
   .today-card, .status-bar, .zones, #captureBar { transition: transform 0.12s ease, filter 0.12s ease; }
   .today-card:active, .status-bar:active, .zones:active, #captureBar:active,
@@ -447,7 +447,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.9';
+const APP_VERSION = '2026-10-03.10';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2286,7 +2286,7 @@ function flipMetrics(auto = false) {
     });
 
     metricsMode = nextMode;
-  }, 170);
+  }, 340);
 }
 
 // ---------- CRUD ----------
