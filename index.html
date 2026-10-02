@@ -138,7 +138,8 @@
 
 
   /* Calculator */
-  .calc-result { margin-top:12px; padding:12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; display:none; }
+  /* Today panel: a single card like the others (it used to sit as a box inside a card) */
+  .calc-result { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 20px 20px; margin-bottom:16px; display:none; }
   .calc-result.show { display:block; }
   .calc-result-date { font-size:10px; font-family:var(--font-mono); color:var(--accent); letter-spacing:3px; text-transform:uppercase; text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); margin-bottom:12px; }
   .calc-result-values { display:flex; align-items:flex-start; justify-content:center; gap:24px; }
@@ -332,7 +333,7 @@
   <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
 </div>
 
-<div class="card">
+<div>
   <div style="display:none;">
     <input type="date" id="inputDate">
     <input type="number" id="inputHRV" min="20" max="220">
@@ -443,7 +444,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.3';
+const APP_VERSION = '2026-10-03.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
