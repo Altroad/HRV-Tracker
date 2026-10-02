@@ -105,8 +105,10 @@
   .zone-range { font-family:var(--font-display); font-size:16px; }
 
   /* Chart */
-  .chart-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
-  .chart-title { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); }
+  /* Card headings match the Today panel: centred accent title over a subtle divider, toggles centred below */
+  .chart-header { display:flex; flex-direction:column; align-items:stretch; gap:10px; margin-bottom:12px; }
+  .chart-title { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); font-family:var(--font-mono); text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .chart-header .chart-range-toggle { justify-content:center; }
   .chart-range-toggle { display:flex; gap:4px; }
   .range-btn { background:none; border:1px solid var(--border); color:var(--muted); font-family:var(--font-mono); font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:4px; cursor:pointer; }
   .range-btn.active { border-color:var(--accent); color:var(--accent); }
@@ -419,7 +421,7 @@
 </div>
 
 <div class="card" id="heatmapCard">
-  <div class="chart-header" style="margin-bottom:12px;flex-wrap:wrap;row-gap:10px;">
+  <div class="chart-header">
     <div class="chart-title" style="white-space:nowrap;">Year at a Glance</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="hmBtnHRV"  onclick="setHeatmapMode('hrv')">HRV</button>
@@ -445,7 +447,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.6';
+const APP_VERSION = '2026-10-03.7';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
