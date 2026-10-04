@@ -1006,7 +1006,10 @@
       "date": "2026-10-04",
       "hrv": 102,
       "tag": "100-200TSS",
-      "ectopy": 1
+      "ectopy": 1,
+      "extras": [
+        "Sauna"
+      ]
     }
   ],
   "rhr": {
