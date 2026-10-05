@@ -471,7 +471,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.9';
+const APP_VERSION = '2026-10-05.10';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1302,10 +1302,9 @@ function updateChartPopup(meta) {
     <div class="chart-popup-metrics">${metricsHtml}</div>`;
   popup.style.borderColor = colorForHRV(hrv);
   popup.style.display = '';
-  // One fixed spot for every reading: just under the 14D/60D buttons, over the
-  // chart key, so it sits above the plot rather than on the dots.
-  const toggle = popup.closest('.card')?.querySelector('.chart-range-toggle');
-  if (toggle) popup.style.top = Math.round(toggle.getBoundingClientRect().bottom - popup.parentElement.getBoundingClientRect().top + 10) + 'px';
+  // One fixed spot for every reading, entirely above the plot (over the key and
+  // range buttons — it's only a temporary popup), so it never covers a dot.
+  popup.style.top = -(popup.offsetHeight + 4) + 'px';
 }
 
 function scrollChartToEnd(n) {
