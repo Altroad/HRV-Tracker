@@ -465,7 +465,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.4';
+const APP_VERSION = '2026-10-05.5';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1422,6 +1422,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   readings.forEach(r => { dateSet.add(r.date); if (!(r.date in readingByDate)) readingByDate[r.date] = r; });
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
+  Object.keys(rrData).forEach(d => dateSet.add(d));
 
   // Tags present in data, in TAGS definition order
   const tagSet = new Set(readings.flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
@@ -1444,6 +1445,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       if (sort === 'rhr')  { va = rhrData[a]    ?? null; vb = rhrData[b]    ?? null; }
       if (sort === 'kcal') { va = workoutData[prevDay(a)] !== undefined ? getKcalTotal(prevDay(a)) : null; vb = workoutData[prevDay(b)] !== undefined ? getKcalTotal(prevDay(b)) : null; }
       if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
+      if (sort === 'rr')   { va = rrData[a]     ?? null; vb = rrData[b]     ?? null; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
       if (vb === null) return -1;
@@ -1460,6 +1462,8 @@ function buildJournalCards(filter, search, sort, sortDir) {
   const avgRhr  = rhrVals.length  ? Math.round(rhrVals.reduce((a, b) => a + b, 0) / rhrVals.length) : null;
   const avgKcal = kcalVals.length ? Math.round(kcalVals.reduce((a, b) => a + b, 0) / kcalVals.length) : null;
   const avgTemp = tempVals.length ? tempVals.reduce((a, b) => a + b, 0) / tempVals.length : null;
+  const rrVals  = dates.map(d => rrData[d]).filter(v => v !== undefined);
+  const avgRr   = rrVals.length   ? rrVals.reduce((a, b) => a + b, 0) / rrVals.length : null;
 
   const allSorted = [...readings].sort((a, b) => a.date.localeCompare(b.date));
   const deltaMap = new Map();
@@ -1476,6 +1480,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     const hasKcal     = workoutData[activityDate] !== undefined;
     const kcalTotal   = hasKcal ? getKcalTotal(activityDate) : 0;
     const tempVal     = tempData[date];
+    const rrVal       = rrData[date];
     const noteId = r ? String(r.id) : `rhr-${date}`;
     const noteVal = r ? (r.note || '') : (rhrNotes[date] || '');
 
@@ -1545,25 +1550,45 @@ function buildJournalCards(filter, search, sort, sortDir) {
       </div>`;
     }
 
+    let rrHtml;
+    if (rrVal !== undefined) {
+      const rrDev = rrDevFor(date);
+      const rrColor = rrZoneColor(rrDev);
+      rrHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-rr-date="${date}">
+        <div class="jnl-metric-label">RR</div>
+        <div class="jnl-metric-delta" style="color:${rrColor}">${rrDev !== null ? fmtRrDev(rrDev) : ''}</div>
+        <span class="jnl-metric-value" style="color:${rrColor}">${rrVal.toFixed(1)}</span>
+      </div>`;
+    } else {
+      rrHtml = `<div class="jnl-metric">
+        <div class="jnl-metric-label">RR</div>
+        <div class="jnl-metric-delta"></div>
+        <span class="jnl-metric-nil">—</span>
+      </div>`;
+    }
+
     const delAttr = r ? `data-swipe-del-id="${r.id}"` : `data-swipe-del-date="${date}"`;
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
         <span style="display:flex;gap:4px;align-items:center;">${r ? ectopyPillHtml(r, `openTagPicker(event,'${r.id}')`) + extraPillsHtml(r, `openTagPicker(event,'${r.id}')`) : ''}${tagHtml}</span>
       </div>
-      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}${tempHtml}</div>
+      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
       <textarea class="note-input jnl-note" rows="3" onblur="closeNoteEditor(this,'${noteId}')">${noteVal ? escapeHtml(noteVal) : ''}</textarea>
     </div></div>`;
   });
 
-  return { cards, count: dates.length, avgHrv, avgRhr, avgKcal, avgTemp, tags };
+  return { cards, count: dates.length, avgHrv, avgRhr, avgKcal, avgTemp, avgRr, tags };
 }
 
-function buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp) {
+function buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp, avgRr) {
   const hc = avgHrv !== null ? colorForHRV(avgHrv) : 'var(--muted)';
   const rc = avgRhr !== null ? rhrZoneColor(avgRhr) : 'var(--muted)';
   const tc = avgTemp !== null ? tempZoneColor(avgTemp) : 'var(--muted)';
+  // RR average judged against the current baseline (all logged nights)
+  const rrBase = rrBaselineFor('9999-12-31');
+  const rrc = avgRr !== null ? rrZoneColor(rrBase !== null ? avgRr - rrBase : null) : 'var(--muted)';
   return `
     <div class="jnl-summary-metric">
       <div class="jnl-summary-label">Avg HRV</div>
@@ -1574,12 +1599,16 @@ function buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp) {
       <span class="jnl-summary-value" style="color:${rc}">${avgRhr !== null ? avgRhr : '—'}</span>
     </div>
     <div class="jnl-summary-metric">
-      <div class="jnl-summary-label">Avg KCAL</div>
-      <span class="jnl-summary-value" style="color:var(--text)">${avgKcal !== null ? avgKcal.toLocaleString() : '—'}</span>
+      <div class="jnl-summary-label">Avg RR</div>
+      <span class="jnl-summary-value" style="color:${rrc}">${avgRr !== null ? avgRr.toFixed(1) : '—'}</span>
     </div>
     <div class="jnl-summary-metric">
       <div class="jnl-summary-label">Avg Temp</div>
       <span class="jnl-summary-value" style="color:${tc}">${avgTemp !== null ? avgTemp.toFixed(1) + '°' : '—'}</span>
+    </div>
+    <div class="jnl-summary-metric">
+      <div class="jnl-summary-label">Avg KCAL</div>
+      <span class="jnl-summary-value" style="color:var(--text)">${avgKcal !== null ? avgKcal.toLocaleString() : '—'}</span>
     </div>`;
 }
 
@@ -1595,7 +1624,7 @@ function buildJnlFiltersHtml(tags, activeFilter) {
 
 function buildJnlSortHtml(sort, sortDir) {
   const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
-  return ['hrv', 'rhr', 'kcal', 'temp'].map(key => {
+  return ['hrv', 'rhr', 'rr', 'temp', 'kcal'].map(key => {
     const isActive = sort === key;
     return `<button class="jnl-sort-btn${isActive ? ' active' : ''}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
   }).join('');
@@ -1610,11 +1639,11 @@ function setJnlSort(key) {
   }
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, avgRr } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
   overlay.querySelector('.jnl-sort').innerHTML = buildJnlSortHtml(jnlSort, jnlSortDir);
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp, avgRr);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
 
@@ -1622,10 +1651,10 @@ function setJnlFilter(tag) {
   jnlFilter = tag;
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, avgRr, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   overlay.querySelector('.jnl-body').innerHTML = cards;
   overlay.querySelector('.jnl-body').scrollTop = 0;
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp, avgRr);
   overlay.querySelector('.jnl-filters').innerHTML = buildJnlFiltersHtml(tags, jnlFilter);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
@@ -1634,11 +1663,11 @@ function setJnlSearch(val) {
   jnlSearch = val.trim();
   const overlay = document.querySelector('.jnl-overlay');
   if (!overlay) return;
-  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, avgRr } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   const body = overlay.querySelector('.jnl-body');
   body.innerHTML = cards;
   body.scrollTop = 0;
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp, avgRr);
   overlay.querySelector('.jnl-entry-count').textContent = `${count} entries`;
 }
 
@@ -1647,7 +1676,7 @@ function showJournalModal() {
   jnlSearch = '';
   jnlSort = null;
   jnlSortDir = 'desc';
-  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(null, '', null, 'desc');
+  const { cards, count, avgHrv, avgRhr, avgKcal, avgTemp, avgRr, tags } = buildJournalCards(null, '', null, 'desc');
   if (!count) { showToast('No data yet'); return; }
   const overlay = document.createElement('div');
   overlay.className = 'jnl-overlay';
@@ -1658,7 +1687,7 @@ function showJournalModal() {
         <span class="jnl-entry-count">${count} entries</span>
         <button class="jnl-close">✕</button>
       </div>
-      <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp)}</div>
+      <div class="jnl-summary">${buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp, avgRr)}</div>
       <div class="jnl-search-row"><input class="jnl-search" type="search" placeholder="Search notes…" oninput="setJnlSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"></div>
       ${tags.length ? `<div class="jnl-filters">${buildJnlFiltersHtml(tags, null)}</div>` : ''}
       <div class="jnl-sort">${buildJnlSortHtml(null, 'desc')}</div>
@@ -1727,9 +1756,10 @@ function showJournalModal() {
     const hrvEl  = e.target.closest('[data-jnl-hrv-id]');
     const rhrEl  = e.target.closest('[data-jnl-rhr-date]');
     const tempEl = e.target.closest('[data-jnl-temp-date]');
-    const metricEl = hrvEl || rhrEl || tempEl;
+    const rrEl   = e.target.closest('[data-jnl-rr-date]');
+    const metricEl = hrvEl || rhrEl || tempEl || rrEl;
     if (!metricEl) return;
-    const label  = hrvEl ? 'HRV' : rhrEl ? 'RHR' : 'Temp';
+    const label  = hrvEl ? 'HRV' : rhrEl ? 'RHR' : rrEl ? 'RR' : 'Temp';
     const confirm = openModal(`
       <div class="modal-title">Delete ${label}?</div>
       <div class="modal-desc">Removes only the ${label} reading for this date.</div>
@@ -1744,6 +1774,7 @@ function showJournalModal() {
       if (hrvEl)  { const id = hrvEl.dataset.jnlHrvId; dropReadings(r => String(r.id) === String(id)); save(); render(); showToast('HRV removed'); }
       if (rhrEl)  { delete rhrData[rhrEl.dataset.jnlRhrDate]; saveRHR(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('RHR removed'); }
       if (tempEl) { delete tempData[tempEl.dataset.jnlTempDate]; saveTemp(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('Temp removed'); }
+      if (rrEl)   { delete rrData[rrEl.dataset.jnlRrDate]; saveRR(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('RR removed'); }
       refreshJournalModal();
     });
   });
@@ -1756,10 +1787,10 @@ function refreshJournalModal() {
   if (!overlay) return;
   const body = overlay.querySelector('.jnl-body');
   const scrollTop = body.scrollTop;
-  const { cards, avgHrv, avgRhr, avgKcal, avgTemp, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
+  const { cards, avgHrv, avgRhr, avgKcal, avgTemp, avgRr, tags } = buildJournalCards(jnlFilter, jnlSearch, jnlSort, jnlSortDir);
   body.innerHTML = cards;
   body.scrollTop = scrollTop;
-  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp);
+  overlay.querySelector('.jnl-summary').innerHTML = buildJnlSummaryHtml(avgHrv, avgRhr, avgKcal, avgTemp, avgRr);
   const filtersEl = overlay.querySelector('.jnl-filters');
   if (filtersEl) filtersEl.innerHTML = buildJnlFiltersHtml(tags, jnlFilter);
 }
@@ -2465,6 +2496,7 @@ function deleteReading(id) {
     if (!dateStillUsed) {
       delete tempData[r.date]; saveTemp();
       delete rhrData[r.date];  saveRHR();
+      delete rrData[r.date];   saveRR();
       delete workoutData[prevDay(r.date)]; saveWorkout();
     }
   }
@@ -2476,6 +2508,7 @@ function deleteReading(id) {
 
 function deleteRHREntry(date) {
   delete rhrData[date];
+  delete rrData[date]; saveRR();
   delete tempData[date];
   delete workoutData[prevDay(date)];
   saveRHR();
