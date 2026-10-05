@@ -44,11 +44,11 @@
   .menu-btn:hover { border-color:var(--accent); color:var(--accent); }
 
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
-  .baseline-row { display:grid; grid-template-columns:repeat(4,1fr); margin-top:10px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-  .bl-cell { padding:8px 4px 7px; text-align:center; border-right:1px solid var(--border); }
+  .baseline-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:10px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .bl-cell { padding:8px 2px 7px; text-align:center; border-right:1px solid var(--border); }
   .bl-cell:last-child { border-right:none; }
   .bl-label { font-family:var(--font-mono); font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
-  .bl-value { font-family:var(--font-mono); font-size:17px; font-weight:600; line-height:1.1; }
+  .bl-value { font-family:var(--font-mono); font-size:15px; font-weight:600; line-height:1.1; }
   .bl-period { font-family:var(--font-mono); font-size:8px; color:var(--muted); margin-top:2px; }
 
   /* Cards */
@@ -286,14 +286,19 @@
       <div class="bl-period" id="blRHRPeriod">—</div>
     </div>
     <div class="bl-cell">
-      <div class="bl-label">KCAL</div>
-      <div class="bl-value" id="blKcalVal" style="color:var(--muted)">—</div>
-      <div class="bl-period" id="blKcalPeriod">av</div>
+      <div class="bl-label">RR</div>
+      <div class="bl-value" id="blRRVal" style="color:var(--muted)">—</div>
+      <div class="bl-period" id="blRRPeriod">baseline</div>
     </div>
     <div class="bl-cell">
       <div class="bl-label">TEMP</div>
       <div class="bl-value" id="blTempVal" style="color:var(--muted)">—°</div>
       <div class="bl-period" id="blTempPeriod">baseline</div>
+    </div>
+    <div class="bl-cell">
+      <div class="bl-label">KCAL</div>
+      <div class="bl-value" id="blKcalVal" style="color:var(--muted)">—</div>
+      <div class="bl-period" id="blKcalPeriod">av</div>
     </div>
   </div>
   <button class="menu-btn" id="menuBtn">≡</button>
@@ -465,7 +470,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.6';
+const APP_VERSION = '2026-10-05.7';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1990,6 +1995,20 @@ function updateBaseline() {
     $('blRHRVal').textContent = '—';
     $('blRHRVal').style.color = 'var(--muted)';
     $('blRHRPeriod').textContent = '—';
+  }
+  // RR baseline: the manual starting value while it applies, else the 30-night average
+  const rrBase = rrBaselineFor('9999-12-31');
+  if (rrBase !== null) {
+    const nights = Object.keys(rrData).length;
+    const sinceSet = rrBaselineSetDate ? Object.keys(rrData).filter(d => d > rrBaselineSetDate).length : nights;
+    const manual = rrBaseline !== null && sinceSet < RR_MIN_NIGHTS;
+    $('blRRVal').textContent = rrBase.toFixed(1);
+    $('blRRVal').style.color = '#80cbc4';
+    $('blRRPeriod').textContent = manual ? 'set' : `${Math.min(nights, RR_BASELINE_NIGHTS)}d avg`;
+  } else {
+    $('blRRVal').textContent = '—';
+    $('blRRVal').style.color = 'var(--muted)';
+    $('blRRPeriod').textContent = `${Object.keys(rrData).length}/${RR_MIN_NIGHTS} nights`;
   }
   // TEMP baseline: effective baseline temperature
   const eb = getEffectiveBaseline();
