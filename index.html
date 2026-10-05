@@ -194,7 +194,7 @@
   .note-input { width:100%; background:var(--surface2); border:1px solid var(--muted); border-radius:6px; color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:6px 8px; resize:none; outline:none; display:none; height:72px; }
   .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:6px; min-width:180px; }
   .tag-picker-item { font-family:var(--font-mono); font-size:11px; padding:7px 12px; border-radius:6px; cursor:pointer; border:1px solid transparent; -webkit-user-select:none; user-select:none; }
-  .tag-picker-item:not(.on) { opacity:0.45; }
+  .tag-picker-item.on { font-weight:600; }
   .tag-picker-item:active { opacity:0.7; }
   .tag-picker-divider { border-top:1px solid var(--border); margin:2px 0; }
 
@@ -447,7 +447,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-03.11';
+const APP_VERSION = '2026-10-05.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1711,14 +1711,15 @@ function openTagPicker(e, id) {
   closeTagPicker();
   const picker = document.createElement('div');
   picker.className = 'tag-picker';
-  // Every option shows dimmed; the active ones light up. Tapping a lit option turns
+  // Every option shows its label in full colour with a dull border; the active
+  // ones light up (bright border + tinted fill). Tapping a lit option turns
   // it off. Training-load tags are one-at-a-time; the activity tags toggle freely.
   // The picker stays open so a whole day can be tagged in one go — tap outside to close.
   const item = (t, on, onTap) => {
     const el = document.createElement('div');
     el.className = 'tag-picker-item' + (on ? ' on' : '');
     el.textContent = t.label;
-    el.style.cssText = `border-color:${t.color};color:${t.color};${on ? `background:${t.color}26;` : ''}`;
+    el.style.cssText = `color:${t.color};border-color:${t.color}${on ? `;background:${t.color}26` : '4d'};`;
     el.addEventListener('click', ev => { ev.stopPropagation(); onTap(); fill(); });
     return el;
   };
