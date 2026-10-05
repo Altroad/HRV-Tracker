@@ -449,7 +449,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.2';
+const APP_VERSION = '2026-10-05.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -461,6 +461,7 @@ const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const getRhrKey          = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_${u}_v1`                  : 'hrv_rhr_v1'; };
+const getRemovedKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_removed_${u}_v1`              : 'hrv_removed_v1'; };
 const getRhrNotesKey     = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_notes_${u}_v1`            : 'hrv_rhr_notes_v1'; };
 const getRrKey           = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_resp_rate_${u}_v1`            : 'hrv_resp_rate_v1'; };
 const getTempKey         = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_wrist_temp_${u}_v1`           : 'hrv_wrist_temp_v1'; };
@@ -1724,7 +1725,7 @@ function showJournalModal() {
     confirm.querySelector('[data-cancel]').addEventListener('click', () => confirm.remove());
     confirm.querySelector('[data-confirm]').addEventListener('click', () => {
       confirm.remove();
-      if (hrvEl)  { const id = hrvEl.dataset.jnlHrvId; readings = readings.filter(r => String(r.id) !== String(id)); save(); render(); showToast('HRV removed'); }
+      if (hrvEl)  { const id = hrvEl.dataset.jnlHrvId; dropReadings(r => String(r.id) === String(id)); save(); render(); showToast('HRV removed'); }
       if (rhrEl)  { delete rhrData[rhrEl.dataset.jnlRhrDate]; saveRHR(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('RHR removed'); }
       if (tempEl) { delete tempData[tempEl.dataset.jnlTempDate]; saveTemp(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); render(); showToast('Temp removed'); }
       refreshJournalModal();
@@ -2409,6 +2410,10 @@ function confirmReplaceEntry(date) {
     overlay.querySelector('[data-keep]').addEventListener('click',    () => { overlay.remove(); done(false); });
     overlay.querySelector('[data-replace]').addEventListener('click', () => { overlay.remove(); done(true); });
     overlay.addEventListener('click', e => { if (e.target === overlay) done(false); }); // backdrop tap = keep
+    // Closed any other way (e.g. another modal clearing it): treat as keep, so an
+    // awaiting import never hangs.
+    new MutationObserver((_, obs) => { if (!overlay.isConnected) { obs.disconnect(); done(false); } })
+      .observe(document.body, { childList: true });
   });
 }
 
@@ -2425,7 +2430,7 @@ async function addEntry() {
   if (hasHRV && readings.some(r => r.date === date)) {
     const replace = await confirmReplaceEntry(date);
     if (!replace) { showToast('Kept existing entry'); return; }
-    readings = readings.filter(r => r.date !== date);
+    dropReadings(r => r.date === date);
   }
   if (hasHRV) { readings.push({ id: newId(), date, hrv }); save(); }
   if (hasRHR) { rhrData[date] = rhr; saveRHR(); }
@@ -2447,7 +2452,7 @@ function deleteReading(id) {
       delete workoutData[prevDay(r.date)]; saveWorkout();
     }
   }
-  readings = readings.filter(r => String(r.id) !== String(id));
+  dropReadings(r => String(r.id) === String(id));
   save();
   render();
   showToast('Reading removed');
@@ -3412,12 +3417,13 @@ async function importInboxFile(path) {
     }
     return false;
   }
+  // Clear the upload as soon as it's read, before the import (which can wait on a
+  // Replace/Keep prompt). Clearing afterwards left it behind whenever that prompt
+  // was abandoned, and the same morning was re-imported on the next launch.
+  if (sha) await ghRequest('DELETE', { message: 'Clear inbox', sha }, path);
   showToast('Inbox found — importing…');
   try { await runAutoImportText(text); }
   catch (e) { console.error('inbox import:', e); }
-  finally {
-    if (sha) await ghRequest('DELETE', { message: 'Clear inbox', sha }, path);
-  }
   return true;
 }
 
@@ -3469,7 +3475,7 @@ async function loadFromGitHub() {
     const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
     const data = JSON.parse(new TextDecoder().decode(bytes));
     const rawReadings = Array.isArray(data) ? data : (data.readings ?? []);
-    readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() }));
+    readings = rawReadings.map(r => ({ ...r, id: r.id ?? newId() })).filter(r => !isRemoved(r));
     if (readings.length) nextId = Math.max(...readings.map(r => Number(r.id) || 0)) + 1;
     const remoteRhr     = (!Array.isArray(data) && data.rhr)      ? data.rhr      : {};
     const remoteNotes   = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
@@ -3501,17 +3507,37 @@ async function loadFromGitHub() {
   } catch { return false; }
 }
 
+// Readings this device removed (deleted, or replaced by a re-import), as "id|date".
+// A merge or reload must not bring them back from an older copy on GitHub.
+function loadRemoved() {
+  try { return new Set(JSON.parse(localStorage.getItem(getRemovedKey()) || '[]')); } catch { return new Set(); }
+}
+let removedReadings = loadRemoved();
+const isRemoved = r => removedReadings.has(`${r.id}|${r.date}`);
+function dropReadings(pred) {
+  const gone = readings.filter(pred);
+  if (!gone.length) return;
+  gone.forEach(r => removedReadings.add(`${r.id}|${r.date}`));
+  try { localStorage.setItem(getRemovedKey(), JSON.stringify([...removedReadings].slice(-300))); } catch {}
+  readings = readings.filter(r => !pred(r));
+}
+
 // Merge remote readings into local ones without dropping entries unique to either side.
 // Same id + same date is one reading edited in two places (e.g. this device saving
 // after the file changed underneath it): this device's version wins, rather than
 // keeping both as a duplicate day. Same id + different date means independent
 // devices reused an id for different readings — keep both, renumbering the remote.
+// There is one reading per date, so a remote reading for a date this device already
+// has never comes in as a second entry (this device's wins), and readings this
+// device removed are never brought back.
 function mergeReadings(remote, local) {
   const localById = new Map(local.map(r => [String(r.id), r]));
+  const localDates = new Set(local.map(r => r.date));
   const merged = local.slice();
   let maxId = local.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
   remote.forEach(rr => {
     const lr = localById.get(String(rr.id));
+    if (isRemoved(rr) || (localDates.has(rr.date) && !(lr && lr.date === rr.date))) return;
     if (!lr) {
       maxId = Math.max(maxId, Number(rr.id) || 0);
       merged.push(rr);
@@ -3647,6 +3673,7 @@ function showSyncModal() {
     ghFileSha = null;
     readings = [];
     rhrData = {}; rhrNotes = {}; rrData = {}; tempData = {}; workoutData = {};
+    removedReadings = loadRemoved();
     tempBaseline = null; tempBaselineSetDate = null;
     // Reload the capture offset for the newly-selected user so one person's
     // late-night shift can't linger into another user's session on a shared device.
@@ -4356,7 +4383,7 @@ async function runAutoImportText(text) {
       Object.entries(lastKcalImport).forEach(([d, items]) => applyImportedKcal(d, items));
       saveWorkout();
     }
-    readings = readings.filter(r => r.date !== date);
+    dropReadings(r => r.date === date);
     save();
   }
 
