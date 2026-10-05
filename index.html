@@ -121,15 +121,16 @@
   .chart-scroll-area { flex:1; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; height:260px; }
   .chart-scroll-area::-webkit-scrollbar { display:none; }
   .chart-inner { height:260px; }
-  .chart-popup { position:absolute; z-index:20; top:6px; left:4px; right:4px; background:rgba(14,20,25,0.94); border:1px solid; border-radius:8px; padding:5px 12px; pointer-events:none; box-shadow:0 2px 20px rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:stretch; gap:3px; }
-  .chart-popup-date { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); text-align:center; }
+  .chart-popup { position:absolute; z-index:20; top:6px; left:4px; right:4px; background:rgba(14,20,25,0.94); border:1px solid; border-radius:8px; padding:8px 12px 5px; pointer-events:none; box-shadow:0 2px 20px rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:stretch; }
+  /* Date sits on the top border, like a frame label, to keep the popup short */
+  .chart-popup-date { position:absolute; top:-7px; left:50%; transform:translateX(-50%); padding:0 6px; background:var(--surface); font-family:var(--font-mono); font-size:9px; line-height:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
   /* Each metric stacks label / value / offset so four fit across a phone-width chart */
   .chart-popup-metrics { display:flex; align-items:flex-start; }
-  .chart-popup-metric { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:0 6px; }
+  .chart-popup-metric { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:0 6px; }
   .chart-popup-metric + .chart-popup-metric { border-left:1px solid var(--border); }
-  .chart-popup-label { font-family:var(--font-mono); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+  .chart-popup-label { font-family:var(--font-mono); font-size:8px; line-height:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
   .chart-popup-value { font-family:var(--font-display); font-size:20px; letter-spacing:1px; line-height:1; }
-  .chart-popup-sub { font-family:var(--font-mono); font-size:9px; letter-spacing:0.5px; }
+  .chart-popup-sub { font-family:var(--font-mono); font-size:9px; line-height:11px; letter-spacing:0.5px; }
 
   /* Input */
   .input-row { display:flex; gap:8px; align-items:center; }
@@ -470,7 +471,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.8';
+const APP_VERSION = '2026-10-05.9';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1301,18 +1302,10 @@ function updateChartPopup(meta) {
     <div class="chart-popup-metrics">${metricsHtml}</div>`;
   popup.style.borderColor = colorForHRV(hrv);
   popup.style.display = '';
-  // Keep the popup off the dot that was tapped: it sits at the top of the chart
-  // unless that would cover the dot and its rings (a high reading), in which case
-  // it drops to the bottom of the plot, just above the date labels.
-  // Chart.js coordinates are in canvas pixels (devicePixelRatio × CSS px here), so
-  // scale them to CSS px before comparing with the popup.
-  popup.style.top = '6px'; popup.style.bottom = '';
-  const k = mainChart && mainChart.height ? mainChart.canvas.clientHeight / mainChart.height : 1;
-  const dotY = pt.y * k, ph = popup.offsetHeight, ringClear = 20;
-  if (dotY - ringClear < 6 + ph + 4) {
-    const plotBottom = mainChart?.chartArea ? mainChart.chartArea.bottom * k : dotY + ringClear + ph;
-    popup.style.top = Math.max(6, plotBottom - ph - 4) + 'px';
-  }
+  // One fixed spot for every reading: just under the 14D/60D buttons, over the
+  // chart key, so it sits above the plot rather than on the dots.
+  const toggle = popup.closest('.card')?.querySelector('.chart-range-toggle');
+  if (toggle) popup.style.top = Math.round(toggle.getBoundingClientRect().bottom - popup.parentElement.getBoundingClientRect().top + 10) + 'px';
 }
 
 function scrollChartToEnd(n) {
