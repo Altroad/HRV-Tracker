@@ -63,6 +63,7 @@
   .today-card::after { content:''; position:absolute; bottom:10px; right:12px; width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:0.35; transition:background 0.3s, opacity 0.3s; }
   .today-card.rhr-mode::after { background:var(--accent); opacity:0.7; }
   .today-card.temp-mode::after { background:#e67c8a; opacity:0.7; }
+  .today-card.rr-mode::after { background:#80cbc4; opacity:0.7; }
   .today-card.kcal-mode::after { background:#ff9800; opacity:0.7; }
 
   .metric { text-align:center; overflow:hidden; }
@@ -120,10 +121,11 @@
   .chart-scroll-area { flex:1; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; height:260px; }
   .chart-scroll-area::-webkit-scrollbar { display:none; }
   .chart-inner { height:260px; }
-  .chart-popup { position:absolute; z-index:20; top:6px; left:4px; right:4px; background:rgba(14,20,25,0.94); border:1px solid; border-radius:8px; padding:6px 12px; pointer-events:none; box-shadow:0 2px 20px rgba(0,0,0,0.6); display:flex; align-items:center; gap:10px; }
-  .chart-popup-date { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); flex:1; }
-  .chart-popup-metrics { display:flex; align-items:center; }
-  .chart-popup-metric { display:flex; align-items:baseline; gap:4px; padding:0 10px; }
+  .chart-popup { position:absolute; z-index:20; top:6px; left:4px; right:4px; background:rgba(14,20,25,0.94); border:1px solid; border-radius:8px; padding:6px 12px; pointer-events:none; box-shadow:0 2px 20px rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:stretch; gap:5px; }
+  .chart-popup-date { font-family:var(--font-mono); font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); text-align:center; }
+  /* Each metric stacks label / value / offset so four fit across a phone-width chart */
+  .chart-popup-metrics { display:flex; align-items:flex-start; }
+  .chart-popup-metric { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:0 6px; }
   .chart-popup-metric + .chart-popup-metric { border-left:1px solid var(--border); }
   .chart-popup-label { font-family:var(--font-mono); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
   .chart-popup-value { font-family:var(--font-display); font-size:20px; letter-spacing:1px; line-height:1; }
@@ -396,7 +398,7 @@
 
 <div class="card">
   <div class="chart-header" style="margin-bottom:8px;">
-    <div class="chart-title">HRV / RHR / Temp / Kcal</div>
+    <div class="chart-title">HRV / RHR / RR / Temp / Kcal</div>
     <div class="chart-range-toggle">
       <button class="range-btn active" id="btn14d" onclick="setChartRange(14)">14D</button>
       <button class="range-btn" id="btn60d" onclick="setChartRange(60)">60D</button>
@@ -447,7 +449,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.1';
+const APP_VERSION = '2026-10-05.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -460,6 +462,7 @@ const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const getRhrKey          = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_${u}_v1`                  : 'hrv_rhr_v1'; };
 const getRhrNotesKey     = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_notes_${u}_v1`            : 'hrv_rhr_notes_v1'; };
+const getRrKey           = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_resp_rate_${u}_v1`            : 'hrv_resp_rate_v1'; };
 const getTempKey         = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_wrist_temp_${u}_v1`           : 'hrv_wrist_temp_v1'; };
 const getTempBaselineKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_temp_baseline_${u}_v1`        : 'hrv_temp_baseline_v1'; };
 const getTempBaselineDateKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_temp_baseline_date_${u}_v1` : 'hrv_temp_baseline_date_v1'; };
@@ -597,6 +600,7 @@ let heatmapMode = 'hrv';
 let metricsMode = 'hrv';
 let _rhrMetrics = null;
 let _tempMetrics = null;
+let _rrMetrics = null;
 let _kcalMetrics = null;
 let kcalBaseline = 0;
 let rhrBaseline = 40;
@@ -604,6 +608,7 @@ let dynRhrMin = 30, dynRhrMax = 90, dynRhrCeil = 90;
 let rhrData = {};
 let rhrNotes = {};
 let tempData = {};
+let rrData = {};
 let workoutData = {};
 let quickAddTags = null;
 let tempBaseline = null;
@@ -649,6 +654,30 @@ const tempZoneColor = temp => {
   const dev = temp - eb;
   return dev > 0.5 ? '#f44336' : dev < -0.5 ? '#64b5f6' : '#e67c8a';
 };
+// ---------- Respiratory rate ----------
+// One value per night (breaths/min), keyed by the capture morning's date. Each
+// night is judged against the average of the 30 nights before it; a baseline
+// needs at least 7 of them. +1 breath/min or more above it is an anomaly.
+const RR_MIN_NIGHTS = 7, RR_BASELINE_NIGHTS = 30, RR_ANOMALY = 1;
+function rrBaselineFor(date) {
+  const prior = Object.keys(rrData).filter(d => d < date).sort().slice(-RR_BASELINE_NIGHTS);
+  if (prior.length < RR_MIN_NIGHTS) return null;
+  return prior.reduce((a, d) => a + rrData[d], 0) / prior.length;
+}
+// Signed one-decimal offset; rounds first so -0.04 reads +0.0, not -0.0.
+const fmtRrDev = dv => { const r = Math.round(dv * 10) / 10; return (r >= 0 ? '+' : '') + r.toFixed(1); };
+const rrDevFor = date => { const b = rrBaselineFor(date); return b === null || rrData[date] === undefined ? null : rrData[date] - b; };
+// Zones: Normal < +0.5 · Up +0.5 to +1 · Raised +1 to +2 · High +2 or more (grey: no baseline yet)
+const rrZoneColor = dev => dev === null ? '#a0b4c0' : dev < 0.5 ? '#4caf50' : dev < 1 ? '#ffab00' : dev < 2 ? '#ff6d00' : '#f44336';
+// Chart ring: green normal, red anomaly, grey while the baseline builds
+const rrRingColor = dev => dev === null ? '#a0b4c0' : dev >= RR_ANOMALY ? '#f44336' : '#4caf50';
+function loadRR() {
+  try { const raw = localStorage.getItem(getRrKey()); if (raw) rrData = JSON.parse(raw); } catch { rrData = {}; }
+}
+function saveRR() {
+  try { localStorage.setItem(getRrKey(), JSON.stringify(rrData)); } catch {}
+}
+
 function loadTemp() {
   try { const raw = localStorage.getItem(getTempKey()); if (raw) tempData = JSON.parse(raw); } catch { tempData = {}; }
   try { const raw = localStorage.getItem(getTempBaselineKey()); if (raw !== null) tempBaseline = parseFloat(raw) || null; } catch {}
@@ -1031,7 +1060,7 @@ function sizeChartCanvas(n) {
   return canvas;
 }
 
-function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate, showRings) {
+function buildPointsPlugin(values, pr, sortedDates, rrByDate, tempByDate, showRings) {
   return {
     id: 'customPoints',
     afterDatasetsDraw(chart) {
@@ -1040,23 +1069,24 @@ function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate, showR
       if (!meta) return;
 
       meta.data.forEach((pt, i) => {
-        const rhr = (rhrByDate && sortedDates) ? rhrByDate[sortedDates[i]] : undefined;
+        const rr = (rrByDate && sortedDates) ? rrByDate[sortedDates[i]] : undefined;
         const temp = tempByDate ? tempByDate[sortedDates[i]] : undefined;
-        // At 60D the per-day RHR/temp rings collide into an unreadable field, so
-        // the trend view drops them — RHR still reads from its own line, and the
-        // bold 7-day-average line carries the HRV story.
+        // At 60D the per-day RR/temp rings collide into an unreadable field, so
+        // the trend view drops them — RHR reads from its own line, and the bold
+        // 7-day-average line carries the HRV story.
         if (showRings) {
-          // RHR halo — center pr+4, lw4: inner edge pr+2 (2px gap from HRV dot)
-          if (rhr !== undefined) {
+          // Respiratory-rate halo — center pr+4, lw4: inner edge pr+2 (2px gap from HRV dot).
+          // Green normal, red when 1+ breath/min above baseline, grey until there is one.
+          if (rr !== undefined) {
             ctx.save();
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, pr + 4, 0, Math.PI * 2);
-            ctx.strokeStyle = rhrZoneColor(rhr);
+            ctx.strokeStyle = rrRingColor(rrDevFor(sortedDates[i]));
             ctx.lineWidth = 4;
             ctx.stroke();
             ctx.restore();
           }
-          // Temp halo — center pr+10, lw4: inner edge pr+8 (2px gap from RHR outer)
+          // Temp halo — center pr+10, lw4: inner edge pr+8 (2px gap from RR outer)
           if (temp !== undefined) {
             ctx.save();
             ctx.beginPath();
@@ -1074,7 +1104,7 @@ function buildPointsPlugin(values, pr, sortedDates, rhrByDate, tempByDate, showR
         ctx.fillStyle = colorForHRV(values[i]);
         ctx.fill();
         if (tappedIdx === i) {
-          const ringR = showRings ? (temp !== undefined ? 14 : rhr !== undefined ? 8 : 4) : 4;
+          const ringR = showRings ? (temp !== undefined ? 14 : rr !== undefined ? 8 : 4) : 4;
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, pr + ringR, 0, Math.PI * 2);
           ctx.strokeStyle = '#fff';
@@ -1194,6 +1224,7 @@ function updateChartPopup(meta) {
   const hrv  = Math.round(chartValues[tappedIdx]);
   const rhr  = rhrData[date];
   const temp = tempData[date];
+  const rr   = rrData[date];
 
   const d = new Date(date + 'T12:00:00');
   const dateLabel = `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTHS_LONG[d.getMonth()]}`;
@@ -1207,6 +1238,18 @@ function updateChartPopup(meta) {
     metricsHtml += `<div class="chart-popup-metric">
       <div class="chart-popup-label">RHR</div>
       <div class="chart-popup-value" style="color:${rhrZoneColor(rhr)}">${rhr}</div>
+    </div>`;
+  }
+
+  if (rr !== undefined) {
+    const dev = rrDevFor(date);
+    const devHtml = dev !== null
+      ? `<div class="chart-popup-sub" style="color:${rrZoneColor(dev)}">${fmtRrDev(dev)}</div>`
+      : '';
+    metricsHtml += `<div class="chart-popup-metric">
+      <div class="chart-popup-label">RR</div>
+      <div class="chart-popup-value" style="color:${rrZoneColor(dev)}">${rr.toFixed(1)}</div>
+      ${devHtml}
     </div>`;
   }
 
@@ -1326,7 +1369,7 @@ function renderChart() {
 
   mainChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
-    plugins: [buildPointsPlugin(values, pr, sortedDates, rhrData, tempData, chartRange <= 14 || isSparse), buildHeatmapPlugin(sortedDates)],
+    plugins: [buildPointsPlugin(values, pr, sortedDates, rrData, tempData, chartRange <= 14 || isSparse), buildHeatmapPlugin(sortedDates)],
     data: { labels, datasets },
     options: {
       responsive: false, animation: false,
@@ -2095,6 +2138,27 @@ function updateMetrics() {
     _tempMetrics = null;
   }
 
+  // Compute respiratory-rate metrics
+  const rrDates = Object.keys(rrData).sort();
+  if (rrDates.length) {
+    const latestDate = rrDates.at(-1);
+    const avgOf = ds => ds.reduce((a, d) => a + rrData[d], 0) / ds.length;
+    const last3 = rrDates.slice(-3), last7 = rrDates.slice(-7);
+    const avg3R = avgOf(last3), avg7R = avgOf(last7);
+    const base = rrBaselineFor(latestDate);
+    const devOf = v => base === null ? null : v - base;
+    const diff = avg3R - avg7R;
+    const trend      = Math.abs(diff) <= 0.3 ? '→' : diff > 0 ? '↑' : '↓';
+    const trendColor = Math.abs(diff) <= 0.3 ? COLORS.orange : diff > 0 ? COLORS.red : COLORS.green;
+    const trendLbl   = Math.abs(diff) <= 0.3 ? 'stable' : diff > 0 ? 'rising' : 'falling';
+    _rrMetrics = { latest: rrData[latestDate], latestDev: devOf(rrData[latestDate]),
+                   avg3: avg3R, avg3Dev: devOf(avg3R), avg3Count: last3.length,
+                   avg7: avg7R, avg7Dev: devOf(avg7R), avg7Count: last7.length,
+                   base, nights: rrDates.length, trend, trendColor, trendLbl };
+  } else {
+    _rrMetrics = null;
+  }
+
   // Compute kcal metrics
   const allKcalDates = Object.keys(workoutData).sort();
   if (allKcalDates.length) {
@@ -2119,10 +2183,11 @@ function updateMetrics() {
 
   // Only reset metricsMode if its data source has disappeared
   if ((metricsMode === 'rhr'  && !_rhrMetrics)  ||
+      (metricsMode === 'rr'   && !_rrMetrics)   ||
       (metricsMode === 'temp' && !_tempMetrics) ||
       (metricsMode === 'kcal' && !_kcalMetrics)) {
     metricsMode = 'hrv';
-    $('todayCard').classList.remove('rhr-mode', 'temp-mode', 'kcal-mode');
+    $('todayCard').classList.remove('rhr-mode', 'rr-mode', 'temp-mode', 'kcal-mode');
     $('latestLabel').textContent = 'Latest';
     $('avg3Label').textContent = '3D Avg';
     $('avg7Label').textContent = '7D Avg';
@@ -2131,6 +2196,9 @@ function updateMetrics() {
     $('avg7Unit').textContent = 'ms';
     applyHRVZones();
   }
+  // The HRV figures above were just written into the card; if another view is
+  // showing (e.g. a sync landed mid-rotation), redraw that view instead.
+  if (metricsMode !== 'hrv') applyMetricsMode(metricsMode);
 
   setStatus(avg3);
 }
@@ -2161,12 +2229,13 @@ function scheduleAutoFlip() {
 function flipMetrics(auto = false) {
   if (!auto) _autoFlipOff = true;
   scheduleAutoFlip();
-  const cycle = ['hrv', 'rhr', 'kcal', 'temp'];
+  const cycle = ['hrv', 'rhr', 'rr', 'kcal', 'temp'];
   const currentIdx = cycle.indexOf(metricsMode);
   let nextMode = null;
   for (let i = 1; i < cycle.length; i++) {
     const candidate = cycle[(currentIdx + i) % cycle.length];
     if (candidate === 'rhr'  && !_rhrMetrics)  { if (!auto) showToast('No RHR data yet');  continue; }
+    if (candidate === 'rr'   && !_rrMetrics)   { if (!auto) showToast('No respiratory rate yet'); continue; }
     if (candidate === 'temp' && !_tempMetrics) { if (!auto) showToast('No temp data yet'); continue; }
     if (candidate === 'kcal' && !_kcalMetrics) { if (!auto) showToast('No kcal data yet'); continue; }
     nextMode = candidate;
@@ -2187,8 +2256,19 @@ function flipMetrics(auto = false) {
 
   setTimeout(() => {
     animEls.forEach(el => { el.classList.remove('metric-anim-out'); });
+    metricsMode = nextMode;
+    applyMetricsMode(nextMode);
+    animEls.forEach(el => {
+      el.classList.add('metric-anim-in');
+      el.addEventListener('animationend', () => el.classList.remove('metric-anim-in'), { once: true });
+    });
+  }, 340);
+}
 
-    if (nextMode === 'rhr') {
+// Write one view's figures, units and zones into the top card and zones row.
+function applyMetricsMode(mode) {
+    $('todayCard').classList.remove('rhr-mode', 'rr-mode', 'temp-mode', 'kcal-mode');
+    if (mode === 'rhr') {
       const m = _rhrMetrics;
       $('latestLabel').textContent = 'Latest';
       $('latestHRV').textContent = m.latest;       $('latestHRV').style.color = m.latestColor;
@@ -2204,14 +2284,39 @@ function flipMetrics(auto = false) {
       $('avg7dDelta').textContent = m.avg7Delta;    $('avg7dDelta').style.color = 'var(--muted)';
       $('trendValue').textContent = m.trend;        $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLabel;
-      $('todayCard').classList.remove('temp-mode', 'kcal-mode');
       $('todayCard').classList.add('rhr-mode');
       $('zoneLabelHigh').textContent = 'Excellent'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = `≤${rhrBaseline+1}`;
       $('zoneLabelGood').textContent = 'Good';      $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = `${rhrBaseline+2}–${rhrBaseline+4}`;
       $('zoneLabelOK').textContent   = 'Elevated';  $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = `${rhrBaseline+5}–${rhrBaseline+7}`;
       $('zoneLabelLow').textContent  = 'High';      $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = `>${rhrBaseline+7}`;
 
-    } else if (nextMode === 'temp') {
+    } else if (mode === 'rr') {
+      const m = _rrMetrics;
+      const devTxt = dv => fmtRrDev(dv) + ' vs baseline';
+      $('latestLabel').textContent = 'Latest';
+      $('latestHRV').textContent = m.latest.toFixed(1); $('latestHRV').style.color = rrZoneColor(m.latestDev);
+      $('latestUnit').textContent = 'br/min';
+      if (m.latestDev !== null) { $('hrvDelta').textContent = devTxt(m.latestDev); $('hrvDelta').style.color = rrZoneColor(m.latestDev); }
+      else { $('hrvDelta').textContent = `baseline ${Math.min(m.nights - 1, RR_MIN_NIGHTS)}/${RR_MIN_NIGHTS} nights`; $('hrvDelta').style.color = COLORS.muted; }
+      $('avg3Label').textContent = '3D Avg';
+      $('avg3d').textContent = m.avg3.toFixed(1); $('avg3d').style.color = rrZoneColor(m.avg3Dev);
+      $('avg3Unit').textContent = 'br/min';
+      $('avg3dDelta').textContent = m.avg3Count + 'd avg'; $('avg3dDelta').style.color = 'var(--muted)';
+      $('avg7Label').textContent = '7D Avg';
+      $('avg7d').textContent = m.avg7.toFixed(1); $('avg7d').style.color = rrZoneColor(m.avg7Dev);
+      $('avg7Unit').textContent = 'br/min';
+      $('avg7dDelta').textContent = m.avg7Count + 'd avg'; $('avg7dDelta').style.color = 'var(--muted)';
+      $('trendValue').textContent = m.trend; $('trendValue').style.color = m.trendColor;
+      $('trendLabel').textContent = m.trendLbl;
+      $('todayCard').classList.add('rr-mode');
+      // Zones in breaths/min from the current baseline (offsets until there is one)
+      const b = m.base, f = v => (b + v).toFixed(1);
+      $('zoneLabelHigh').textContent = 'Normal'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = b !== null ? `<${f(0.5)}` : '<+0.5';
+      $('zoneLabelGood').textContent = 'Up';     $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = b !== null ? `${f(0.5)}–${f(1)}` : '+0.5–1';
+      $('zoneLabelOK').textContent   = 'Raised'; $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = b !== null ? `${f(1)}–${f(2)}` : '+1–2';
+      $('zoneLabelLow').textContent  = 'High';   $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = b !== null ? `${f(2)}+` : '+2';
+
+    } else if (mode === 'temp') {
       const m = _tempMetrics;
       $('latestLabel').textContent = 'Tonight';
       $('latestHRV').innerHTML = `${Math.floor(m.latest)}<span style="font-size:0.6em">.${m.latest.toFixed(2).split('.')[1]}</span>`; $('latestHRV').style.color = tempZoneColor(m.latest);
@@ -2237,7 +2342,6 @@ function flipMetrics(auto = false) {
       }
       $('trendValue').textContent = m.trend; $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLbl;
-      $('todayCard').classList.remove('rhr-mode', 'kcal-mode');
       $('todayCard').classList.add('temp-mode');
       $('zoneLabelHigh').textContent = 'Low';    $('zoneHigh').style.color = '#64b5f6'; $('zoneHigh').textContent = '<−0.5°';
       $('zoneLabelGood').textContent = 'Normal'; $('zoneGood').style.color = '#e67c8a'; $('zoneGood').textContent = '±0.5°';
@@ -2246,7 +2350,7 @@ function flipMetrics(auto = false) {
       $('zoneLow').style.color = 'var(--muted)';
       $('zoneLow').textContent = m.eb !== null ? m.eb.toFixed(2) + '°' : '—';
 
-    } else if (nextMode === 'kcal') {
+    } else if (mode === 'kcal') {
       const m = _kcalMetrics;
       const fmt = v => v >= 1000 ? (v/1000).toFixed(1)+'k' : String(v);
       $('latestLabel').textContent = 'Latest';
@@ -2263,7 +2367,6 @@ function flipMetrics(auto = false) {
       $('avg7dDelta').textContent = m.last180Count + ' sessions'; $('avg7dDelta').style.color = COLORS.muted;
       $('trendValue').textContent = m.trend; $('trendValue').style.color = m.trendColor;
       $('trendLabel').textContent = m.trendLbl;
-      $('todayCard').classList.remove('rhr-mode', 'temp-mode');
       $('todayCard').classList.add('kcal-mode');
       // Kcal zones relative to baseline
       const kb = kcalBaseline || 1;
@@ -2274,7 +2377,6 @@ function flipMetrics(auto = false) {
       $('zoneLabelLow').textContent  = 'Low';     $('zoneLow').style.color  = '#64b5f6'; $('zoneLow').textContent  = `<${fmt(lo)}`;
 
     } else {
-      $('todayCard').classList.remove('rhr-mode', 'temp-mode', 'kcal-mode');
       $('latestLabel').textContent = 'Latest';
       $('avg3Label').textContent = '3D Avg';
       $('avg7Label').textContent = '7D Avg';
@@ -2284,14 +2386,6 @@ function flipMetrics(auto = false) {
       updateMetrics();
       applyHRVZones();
     }
-
-    animEls.forEach(el => {
-      el.classList.add('metric-anim-in');
-      el.addEventListener('animationend', () => el.classList.remove('metric-anim-in'), { once: true });
-    });
-
-    metricsMode = nextMode;
-  }, 340);
 }
 
 // ---------- CRUD ----------
@@ -2398,13 +2492,14 @@ function buildCSV() {
   const allDates = [...new Set([
     ...readings.map(r => r.date),
     ...Object.keys(rhrData),
-    ...Object.keys(tempData)
+    ...Object.keys(tempData),
+    ...Object.keys(rrData)
   ])].sort().reverse();
 
   const escField = v => (v == null || v === '') ? '' : String(v).includes(',') || String(v).includes('"') || String(v).includes('\n')
     ? `"${String(v).replace(/"/g, '""')}"` : String(v);
 
-  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy'];
+  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy,rr'];
   for (const date of allDates) {
     const dayReadings = hrvByDate[date] || [null];
     for (const r of dayReadings) {
@@ -2416,7 +2511,8 @@ function buildCSV() {
         escField(r?.note || ''),
         escField(r?.tag || ''),
         escField((r?.extras || []).join(';')),
-        ectopyOf(r) ? r.ectopy : ''
+        ectopyOf(r) ? r.ectopy : '',
+        rrData[date] !== undefined ? rrData[date].toFixed(1) : ''
       ].join(','));
     }
   }
@@ -2490,12 +2586,12 @@ function doImportCSV(text, overlay) {
     let start = 0;
     if (lines[0].toLowerCase().startsWith('date')) start = 1;
 
-    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, skipped = 0;
+    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, skipped = 0;
 
     for (let i = start; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy] = parseCSVLine(line);
+      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy, rrStr] = parseCSVLine(line);
       const date = (dateStr || '').trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
@@ -2523,11 +2619,17 @@ function doImportCSV(text, overlay) {
       if (!isNaN(temp) && temp > 30 && temp < 42 && !(date in tempData)) {
         tempData[date] = temp; tempAdded++;
       }
+
+      const rrv = parseFloat(rrStr);
+      if (!isNaN(rrv) && rrv > 4 && rrv < 40 && !(date in rrData)) {
+        rrData[date] = rrv; rrAdded++;
+      }
     }
 
     if (hrvAdded)  { migrateSickTag(); save(); }
     if (rhrAdded)  saveRHR();
     if (tempAdded) saveTemp();
+    if (rrAdded)   saveRR();
     overlay.remove();
     render();
 
@@ -2560,6 +2662,12 @@ function showSlowWaveModal() {
   overlay.querySelector('[data-calc]').addEventListener('click', () => {
     if (!ta.value.trim()) { desc.textContent = 'Nothing pasted yet — paste your exports first'; desc.style.color = 'var(--red)'; return; }
     desc.textContent = `Processing ${ta.value.length} chars…`; desc.style.color = 'var(--muted)';
+    const rr = importNightlyRR(ta.value);
+    if (rr.count && !rr.hasHRV) {
+      overlay.remove(); render(); clearTimeout(saveTimer); saveToGitHub();
+      showToast(`Respiratory rate imported — ${rr.count} night${rr.count > 1 ? 's' : ''}`);
+      return;
+    }
     runSlowWaveCalc(ta.value, overlay);
     if (!$('calcResult').classList.contains('show')) {
       desc.textContent = `Failed (${ta.value.length} chars) — check data has HRV, sleep and heart rate exports`;
@@ -2577,6 +2685,62 @@ function parseSleepTs(str) {
      .replace(/ ([+-])(\d{2})(\d{2})$/, '$1$2:$3')
      .replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3')
   );
+}
+
+// Nightly respiratory rate from Health Auto Export blocks: the plain average of
+// every sample taken while asleep (Apple Watch Core/Deep/REM — Awake and "In Bed"
+// excluded) in each night's main sleep session, dated by the morning it ends on.
+// Works on one night or a multi-week history; nights with fewer than 5 samples
+// asleep are skipped rather than stored as an unreliable number.
+function extractNightlyRR(blocks) {
+  const metrics = blocks.flatMap(b => b?.data?.metrics ?? []);
+  const samples = metrics.filter(m => m.name === 'respiratory_rate').flatMap(m => m.data || [])
+    .map(x => ({ t: parseSleepTs(String(x.date || x.start || '')).getTime(), q: Number(x.qty) }))
+    .filter(x => !isNaN(x.t) && x.q > 4 && x.q < 40);
+  if (!samples.length) return {};
+  const asleep = metrics.filter(m => m.name === 'sleep_analysis').flatMap(m => m.data || [])
+    .filter(x => {
+      const src = (x.source || '').toLowerCase().replace(/[\s  ]+/g, ' ');
+      return (src.includes('apple watch') || src.includes('applewatch')) &&
+             ['Core', 'Deep', 'REM'].includes(x.value) && x.start && x.end;
+    })
+    .map(x => ({ a: parseSleepTs(x.start).getTime(), b: parseSleepTs(x.end).getTime(), day: x.end.trim().slice(0, 10) }))
+    .filter(x => !isNaN(x.a) && !isNaN(x.b) && /^\d{4}-\d{2}-\d{2}$/.test(x.day))
+    .sort((x, y) => x.a - y.a);
+  // Split into sessions at gaps over 3 hours; a session is dated by where it ends.
+  const sessions = [];
+  for (const sg of asleep) {
+    const cur = sessions.at(-1);
+    if (cur && sg.a - cur.end <= 3 * 3600e3) {
+      cur.segs.push(sg);
+      if (sg.b >= cur.end) { cur.end = sg.b; cur.day = sg.day; }
+    } else sessions.push({ segs: [sg], end: sg.b, day: sg.day });
+  }
+  // Keep the longest session per date (the main night, not a nap).
+  const best = {};
+  for (const ss of sessions) {
+    ss.mins = ss.segs.reduce((a, sg) => a + (sg.b - sg.a), 0);
+    if (!best[ss.day] || ss.mins > best[ss.day].mins) best[ss.day] = ss;
+  }
+  const out = {};
+  for (const [day, ss] of Object.entries(best)) {
+    const vals = samples.filter(x => ss.segs.some(sg => x.t >= sg.a && x.t <= sg.b)).map(x => x.q);
+    if (vals.length >= 5) out[day] = Math.round(vals.reduce((a, v) => a + v, 0) / vals.length * 10) / 10;
+  }
+  return out;
+}
+
+// Store every night's respiratory rate found in an export (re-imports overwrite).
+// Returns how many nights were stored, and whether the export carried HRV too —
+// one without is a respiratory-rate history upload, so the HRV capture is skipped.
+function importNightlyRR(text) {
+  let blocks = [];
+  try { blocks = parseJsonBlocks(text.trim()); } catch { return { count: 0, hasHRV: true }; }
+  const nights = extractNightlyRR(blocks);
+  const count = Object.keys(nights).length;
+  if (count) { Object.assign(rrData, nights); saveRR(); }
+  const hasHRV = blocks.some(b => b?.data?.metrics?.some(m => m.name === 'heart_rate_variability'));
+  return { count, hasHRV };
 }
 
 function runSlowWaveCalc(text, overlay) {
@@ -3311,9 +3475,12 @@ async function loadFromGitHub() {
     const remoteNotes   = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
     const remoteTemp    = (!Array.isArray(data) && data.temp)     ? data.temp     : {};
     const remoteWorkout = (!Array.isArray(data) && data.workout)  ? data.workout  : {};
+    const remoteRr      = (!Array.isArray(data) && data.rr)       ? data.rr       : {};
     rhrData     = { ...remoteRhr,     ...rhrData     };
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     saveRHR();
+    rrData      = { ...remoteRr,      ...rrData      };
+    saveRR();
     tempData    = { ...remoteTemp,    ...tempData    };
     // Take the remote baseline when it has one; otherwise keep whatever was loaded
     // locally rather than wiping it (matches mergeRemoteChanges' guard).
@@ -3377,8 +3544,10 @@ async function mergeRemoteChanges() {
     const remoteNotes   = (!Array.isArray(data) && data.rhrNotes) ? data.rhrNotes : {};
     const remoteTemp    = (!Array.isArray(data) && data.temp)     ? data.temp     : {};
     const remoteWorkout = (!Array.isArray(data) && data.workout)  ? data.workout  : {};
+    const remoteRr      = (!Array.isArray(data) && data.rr)       ? data.rr       : {};
     rhrData     = { ...remoteRhr,     ...rhrData     };
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
+    rrData      = { ...remoteRr,      ...rrData      };
     tempData    = { ...remoteTemp,    ...tempData    };
     workoutData = { ...remoteWorkout, ...workoutData };
     if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
@@ -3390,7 +3559,7 @@ async function mergeRemoteChanges() {
       localStorage.setItem(STORAGE_KEY, json);
       localStorage.setItem(BACKUP_KEY, json);
     } catch {}
-    saveRHR(); saveTemp(); saveWorkout();
+    saveRHR(); saveRR(); saveTemp(); saveWorkout();
     render();
     return true;
   } catch { return false; }
@@ -3401,7 +3570,7 @@ async function saveToGitHub(isRetry) {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, rhr: rhrData, rhrNotes, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
+  const payload = { readings, rhr: rhrData, rhrNotes, rr: rrData, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -3477,7 +3646,7 @@ function showSyncModal() {
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
     readings = [];
-    rhrData = {}; rhrNotes = {}; tempData = {}; workoutData = {};
+    rhrData = {}; rhrNotes = {}; rrData = {}; tempData = {}; workoutData = {};
     tempBaseline = null; tempBaselineSetDate = null;
     // Reload the capture offset for the newly-selected user so one person's
     // late-night shift can't linger into another user's session on a shared device.
@@ -3801,7 +3970,7 @@ function showInfoModal() {
       Your iOS Shortcut uploads the morning's Health Auto Export data to GitHub. When you open the app it collects it, runs the Overnight Capture and clears the upload — you'll see <em>Inbox found — importing…</em>. Each reading is dated from the data itself, not from when you open the app. Open the app before the next upload: a single upload file can't hold two mornings (switching the Shortcut to timestamped filenames lets missed days queue up).<br><br>
       <strong>Manual</strong><br>
       Copy the export and tap the bottom <em>IMPORT</em> button, or paste it via ≡ → Overnight Capture. Both run the same calculation. If that date already has a reading you're asked to <em>REPLACE</em> or <em>KEEP</em>, so you can re-run a morning to dial in the capture window.<br><br>
-      <strong>Exports used</strong> — HRV (yesterday and this morning) and sleep analysis are required; heart rate (RHR), workouts (kcal) and sleeping wrist temperature are optional.<br><br>
+      <strong>Exports used</strong> — HRV (yesterday and this morning) and sleep analysis are required; heart rate (RHR), respiratory rate, workouts (kcal) and sleeping wrist temperature are optional. An upload with respiratory rate and sleep analysis but no HRV (e.g. a few weeks of history) just fills in respiratory rate for every night in it.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">OVERNIGHT CAPTURE — HRV</strong><br>
       <strong>1 · Deep sleep anchor</strong> — Deep sleep HRV readings are grouped into unbroken runs (Apple Watch samples about every 15 minutes; a gap over 20 minutes starts a new run). The middle 3 readings of the longest run form the anchor, so it always comes from true deep sleep.<br>
@@ -3823,6 +3992,11 @@ function showInfoModal() {
       Zones, relative to the average of your last 90 logged nights:<br>
       ${dot('#4caf50')} up to +1 Excellent &nbsp; ${dot('#ffab00')} +2 to +4 Good &nbsp; ${dot('#ff6d00')} +5 to +7 Elevated &nbsp; ${dot('#f44336')} +8 or more High<br><br>
 
+      <strong style="color:var(--accent);letter-spacing:1px;">RESPIRATORY RATE (RR)</strong><br>
+      Breaths per minute while asleep — the plain average of every Apple Watch sample taken during Core, Deep or REM sleep (Awake and daytime samples are left out), so it matches apps such as AutoSleep. It barely moves night to night, which is what makes a rise meaningful: 1+ breath/min above normal is an early sign of illness or overreaching. Each night is compared with the average of the 30 nights before it (a baseline needs 7):<br>
+      ${dot('#4caf50')} below +0.5 Normal &nbsp; ${dot('#ffab00')} +0.5 to +1 Up &nbsp; ${dot('#ff6d00')} +1 to +2 Raised &nbsp; ${dot('#f44336')} +2 or more High<br>
+      See it in the top card's RR view and as the inner ring on the 14D chart.<br><br>
+
       <strong style="color:var(--accent);letter-spacing:1px;">WRIST TEMPERATURE</strong><br>
       Apple Watch measures skin temperature each night; the capture reads it from the wrist-temperature export. Zones against your baseline:<br>
       ${dot('#64b5f6')} <strong>Low</strong> more than 0.5°C below &nbsp; ${dot('#e67c8a')} <strong>Normal</strong> within 0.5°C &nbsp; ${dot('#f44336')} <strong>High</strong> more than 0.5°C above<br>
@@ -3843,7 +4017,7 @@ function showInfoModal() {
       Log it on the morning entry for the <em>previous day's</em> ride, like kcal. A logged <strong>ECT 0</strong> means a clean ride and is kept separate from a day you didn't log. Grades show as pills, can be used as Analysis filters, and the <em>Ect</em> heatmap mode colours the ride day itself.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">CHART &amp; HEATMAP</strong><br>
-      <strong>14D</strong> — each night's HRV dot with an inner ring for RHR zone and an outer ring for temperature zone; scroll back through the last 8 months. <strong>60D</strong> — a cleaner trend view without the rings. The bold line is your rolling average (green above baseline, red below); the dotted line is RHR. Tap a dot for that night's numbers.<br>
+      <strong>14D</strong> — each night's HRV dot with an inner ring for respiratory rate (green normal, red 1+ breath/min above baseline, grey while the baseline builds) and an outer ring for temperature zone; scroll back through the last 8 months. <strong>60D</strong> — a cleaner trend view without the rings. The bold line is your rolling average (green above baseline, red below); the dotted line is RHR. Tap a dot for that night's numbers.<br>
       <strong>Year at a glance</strong> — switch between HRV, RHR, Kcal, Temp and Ect. Kcal and Ect colour the activity day; the others colour the morning.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">ANALYSIS TOOL</strong><br>
@@ -4085,6 +4259,7 @@ async function init() {
   $('syncBtn').addEventListener('click', showSyncModal);
   $('infoBtn').addEventListener('click', showInfoModal);
   loadRHR();
+  loadRR();
   loadTemp();
   loadWorkout();
   loadQuickAdd();
@@ -4148,6 +4323,12 @@ async function init() {
 
 async function runAutoImportText(text) {
   if (!text || !text.trim()) { showToast('Clipboard is empty — run your Shortcut first'); return; }
+  const rr = importNightlyRR(text);
+  if (rr.count && !rr.hasHRV) {
+    render(); clearTimeout(saveTimer); saveToGitHub();
+    showToast(`Respiratory rate imported — ${rr.count} night${rr.count > 1 ? 's' : ''}`);
+    return;
+  }
   const fakeOverlay = { remove: () => {} };
   const hadResult = $('calcResult').classList.contains('show');
   $('calcResult').classList.remove('show');
