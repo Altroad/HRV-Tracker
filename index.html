@@ -465,7 +465,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.5';
+const APP_VERSION = '2026-10-05.6';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -481,6 +481,7 @@ const getRemovedKey      = () => { const u = localStorage.getItem(GH_USER_KEY); 
 const getRhrNotesKey     = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_notes_${u}_v1`            : 'hrv_rhr_notes_v1'; };
 const getRrKey           = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_resp_rate_${u}_v1`            : 'hrv_resp_rate_v1'; };
 const getTempKey         = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_wrist_temp_${u}_v1`           : 'hrv_wrist_temp_v1'; };
+const getRrBaselineKey   = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rr_baseline_${u}_v1`          : 'hrv_rr_baseline_v1'; };
 const getTempBaselineKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_temp_baseline_${u}_v1`        : 'hrv_temp_baseline_v1'; };
 const getTempBaselineDateKey = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_temp_baseline_date_${u}_v1` : 'hrv_temp_baseline_date_v1'; };
 const getWorkoutKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_workout_${u}_v1`              : 'hrv_workout_v1'; };
@@ -626,6 +627,8 @@ let rhrData = {};
 let rhrNotes = {};
 let tempData = {};
 let rrData = {};
+let rrBaseline = null;        // manual starting baseline (breaths/min), or null
+let rrBaselineSetDate = null; // date it was set
 let workoutData = {};
 let quickAddTags = null;
 let tempBaseline = null;
@@ -673,13 +676,18 @@ const tempZoneColor = temp => {
 };
 // ---------- Respiratory rate ----------
 // One value per night (breaths/min), keyed by the capture morning's date. Each
-// night is judged against the average of the 30 nights before it; a baseline
-// needs at least 7 of them. +1 breath/min or more above it is an anomaly.
+// night is judged against the average of the 30 nights before it; that needs at
+// least 7 of them. A manual starting baseline (≡ → Set Baselines) covers the
+// gap: it applies until 7 nights have been logged after it was set (and to any
+// earlier night without 7 before it). +1 breath/min or more above is an anomaly.
 const RR_MIN_NIGHTS = 7, RR_BASELINE_NIGHTS = 30, RR_ANOMALY = 1;
 function rrBaselineFor(date) {
-  const prior = Object.keys(rrData).filter(d => d < date).sort().slice(-RR_BASELINE_NIGHTS);
-  if (prior.length < RR_MIN_NIGHTS) return null;
-  return prior.reduce((a, d) => a + rrData[d], 0) / prior.length;
+  const prior = Object.keys(rrData).filter(d => d < date).sort();
+  if (rrBaseline !== null && rrBaselineSetDate && date > rrBaselineSetDate &&
+      prior.filter(d => d > rrBaselineSetDate).length < RR_MIN_NIGHTS) return rrBaseline;
+  const last = prior.slice(-RR_BASELINE_NIGHTS);
+  if (last.length < RR_MIN_NIGHTS) return rrBaseline;
+  return last.reduce((a, d) => a + rrData[d], 0) / last.length;
 }
 // Signed one-decimal offset; rounds first so -0.04 reads +0.0, not -0.0.
 const fmtRrDev = dv => { const r = Math.round(dv * 10) / 10; return (r >= 0 ? '+' : '') + r.toFixed(1); };
@@ -690,9 +698,11 @@ const rrZoneColor = dev => dev === null ? '#a0b4c0' : dev < 0.5 ? '#4caf50' : de
 const rrRingColor = dev => dev === null ? '#a0b4c0' : dev >= RR_ANOMALY ? '#f44336' : '#4caf50';
 function loadRR() {
   try { const raw = localStorage.getItem(getRrKey()); if (raw) rrData = JSON.parse(raw); } catch { rrData = {}; }
+  try { const b = JSON.parse(localStorage.getItem(getRrBaselineKey()) || 'null'); if (b) { rrBaseline = b.value ?? null; rrBaselineSetDate = b.date ?? null; } } catch {}
 }
 function saveRR() {
   try { localStorage.setItem(getRrKey(), JSON.stringify(rrData)); } catch {}
+  if (rrBaseline !== null) try { localStorage.setItem(getRrBaselineKey(), JSON.stringify({ value: rrBaseline, date: rrBaselineSetDate })); } catch {}
 }
 
 function loadTemp() {
@@ -3536,6 +3546,10 @@ async function loadFromGitHub() {
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     saveRHR();
     rrData      = { ...remoteRr,      ...rrData      };
+    if (!Array.isArray(data) && data.rrBaseline != null) {
+      rrBaseline        = data.rrBaseline;
+      rrBaselineSetDate = data.rrBaselineSetDate || null;
+    }
     saveRR();
     tempData    = { ...remoteTemp,    ...tempData    };
     // Take the remote baseline when it has one; otherwise keep whatever was loaded
@@ -3630,6 +3644,10 @@ async function mergeRemoteChanges() {
       tempBaseline = data.tempBaseline;
       tempBaselineSetDate = data.tempBaselineSetDate || null;
     }
+    if (rrBaseline == null && !Array.isArray(data) && data.rrBaseline != null) {
+      rrBaseline = data.rrBaseline;
+      rrBaselineSetDate = data.rrBaselineSetDate || null;
+    }
     try {
       const json = JSON.stringify(readings);
       localStorage.setItem(STORAGE_KEY, json);
@@ -3646,7 +3664,7 @@ async function saveToGitHub(isRetry) {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, rhr: rhrData, rhrNotes, rr: rrData, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
+  const payload = { readings, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -3725,6 +3743,7 @@ function showSyncModal() {
     rhrData = {}; rhrNotes = {}; rrData = {}; tempData = {}; workoutData = {};
     removedReadings = loadRemoved();
     tempBaseline = null; tempBaselineSetDate = null;
+    rrBaseline = null; rrBaselineSetDate = null;
     // Reload the capture offset for the newly-selected user so one person's
     // late-night shift can't linger into another user's session on a shared device.
     loadCaptureOffset();
@@ -3886,7 +3905,7 @@ function showMenuModal() {
     <button class="modal-btn" id="menuLog"    style="text-align:left;">Log Reading</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
-    <button class="modal-btn" id="menuTemp"   style="text-align:left;">Set Temp Baseline</button>
+    <button class="modal-btn" id="menuTemp"   style="text-align:left;">Set Baselines</button>
     <button class="modal-btn" id="menuQuickAdd" style="text-align:left;">Configure Quick Add</button>
     <button class="modal-btn cancel" data-close>Close</button>
   `);
@@ -3963,21 +3982,51 @@ function showTempBaselineModal() {
       ? `<span style="color:#e67c8a">Manual · ${nightsAfter}/7 nights to auto</span>`
       : '<span style="color:var(--muted)">Not set</span>';
   const current = tempBaseline !== null ? tempBaseline.toFixed(2) : '';
+
+  // Respiratory rate: same idea — a manual start, then the 30-night average after 7 nights.
+  const rrKeys = Object.keys(rrData);
+  const rrNightsAfter = rrBaselineSetDate ? rrKeys.filter(d => d > rrBaselineSetDate).length : rrKeys.length;
+  const rrNow = rrBaselineFor('9999-12-31');
+  const rrStatusHtml = rrNow !== null && (rrBaseline === null || rrNightsAfter >= RR_MIN_NIGHTS)
+    ? `<span style="color:#4caf50">Auto · 30-night average · <strong>${rrNow.toFixed(1)}</strong> (${rrKeys.length} nights)</span>`
+    : rrBaseline !== null
+      ? `<span style="color:#80cbc4">Manual · ${rrNightsAfter}/7 nights to auto</span>`
+      : `<span style="color:var(--muted)">Not set · ${rrKeys.length}/7 nights to auto</span>`;
+  const rrCurrent = rrBaseline !== null ? rrBaseline.toFixed(1) : '';
+  const inputCss = 'width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;margin-bottom:12px;box-sizing:border-box;';
+  const headCss = 'font-family:var(--font-mono);font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:6px;';
+
   const overlay = openModal(`
-    <div class="modal-title">Wrist Temp Baseline</div>
+    <div class="modal-title">Baselines</div>
+    <div style="${headCss}">Wrist Temp</div>
     <div class="modal-desc">Status: ${statusHtml}<br><br>Once 7 nights of data are logged after a manual entry, the baseline switches to a rolling median automatically. Entering a new value below resets that counter.<br><br>Readings above +0.5° show red, below −0.5° show blue, within range show pink.</div>
-    <input id="tempBaselineInput" type="number" step="0.01" min="30" max="42" placeholder="e.g. 35.80" value="${current}" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;margin-bottom:12px;box-sizing:border-box;">
+    <input id="tempBaselineInput" type="number" step="0.01" min="30" max="42" placeholder="e.g. 35.80" value="${current}" style="${inputCss}">
+    <div style="${headCss}border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">Respiratory Rate</div>
+    <div class="modal-desc">Status: ${rrStatusHtml}<br><br>Optional starting value in breaths/min, e.g. your AutoSleep 28-day average. It's used until 7 nights are logged after you set it, then the 30-night average takes over.</div>
+    <input id="rrBaselineInput" type="number" step="0.1" min="5" max="35" placeholder="e.g. 15.0" value="${rrCurrent}" style="${inputCss}">
     <button class="modal-btn" id="saveTempBaseline">Save</button>
     <button class="modal-btn cancel" data-close>Cancel</button>
   `);
+  // Two sections can outgrow the modal's 80vh cap on shorter phones: scroll inside it.
+  const box = overlay.querySelector('.modal');
+  box.style.overflowY = 'auto';
+  [...box.children].forEach(c => { c.style.flexShrink = '0'; });
   overlay.querySelector('#saveTempBaseline').addEventListener('click', () => {
-    const val = parseFloat(overlay.querySelector('#tempBaselineInput').value);
-    if (isNaN(val) || val < 30 || val > 42) { showToast('Enter a valid temperature (30–42°C)'); return; }
-    tempBaseline = val;
-    tempBaselineSetDate = new Date().toISOString().split('T')[0];
-    saveTemp();
+    // Save whichever value changed; a field left as it was is untouched.
+    const tRaw = overlay.querySelector('#tempBaselineInput').value.trim();
+    const rRaw = overlay.querySelector('#rrBaselineInput').value.trim();
+    const tChanged = tRaw !== '' && tRaw !== current;
+    const rChanged = rRaw !== '' && rRaw !== rrCurrent;
+    const tVal = parseFloat(tRaw), rVal = parseFloat(rRaw);
+    if (tChanged && (isNaN(tVal) || tVal < 30 || tVal > 42)) { showToast('Enter a valid temperature (30–42°C)'); return; }
+    if (rChanged && (isNaN(rVal) || rVal < 5 || rVal > 35)) { showToast('Enter a valid respiratory rate (5–35)'); return; }
+    if (!tChanged && !rChanged) { overlay.remove(); return; }
+    const today = new Date().toISOString().split('T')[0];
+    if (tChanged) { tempBaseline = tVal; tempBaselineSetDate = today; saveTemp(); }
+    if (rChanged) { rrBaseline = Math.round(rVal * 10) / 10; rrBaselineSetDate = today; saveRR(); }
     overlay.remove();
-    showToast('Temp baseline saved · auto in 7 nights');
+    showToast(`${[tChanged && 'Temp', rChanged && 'RR'].filter(Boolean).join(' + ')} baseline saved · auto in 7 nights`);
+    clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800);
     render();
   });
   overlay.querySelector('[data-close]').addEventListener('click', () => overlay.remove());
@@ -4070,14 +4119,14 @@ function showInfoModal() {
       ${dot('#4caf50')} up to +1 Excellent &nbsp; ${dot('#ffab00')} +2 to +4 Good &nbsp; ${dot('#ff6d00')} +5 to +7 Elevated &nbsp; ${dot('#f44336')} +8 or more High<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">RESPIRATORY RATE (RR)</strong><br>
-      Breaths per minute while asleep — the plain average of every Apple Watch sample taken during Core, Deep or REM sleep (Awake and daytime samples are left out), so it matches apps such as AutoSleep. It barely moves night to night, which is what makes a rise meaningful: 1+ breath/min above normal is an early sign of illness or overreaching. Each night is compared with the average of the 30 nights before it (a baseline needs 7):<br>
+      Breaths per minute while asleep — the plain average of every Apple Watch sample taken during Core, Deep or REM sleep (Awake and daytime samples are left out), so it matches apps such as AutoSleep. It barely moves night to night, which is what makes a rise meaningful: 1+ breath/min above normal is an early sign of illness or overreaching. Each night is compared with the average of the 30 nights before it (a baseline needs 7; until then you can give a starting value via ≡ → Set Baselines):<br>
       ${dot('#4caf50')} below +0.5 Normal &nbsp; ${dot('#ffab00')} +0.5 to +1 Up &nbsp; ${dot('#ff6d00')} +1 to +2 Raised &nbsp; ${dot('#f44336')} +2 or more High<br>
       See it in the top card's RR view and as the inner ring on the 14D chart.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">WRIST TEMPERATURE</strong><br>
       Apple Watch measures skin temperature each night; the capture reads it from the wrist-temperature export. Zones against your baseline:<br>
       ${dot('#64b5f6')} <strong>Low</strong> more than 0.5°C below &nbsp; ${dot('#e67c8a')} <strong>Normal</strong> within 0.5°C &nbsp; ${dot('#f44336')} <strong>High</strong> more than 0.5°C above<br>
-      Set a starting baseline via ≡ → Set Temp Baseline. After 7 nights it switches to the median of your last 14 nights, updated each capture (a new manual value restarts the count). The current baseline is in the top row.<br><br>
+      Set a starting baseline via ≡ → Set Baselines. After 7 nights it switches to the median of your last 14 nights, updated each capture (a new manual value restarts the count). The current baseline is in the top row.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">CALORIES</strong><br>
       An entry's kcal is from the <em>previous day's</em> activity — the ride that shaped that morning's HRV. Workouts come in with the capture. If both Strava and Garmin record the same ride, it's counted once, preferring Strava's figure (Garmin fills in when Strava has nothing). Add extra activity with the <strong>+</strong> on the Today panel (Quick Add — set your presets via ≡ → Configure Quick Add) or ≡ → Log Reading; tap an entry's KCAL in the Analysis tool to edit or remove items. The Today panel updates straight away. The KCAL baseline is your average over the last 42 days.<br><br>
