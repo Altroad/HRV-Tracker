@@ -173,6 +173,14 @@
   .calc-cell.core { background:rgba(0,229,255,0.08); color:var(--accent); }
   .calc-cell.deep.dropped { color:#ff5252; background:rgba(255,82,82,0.12); }
   .calc-cell.core.dropped { color:#ef9a9a; background:rgba(244,67,54,0.08); }
+  /* Activity block at the foot of the Today panel */
+  .calc-yday { margin-top:18px; padding-top:14px; border-top:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .calc-yday-row { display:flex; align-items:center; justify-content:center; gap:12px; }
+  .calc-yday-label { font-family:var(--font-mono); font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+  .calc-yday-kcal { display:inline-flex; align-items:baseline; gap:4px; cursor:pointer; }
+  #calcWorkoutValue { font-family:var(--font-display); font-size:22px; letter-spacing:1px; line-height:1; color:var(--text); }
+  .calc-yday-unit { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .calc-yday-tags { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; }
   .calc-temp-delta { font-size:9px; font-family:var(--font-mono); letter-spacing:2px; margin-top:4px; text-align:center; }
 
   /* Heatmap */
@@ -358,9 +366,10 @@
         <div class="calc-result-value" id="calcRHRValue">—</div>
         <div class="calc-rhr-window" id="calcRHRWindow" style="display:none;"></div>
       </div>
-      <div class="calc-metric" id="calcWorkoutDisplay" style="display:none;">
-        <div class="calc-metric-label">KCAL</div>
-        <div class="calc-result-value" id="calcWorkoutValue">—</div>
+      <div class="calc-metric" id="calcRRDisplay" style="display:none;">
+        <div class="calc-metric-label">RR</div>
+        <div class="calc-result-value" id="calcRRValue">—</div>
+        <div class="calc-temp-delta" id="calcRRDelta" style="display:none;"></div>
       </div>
       <div class="calc-metric" id="calcTempDisplay" style="display:none;">
         <div class="calc-metric-label">TEMP</div>
@@ -382,10 +391,17 @@
       </span>
     </div>
     <div class="calc-readings" id="calcReadings"></div>
-    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:18px 0 0;">
-      <button class="quick-add-btn" id="quickAddBtn" style="margin:0;" title="Quick Add kcal to previous day">+</button>
-      <span id="calcExtras" style="display:none;gap:4px;"></span>
-      <span id="calcTagBtn" class="tag-empty" style="display:none;" onclick="openCalcTagPicker(event)">TAG</span>
+    <!-- What you did the day before: the cause, under the overnight signals above -->
+    <div class="calc-yday">
+      <div class="calc-yday-row">
+        <span class="calc-yday-label" id="calcYdayLabel">Yesterday</span>
+        <span class="calc-yday-kcal" id="calcWorkoutDisplay" style="display:none;" onclick="openResultKcal()"><span id="calcWorkoutValue">—</span><span class="calc-yday-unit">kcal</span></span>
+        <button class="quick-add-btn" id="quickAddBtn" style="margin:0;" title="Quick Add kcal to previous day">+</button>
+      </div>
+      <div class="calc-yday-tags">
+        <span id="calcExtras" style="display:none;gap:4px;"></span>
+        <span id="calcTagBtn" class="tag-empty" style="display:none;" onclick="openCalcTagPicker(event)">TAG</span>
+      </div>
     </div>
   </div>
 </div>
@@ -449,7 +465,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.3';
+const APP_VERSION = '2026-10-05.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3360,6 +3376,7 @@ function render() {
   renderChart();
   renderHeatmap();
   syncResultKcalWithData();
+  syncResultRRAndActivity();
 }
 
 // ---------- GitHub Sync ----------
@@ -4145,6 +4162,7 @@ function saveCalcResult() {
   localStorage.setItem(getLastResultKey(), JSON.stringify(s));
   setResultDate(savedAt);
   updateCalcTagBtn();
+  syncResultRRAndActivity();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveToGitHub(), 800);
 }
@@ -4199,6 +4217,7 @@ function restoreCalcResult() {
     setResultDate(s.savedAt || '');
     $('calcResult').classList.add('show');
     updateCalcTagBtn();
+    syncResultRRAndActivity();
     requestAnimationFrame(renderSleepTimeline);
   } catch(e) {}
 }
@@ -4209,6 +4228,32 @@ function restoreCalcResult() {
 // Keep the results panel's kcal in step with the stored data for the activity
 // day it shows (the day before the result), so additions and deletions made after
 // the capture — Quick Add, Log Reading, the kcal editor — show up immediately.
+// The Today panel's RR figure comes straight from the stored nightly value for the
+// result's date (so a later import or backfill shows up), and the activity block is
+// labelled with the day before the result (usually "Yesterday").
+function syncResultRRAndActivity() {
+  let savedAt = null;
+  try { savedAt = JSON.parse(localStorage.getItem(getLastResultKey()) || 'null')?.savedAt || null; } catch {}
+  const yl = $('calcYdayLabel');
+  if (yl) yl.textContent = savedAt ? (resultDateLabel(prevDay(savedAt)) || 'Previous day') : 'Previous day';
+  const v = savedAt ? rrData[savedAt] : undefined;
+  if (v === undefined) { $('calcRRDisplay').style.display = 'none'; return; }
+  const dev = rrDevFor(savedAt);
+  $('calcRRValue').textContent = v.toFixed(1);
+  $('calcRRValue').style.color = rrZoneColor(dev);
+  $('calcRRDelta').textContent = dev !== null ? fmtRrDev(dev) : '';
+  $('calcRRDelta').style.color = rrZoneColor(dev);
+  $('calcRRDelta').style.display = dev !== null ? '' : 'none';
+  $('calcRRDisplay').style.display = '';
+}
+
+// Tapping the Today panel's kcal opens the same item editor as the Analysis view.
+function openResultKcal() {
+  let savedAt = null;
+  try { savedAt = JSON.parse(localStorage.getItem(getLastResultKey()) || 'null')?.savedAt || null; } catch {}
+  if (savedAt && workoutData[prevDay(savedAt)] !== undefined) showKcalItemsModal(prevDay(savedAt));
+}
+
 function syncResultKcalWithData() {
   const raw = localStorage.getItem(getLastResultKey());
   if (!raw) return;
