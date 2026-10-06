@@ -732,7 +732,9 @@
     "2026-10-06": 43
   },
   "rhrNotes": {},
-  "rr": {},
+  "rr": {
+    "2026-10-06": 14.9
+  },
   "rrBaseline": null,
   "rrBaselineSetDate": null,
   "temp": {
