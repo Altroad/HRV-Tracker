@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-06.4';
+const APP_VERSION = '2026-10-06.5';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -707,8 +707,11 @@ function rrBaselineFor(date) {
 // Signed one-decimal offset; rounds first so -0.04 reads +0.0, not -0.0.
 const fmtRrDev = dv => { const r = Math.round(dv * 10) / 10; return (r >= 0 ? '+' : '') + r.toFixed(1); };
 const rrDevFor = date => { const b = rrBaselineFor(date); return b === null || rrData[date] === undefined ? null : rrData[date] - b; };
-// Zones: Normal < +0.5 · Up +0.5 to +1 · Raised +1 to +2 · High +2 or more (grey: no baseline yet)
-const rrZoneColor = dev => dev === null ? '#a0b4c0' : dev < 0.5 ? '#4caf50' : dev < 1 ? '#ffab00' : dev < 2 ? '#ff6d00' : '#f44336';
+// Zones: Low −1 or more below (blue, informational — fitness, calm sleep, back from
+// altitude) · Normal −1 to +1 · Elevated +1 to +2 (warning) · High +2 or more.
+// Grey: no baseline yet.
+const rrZoneOf = dev => dev === null ? null : dev <= -1 ? 'Low' : dev < 1 ? 'Normal' : dev < 2 ? 'Elevated' : 'High';
+const rrZoneColor = dev => ({ Low: '#64b5f6', Normal: '#4caf50', Elevated: '#ff6d00', High: '#f44336' })[rrZoneOf(dev)] || '#a0b4c0';
 // Chart ring: green normal, red anomaly, grey while the baseline builds
 const rrRingColor = dev => dev === null ? '#a0b4c0' : dev >= RR_ANOMALY ? '#f44336' : '#4caf50';
 function loadRR() {
@@ -2109,7 +2112,7 @@ function setStatus(hrv) {
   const rrDates = Object.keys(rrData).sort();
   const latestRR = rrDates.length ? rrData[rrDates.at(-1)] : null;
   const rrDev = rrDates.length ? rrDevFor(rrDates.at(-1)) : null;
-  const rrZone = rrDev === null ? null : rrDev < 0.5 ? 'Normal' : rrDev < 1 ? 'Up' : rrDev < 2 ? 'Raised' : 'High';
+  const rrZone = rrZoneOf(rrDev);
   const rrRaised = rrDev !== null && rrDev >= RR_ANOMALY;
 
   // Four warning signals. Any three is a triple-system alarm, all four a
@@ -2119,13 +2122,13 @@ function setStatus(hrv) {
     hrvZone === 'Low'  && 'suppressed HRV',
     rhrZone === 'High' && 'elevated RHR',
     tempHigh           && 'raised wrist temperature',
-    rrRaised           && 'raised breathing rate',
+    rrRaised           && 'elevated breathing rate',
   ].filter(Boolean);
   const listOf = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a.at(-1) : a[0];
   const fallback = { High: 'High — autonomic system well recovered.', Good: 'Good — all systems should be in order.', OK: 'OK — monitor trend direction.', Low: 'Low — nervous system under pressure.' };
   let message, msgColor = color;
   if (signals.length === 4) {
-    message = 'Quadruple-system alarm — suppressed HRV, elevated RHR, raised wrist temperature and raised breathing rate. The strongest illness signature. Rest and monitor symptoms closely.';
+    message = 'Quadruple-system alarm — suppressed HRV, elevated RHR, raised wrist temperature and elevated breathing rate. The strongest illness signature. Rest and monitor symptoms closely.';
     msgColor = COLORS.red;
   } else if (signals.length === 3) {
     message = `Triple-system alarm — ${listOf(signals)}. Classic acute illness signature. Rest and monitor symptoms closely.`;
@@ -2137,8 +2140,9 @@ function setStatus(hrv) {
     message = rhrZone ? STATUS_MESSAGES[`${hrvZone},${rhrZone}`] : fallback[hrvZone];
     if (tempHigh) message += ' Raised wrist temperature detected — monitor for early illness or systemic stress.';
     if (rrDev !== null && rrDev >= 2)  message += ` Breathing rate well up (${fmtRrDev(rrDev)}) — a strong early warning of illness. Consider an easy day.`;
-    else if (rrRaised)                 message += ` Breathing rate up (${fmtRrDev(rrDev)}) — an early sign of illness or overreaching. Watch tomorrow's numbers.`;
-    else if (tempHigh && rrZone === 'Up') message += ' Breathing rate slightly up too.';
+    else if (rrRaised)                 message += ` Breathing rate elevated (${fmtRrDev(rrDev)}) — an early sign of illness or overreaching. Watch tomorrow's numbers.`;
+    else if (tempHigh && rrDev >= 0.5) message += ' Breathing rate slightly up too.';
+    else if (rrZone === 'Low')         message += ` Breathing rate lower than usual (${fmtRrDev(rrDev)}) — often deeper, calmer sleep or improving fitness; also normal for a while after returning from altitude.`;
   }
   const txt = $('statusText');
   txt.textContent = message;
@@ -2434,9 +2438,9 @@ function applyMetricsMode(mode) {
       $('todayCard').classList.add('rr-mode');
       // Zones in breaths/min from the current baseline (offsets until there is one)
       const b = m.base, f = v => (b + v).toFixed(1);
-      $('zoneLabelHigh').textContent = 'Normal'; $('zoneHigh').style.color = '#4caf50'; $('zoneHigh').textContent = b !== null ? `<${f(0.5)}` : '<+0.5';
-      $('zoneLabelGood').textContent = 'Up';     $('zoneGood').style.color = '#ffab00'; $('zoneGood').textContent = b !== null ? `${f(0.5)}–${f(1)}` : '+0.5–1';
-      $('zoneLabelOK').textContent   = 'Raised'; $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = b !== null ? `${f(1)}–${f(2)}` : '+1–2';
+      $('zoneLabelHigh').textContent = 'Low';      $('zoneHigh').style.color = '#64b5f6'; $('zoneHigh').textContent = b !== null ? `≤${f(-1)}` : '≤−1';
+      $('zoneLabelGood').textContent = 'Normal';   $('zoneGood').style.color = '#4caf50'; $('zoneGood').textContent = b !== null ? `${f(-1)}–${f(1)}` : '±1';
+      $('zoneLabelOK').textContent   = 'Elevated'; $('zoneOK').style.color   = '#ff6d00'; $('zoneOK').textContent   = b !== null ? `${f(1)}–${f(2)}` : '+1–2';
       $('zoneLabelLow').textContent  = 'High';   $('zoneLow').style.color  = '#f44336'; $('zoneLow').textContent  = b !== null ? `${f(2)}+` : '+2';
 
     } else if (mode === 'temp') {
@@ -4138,8 +4142,8 @@ function showStatesModal() {
     </div>`;
   const rrRow = `
     <div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px;opacity:0.6;">
-      <span style="flex-shrink:0;font-size:10px;color:#ff6d00;font-family:var(--font-mono);width:82px;margin-top:2px;">+ RR Raised</span>
-      <span style="font-size:12px;color:#a0b4c0;line-height:1.5;">Breathing rate up (+1 or more) — an early sign of illness or overreaching. Watch tomorrow's numbers. (+2 or more: a strong early warning — consider an easy day.)</span>
+      <span style="flex-shrink:0;font-size:10px;color:#ff6d00;font-family:var(--font-mono);width:82px;margin-top:2px;">+ RR Elevated</span>
+      <span style="font-size:12px;color:#a0b4c0;line-height:1.5;">Breathing rate elevated (+1 or more) — an early sign of illness or overreaching. Watch tomorrow's numbers. (+2 or more, High: a strong early warning — consider an easy day.) RR Low (−1 or more below) is informational only: often deeper sleep, fitness, or returning from altitude.</span>
     </div>`;
   const rows = zones.map(h => `
     <div style="margin-bottom:20px;">
@@ -4157,23 +4161,23 @@ function showStatesModal() {
       <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:${c};text-transform:uppercase;padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid ${c}33;">${title}</div>
       ${body}
     </div>`;
-  const signalsLine = `<div style="margin-bottom:6px;">${sig('HRV Low', '#f44336')}${sig('RHR High', '#f44336')}${sig('Temp High (> +0.5°)', '#f44336')}${sig('RR Raised (+1 or more)', '#f44336')}</div>`;
+  const signalsLine = `<div style="margin-bottom:6px;">${sig('HRV Low', '#f44336')}${sig('RHR High', '#f44336')}${sig('Temp High (> +0.5°)', '#f44336')}${sig('RR Elevated (+1 or more)', '#f44336')}</div>`;
   const tripleAlarm = `
     <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:4px 0 10px;">Warning signals &amp; alarms</div>
     ${box('Early Illness Signal', '#ffab00', 'rgba(255,171,0,0.06)', `
-      <div style="margin-bottom:6px;">${sig('Temp High', '#ffab00')}${sig('RR Raised', '#ffab00')}<span style="font-size:11px;color:var(--muted);">with HRV and RHR holding</span></div>
+      <div style="margin-bottom:6px;">${sig('Temp High', '#ffab00')}${sig('RR Elevated', '#ffab00')}<span style="font-size:11px;color:var(--muted);">with HRV and RHR holding</span></div>
       <span style="font-size:12px;color:#ffab00;line-height:1.5;">Early illness signal — wrist temperature and breathing rate both up while HRV holds. This often shows a day or two before symptoms — go easy.</span>`)}
     ${box('Triple System Alarm', '#f44336', 'rgba(244,67,54,0.07)', `
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Any three of the four signals:</div>
       ${signalsLine}
-      <span style="font-size:12px;color:#f44336;line-height:1.5;">Triple-system alarm — names the three that fired, e.g. suppressed HRV, elevated RHR and raised breathing rate. Classic acute illness signature. Rest and monitor symptoms closely.</span>`)}
+      <span style="font-size:12px;color:#f44336;line-height:1.5;">Triple-system alarm — names the three that fired, e.g. suppressed HRV, elevated RHR and elevated breathing rate. Classic acute illness signature. Rest and monitor symptoms closely.</span>`)}
     ${box('Quadruple System Alarm', '#f44336', 'rgba(244,67,54,0.12)', `
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">All four signals at once:</div>
       ${signalsLine}
-      <span style="font-size:12px;color:#f44336;line-height:1.5;">Quadruple-system alarm — suppressed HRV, elevated RHR, raised wrist temperature and raised breathing rate. The strongest illness signature. Rest and monitor symptoms closely.</span>`)}`;
+      <span style="font-size:12px;color:#f44336;line-height:1.5;">Quadruple-system alarm — suppressed HRV, elevated RHR, raised wrist temperature and elevated breathing rate. The strongest illness signature. Rest and monitor symptoms closely.</span>`)}`;
   openModal(`
     <div class="modal-title">Status Reference</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:-8px;">All HRV × RHR combinations · <span style="color:#f44336">+ Temp High</span> and <span style="color:#ff6d00">+ RR Raised</span> per category · alarms at the end</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:-8px;">All HRV × RHR combinations · <span style="color:#f44336">+ Temp High</span> and <span style="color:#ff6d00">+ RR Elevated</span> per category · alarms at the end</div>
     <div style="max-height:65vh;overflow-y:auto;padding-right:4px;margin-top:4px;">${rows}${tripleAlarm}</div>
     <button class="modal-btn cancel" onclick="this.closest('.modal-overlay').remove()">Close</button>
   `);
@@ -4214,7 +4218,8 @@ function showInfoModal() {
 
       <strong style="color:var(--accent);letter-spacing:1px;">RESPIRATORY RATE (RR)</strong><br>
       Breaths per minute while asleep — the plain average of every Apple Watch sample taken during Core, Deep or REM sleep (Awake and daytime samples are left out), so it matches apps such as AutoSleep. It barely moves night to night, which is what makes a rise meaningful: 1+ breath/min above normal is an early sign of illness or overreaching. Each night is compared with the average of the 30 nights before it (a baseline needs 7; until then you can give a starting value via ≡ → Set Baselines):<br>
-      ${dot('#4caf50')} below +0.5 Normal &nbsp; ${dot('#ffab00')} +0.5 to +1 Up &nbsp; ${dot('#ff6d00')} +1 to +2 Raised &nbsp; ${dot('#f44336')} +2 or more High<br>
+      ${dot('#64b5f6')} −1 or more below Low &nbsp; ${dot('#4caf50')} −1 to +1 Normal &nbsp; ${dot('#ff6d00')} +1 to +2 Elevated &nbsp; ${dot('#f44336')} +2 or more High<br>
+      Low isn't a warning: a lower sleeping rate usually means deeper, calmer sleep or improving fitness, and it's normal for a while after returning from altitude.<br>
       See it in the top card's RR view and as the inner ring on the 14D chart.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">WRIST TEMPERATURE</strong><br>
