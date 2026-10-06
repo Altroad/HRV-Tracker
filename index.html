@@ -44,7 +44,7 @@
   .menu-btn:hover { border-color:var(--accent); color:var(--accent); }
 
   h1 { font-family:var(--font-display); font-size:36px; letter-spacing:3px; color:#7a8d98; line-height:1; margin-bottom:10px; font-weight:700; }
-  .baseline-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:10px; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .baseline-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
   .bl-cell { padding:8px 2px 7px; text-align:center; border-right:1px solid var(--border); }
   .bl-cell:last-child { border-right:none; }
   .bl-label { font-family:var(--font-mono); font-size:8px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
@@ -89,7 +89,7 @@
   .update-bar.show:active { transform: translateX(-50%) scale(0.95); }
 
   /* Status */
-  .status-bar { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; flex-direction:column; gap:5px; position:relative; }
+  .status-bar { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:12px; display:flex; flex-direction:column; gap:5px; position:relative; }
   .status-top { display:flex; align-items:center; gap:10px; }
   .status-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; background:var(--muted); }
   .status-text { font-size:13px; font-weight:500; line-height:1.35; }
@@ -419,7 +419,7 @@
   </div>
 </div>
 
-<div id="captureBar" onclick="showCaptureWindowModal()" style="display:flex;align-items:center;gap:8px;padding:9px 14px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:3px;color:var(--muted);user-select:none;">
+<div id="captureBar" onclick="showCaptureWindowModal()" style="display:flex;align-items:center;gap:8px;padding:9px 14px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:3px;color:var(--muted);user-select:none;">
   <span style="font-size:13px;">🌙</span>
   <span>CAPTURE WINDOW</span>
   <span id="captureBarValue" style="color:var(--accent);margin-left:auto;font-weight:500;letter-spacing:1px;">Default</span>
@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-06.3';
+const APP_VERSION = '2026-10-06.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4456,7 +4456,11 @@ function syncResultTempWithData() {
   if (!date) return;
   const t = tempData[date];
   if (t === undefined) return;
-  if (s.tempVisible && s.temp === t.toFixed(2)) return;
+  const ebNow = getEffectiveBaseline();
+  const wantDelta = ebNow !== null ? fmtTempDev(t - ebNow) : null;
+  // Up to date only if the value and its offset text both match (the offset is
+  // stored as text, so a formatting fix — e.g. -0.00° → +0.00° — refreshes it too).
+  if (s.tempVisible && s.temp === t.toFixed(2) && (wantDelta === null ? !s.tempDeltaVisible : s.tempDelta === wantDelta)) return;
 
   s.tempVisible = true;
   s.temp = t.toFixed(2);
