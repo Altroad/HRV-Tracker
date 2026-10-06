@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-06.2';
+const APP_VERSION = '2026-10-06.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -3723,7 +3723,23 @@ async function mergeRemoteChanges() {
   } catch { return false; }
 }
 
-async function saveToGitHub(isRetry) {
+// Saves run one at a time. A save requested while one is uploading doesn't start
+// a second PUT against the same file version (GitHub would reject it as a
+// conflict — the "save failed" seen when tagging quickly); it's folded into one
+// follow-up save once the current one finishes, which sends the latest state.
+let _saveInFlight = null, _saveAgain = false;
+async function saveToGitHub() {
+  if (!getGHToken()) return false;
+  if (_saveInFlight) { _saveAgain = true; return _saveInFlight; }
+  _saveInFlight = (async () => {
+    let ok;
+    do { _saveAgain = false; ok = await putToGitHub(); } while (_saveAgain);
+    return ok;
+  })();
+  try { return await _saveInFlight; } finally { _saveInFlight = null; }
+}
+
+async function putToGitHub(attempt = 0) {
   if (!getGHToken()) return false;
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
@@ -3739,9 +3755,14 @@ async function saveToGitHub(isRetry) {
     showToast('Saved to GitHub ✓');
     return true;
   }
-  if (res && (res.status === 409 || res.status === 422) && !isRetry) {
+  if (res && (res.status === 409 || res.status === 422) && attempt === 0) {
     // Another device saved since our last sync — pull its changes in and retry once.
-    if (await mergeRemoteChanges()) return saveToGitHub(true);
+    if (await mergeRemoteChanges()) return putToGitHub(1);
+  }
+  if (!res && attempt === 0) {
+    // A dropped connection: one quiet retry before warning.
+    await new Promise(r => setTimeout(r, 2000));
+    return putToGitHub(1);
   }
   const status = res ? `HTTP ${res.status}` : 'network error';
   showToast(`GitHub save failed (${status}) — tap ⟳ to check token`);
