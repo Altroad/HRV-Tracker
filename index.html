@@ -60,7 +60,7 @@
   .today-card .metric-label { margin-bottom:4px; }
   .today-card .metric-unit { line-height:1.3; }
   .today-card .metric-delta { line-height:1.25; margin-top:1px; }
-  .today-card::after { content:''; position:absolute; bottom:10px; right:12px; width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:0.35; transition:background 0.3s, opacity 0.3s; }
+  .today-card::after { content:''; position:absolute; top:10px; right:12px; width:5px; height:5px; border-radius:50%; background:var(--muted); opacity:0.35; transition:background 0.3s, opacity 0.3s; }
   .today-card.rhr-mode::after { background:var(--accent); opacity:0.7; }
   .today-card.temp-mode::after { background:#e67c8a; opacity:0.7; }
   .today-card.rr-mode::after { background:#80cbc4; opacity:0.7; }
@@ -77,9 +77,9 @@
   .metric-anim-out { animation:metricSlideOut 0.34s ease-in forwards; }
   .metric-anim-in  { animation:metricSlideIn  0.4s  ease-out forwards; }
   /* ---------- Touch press feedback ---------- */
-  .today-card, .status-bar, .zones, #captureBar { transition: transform 0.12s ease, filter 0.12s ease; }
-  .today-card:active, .status-bar:active, .zones:active, #captureBar:active,
-  .today-card.pressed, .status-bar.pressed, .zones.pressed, #captureBar.pressed { transform: scale(0.985); filter: brightness(1.15); }
+  .today-card, .status-bar, #captureBar { transition: transform 0.12s ease, filter 0.12s ease; }
+  .today-card:active, .status-bar:active, #captureBar:active,
+  .today-card.pressed, .status-bar.pressed, #captureBar.pressed { transform: scale(0.985); filter: brightness(1.15); }
   .menu-btn:active, .sync-btn:active, .info-btn:active, .range-btn:active, .modal-btn:active, .quick-add-btn:active,
   .menu-btn.pressed, .sync-btn.pressed, .info-btn.pressed, .range-btn.pressed, .modal-btn.pressed, .quick-add-btn.pressed { transform: scale(0.92); }
   #versionFooter { transition: transform 0.12s ease; }
@@ -106,6 +106,10 @@
   .zone-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 6px; text-align:center; }
   .zone-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:2px; }
   .zone-range { font-family:var(--font-display); font-size:16px; }
+  /* Zones as the bottom row of the top card (panel 2) */
+  .today-card .zones { grid-column:1 / -1; gap:0; margin:2px 0 0; padding-top:10px; border-top:1px solid var(--border); cursor:inherit; }
+  .today-card .zone-card { background:none; border:none; border-radius:0; padding:0 4px; }
+  .today-card .zone-card + .zone-card { border-left:1px solid var(--border); }
 
   /* Chart */
   /* Card headings match the Today panel: centred accent title over a subtle divider, toggles centred below */
@@ -333,13 +337,13 @@
     <div class="metric-value" id="trendValue" style="color:var(--green)">—</div>
     <div class="metric-unit" id="trendLabel">7-day</div>
   </div>
-</div>
-
-<div class="zones" id="zonesPanel" onclick="flipMetrics()">
-  <div class="zone-card"><div class="zone-label" id="zoneLabelHigh">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
-  <div class="zone-card"><div class="zone-label" id="zoneLabelGood">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
-  <div class="zone-card"><div class="zone-label" id="zoneLabelOK">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
-  <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
+  <!-- Zones for the view shown above; the card handles the tap -->
+  <div class="zones" id="zonesPanel">
+    <div class="zone-card"><div class="zone-label" id="zoneLabelHigh">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
+    <div class="zone-card"><div class="zone-label" id="zoneLabelGood">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
+    <div class="zone-card"><div class="zone-label" id="zoneLabelOK">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
+    <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
+  </div>
 </div>
 
 <div class="status-bar" onclick="showStatesModal()" style="cursor:pointer;">
@@ -474,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-06.1';
+const APP_VERSION = '2026-10-06.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -677,6 +681,8 @@ function getEffectiveBaseline() {
   const count = tempBaselineSetDate === null ? keys.length : keys.filter(d => d > tempBaselineSetDate).length;
   return count >= 7 ? getRollingMedianBaseline() : tempBaseline;
 }
+// Signed two-decimal temperature offset; rounds first so -0.004 reads +0.00°, not -0.00°.
+const fmtTempDev = dv => { const r = Math.round(dv * 100) / 100; return (r >= 0 ? '+' : '') + r.toFixed(2) + '°'; };
 const tempZoneColor = temp => {
   const eb = getEffectiveBaseline();
   if (eb === null) return '#a0b4c0';
@@ -1292,7 +1298,7 @@ function updateChartPopup(meta) {
   if (temp !== undefined) {
     const _eb = getEffectiveBaseline(); const dev = _eb !== null ? temp - _eb : null;
     const devHtml = dev !== null
-      ? `<div class="chart-popup-sub" style="color:${tempZoneColor(temp)}">${dev >= 0 ? '+' : ''}${dev.toFixed(2)}°</div>`
+      ? `<div class="chart-popup-sub" style="color:${tempZoneColor(temp)}">${fmtTempDev(dev)}</div>`
       : '';
     metricsHtml += `<div class="chart-popup-metric">
       <div class="chart-popup-label">TEMP</div>
@@ -1557,7 +1563,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     let tempHtml;
     if (tempVal !== undefined) {
       const tempDelta = eb !== null ? tempVal - eb : null;
-      const tempDStr = tempDelta !== null ? ((tempDelta >= 0 ? '+' : '') + tempDelta.toFixed(2) + '°') : '';
+      const tempDStr = tempDelta !== null ? fmtTempDev(tempDelta) : '';
       const tempColor = tempZoneColor(tempVal);
       tempHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-temp-date="${date}">
         <div class="jnl-metric-label">TEMP</div>
@@ -2153,7 +2159,7 @@ function setStatus(hrv) {
   }
   if (latestTemp !== null) {
     const dev = eb !== null ? (latestTemp - eb) : null;
-    const devStr = dev !== null ? `${dev >= 0 ? '+' : ''}${dev.toFixed(2)}°` : '';
+    const devStr = dev !== null ? fmtTempDev(dev) : '';
     $('statusSubTemp').innerHTML = `<span>Temp ${latestTemp.toFixed(2)}°C</span>${devStr ? `<span>${devStr}</span>` : ''}`;
     $('statusSubTemp').style.color = tempHigh ? '#f44336' : dev !== null && dev < -0.5 ? '#64b5f6' : '';
   } else {
@@ -2439,7 +2445,7 @@ function applyMetricsMode(mode) {
       $('latestHRV').innerHTML = `${Math.floor(m.latest)}<span style="font-size:0.6em">.${m.latest.toFixed(2).split('.')[1]}</span>`; $('latestHRV').style.color = tempZoneColor(m.latest);
       $('latestUnit').textContent = '°C';
       if (m.latestDev !== null) {
-        $('hrvDelta').textContent = (m.latestDev >= 0 ? '+' : '') + m.latestDev.toFixed(2) + '° vs baseline';
+        $('hrvDelta').textContent = fmtTempDev(m.latestDev) + ' vs baseline';
         $('hrvDelta').style.color = tempZoneColor(m.latest);
       } else {
         $('hrvDelta').textContent = 'no baseline set'; $('hrvDelta').style.color = COLORS.muted;
@@ -3075,8 +3081,7 @@ function runSlowWaveCalc(text, overlay) {
       const _eb = getEffectiveBaseline();
       if (_eb !== null) {
         const dev = nightTemp - _eb;
-        const sign = dev >= 0 ? '+' : '';
-        $('calcTempDelta').textContent = `${sign}${dev.toFixed(2)}°`;
+        $('calcTempDelta').textContent = fmtTempDev(dev);
         $('calcTempDelta').style.color = tempZoneColor(nightTemp);
         $('calcTempDelta').style.display = '';
       } else {
@@ -4438,8 +4443,7 @@ function syncResultTempWithData() {
   const eb = getEffectiveBaseline();
   if (eb !== null) {
     const dev = t - eb;
-    const sign = dev >= 0 ? '+' : '';
-    s.tempDelta = `${sign}${dev.toFixed(2)}°`;
+    s.tempDelta = fmtTempDev(dev);
     s.tempDeltaColor = tempZoneColor(t);
     s.tempDeltaVisible = true;
   } else {
@@ -4458,7 +4462,7 @@ function syncResultTempWithData() {
 async function init() {
   // iOS's :active heuristic is unreliable, so drive press states directly:
   // touchstart marks the nearest pressable element, touchend/cancel clears it.
-  const PRESSABLE = '.today-card, .status-bar, .zones, #captureBar, .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn, .quick-add-btn, #versionFooter';
+  const PRESSABLE = '.today-card, .status-bar, #captureBar, .menu-btn, .sync-btn, .info-btn, .range-btn, .modal-btn, .quick-add-btn, #versionFooter';
   document.body.addEventListener('touchstart', e => {
     const el = e.target.closest && e.target.closest(PRESSABLE);
     if (el) el.classList.add('pressed');
