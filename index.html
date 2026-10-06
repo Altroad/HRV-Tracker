@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-06.5';
+const APP_VERSION = '2026-10-06.6';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4246,10 +4246,10 @@ function showInfoModal() {
       <strong>Year at a glance</strong> — switch between HRV, RHR, Kcal, Temp and Ect. Kcal and Ect colour the activity day; the others colour the morning.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">ANALYSIS TOOL</strong><br>
-      Tap <em>DATA ANALYSIS</em> for every entry with HRV, RHR, kcal and temp, period averages, note search and tag filters. Tap a note to edit it; swipe an entry left and tap <em>DELETE</em> to remove it.<br><br>
+      Tap <em>DATA ANALYSIS</em> for every entry with HRV, RHR, RR, temp and kcal, period averages, note search and tag filters. Tap a note to edit it; swipe an entry left and tap <em>DELETE</em> to remove it.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">SYNC, BACKUP &amp; UPDATES</strong><br>
-      Each user's data syncs to their own file on GitHub (set via ⟳). If the same entry was changed in two places, the version on this device wins rather than creating a duplicate. ≡ → Export CSV saves <em>Baseline_Backup.csv</em> with HRV, RHR, temp, notes, tags, activities and ectopy; Import CSV restores it. The footer shows the app version — tap it to check for updates; a newer version also offers an <em>UPDATE READY</em> button when you return to the app.
+      Each user's data syncs to their own file on GitHub (set via ⟳). If the same entry was changed in two places, the version on this device wins rather than creating a duplicate. ≡ → Export CSV saves <em>Baseline_Backup.csv</em> with HRV, RHR, temp, notes, tags, activities, ectopy and RR; Import CSV restores it. The footer shows the app version — tap it to check for updates; a newer version also offers an <em>UPDATE READY</em> button when you return to the app.
 
     </div>
     <button class="modal-btn" style="margin-top:12px;" data-close>CLOSE</button>

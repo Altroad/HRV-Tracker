@@ -1,7 +1,7 @@
 {
   "name": "Baseline",
   "short_name": "Baseline",
-  "description": "HRV, RHR and wrist temperature overnight tracker",
+  "description": "HRV, RHR, respiratory rate and wrist temperature overnight tracker",
   "start_url": "/HRV-Tracker/",
   "display": "standalone",
   "background_color": "#0f1218",
