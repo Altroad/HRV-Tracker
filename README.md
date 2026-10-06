@@ -142,7 +142,7 @@ Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to t
 - **GitHub sync** (set via ⟳): each user's data is stored in `data/<user>.json`. The token is kept in the browser only.
 - **Merging:** there's one reading per date. If an entry changed in two places, this device's version wins. Entries deleted or replaced on a device are remembered, so a sync can't bring them back.
 - **Saving:** saves run one at a time. Changes made during an upload go up together in one follow-up save, and a dropped connection gets one quiet retry.
-- **CSV backup:** **≡ → Export CSV** saves `Baseline_Backup.csv` with the columns `date, hrv, rhr, temp, note, tag, activities, ectopy, rr`. **Import CSV** restores it.
+- **CSV backup:** **≡ → Export CSV** saves `Baseline_Backup.csv` with the columns `date, hrv, rhr, temp, note, tag, activities, ectopy, rr, kcal`. `activities` holds Sick/Sauna/Cold, and `kcal` holds the previous day's items as `Name=kcal;Name=kcal`. **Import CSV** restores it (adding only what's missing).
 - **Updates:** the footer shows the app version (tap it to check). A newer version shows an **UPDATE READY** button.
 
 ---
