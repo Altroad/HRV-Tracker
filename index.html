@@ -335,6 +335,13 @@
   </div>
 </div>
 
+<div class="zones" id="zonesPanel" onclick="flipMetrics()">
+  <div class="zone-card"><div class="zone-label" id="zoneLabelHigh">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
+  <div class="zone-card"><div class="zone-label" id="zoneLabelGood">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
+  <div class="zone-card"><div class="zone-label" id="zoneLabelOK">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
+  <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
+</div>
+
 <div class="status-bar" onclick="showStatesModal()" style="cursor:pointer;">
   <div class="status-top">
     <div class="status-dot" id="statusDot"></div>
@@ -346,13 +353,6 @@
     <div class="status-sub" id="statusSubRR"></div>
     <div class="status-sub" id="statusSubTemp"></div>
   </div>
-</div>
-
-<div class="zones" id="zonesPanel" onclick="flipMetrics()">
-  <div class="zone-card"><div class="zone-label" id="zoneLabelHigh">High</div><div class="zone-range" id="zoneHigh" style="color:var(--accent)">90+</div></div>
-  <div class="zone-card"><div class="zone-label" id="zoneLabelGood">Good</div><div class="zone-range" id="zoneGood" style="color:var(--green)">75–90</div></div>
-  <div class="zone-card"><div class="zone-label" id="zoneLabelOK">OK</div><div class="zone-range" id="zoneOK" style="color:var(--orange)">59–75</div></div>
-  <div class="zone-card"><div class="zone-label" id="zoneLabelLow">Low</div><div class="zone-range" id="zoneLow" style="color:var(--red)">&lt;59</div></div>
 </div>
 
 <div>
@@ -474,7 +474,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-05.11';
+const APP_VERSION = '2026-10-06.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
