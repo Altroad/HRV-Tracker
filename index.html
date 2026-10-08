@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-08.1';
+const APP_VERSION = '2026-10-08.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4099,8 +4099,11 @@ function showLogModal() {
     <div class="input-row" style="gap:8px;margin-top:8px;">
       <input type="number" id="logHRV" placeholder="HRV" min="20" max="220" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
       <input type="number" id="logRHR" placeholder="RHR" min="25" max="120" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+      <input type="number" id="logRR" placeholder="RR" step="0.1" min="5" max="35" inputmode="decimal" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
+    </div>
+    <div class="input-row" style="gap:8px;margin-top:8px;">
+      <input type="number" id="logTemp" placeholder="Temp" step="0.01" min="30" max="42" inputmode="decimal" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
       <input type="number" id="logKcal" placeholder="Kcal" min="0" max="15000" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
-      <input type="number" id="logTemp" placeholder="Temp" step="0.01" min="30" max="42" style="flex:1;min-width:0;text-align:center;padding:0 6px;">
     </div>
     <div class="modal-actions">
       <button class="modal-btn cancel" data-cancel>CANCEL</button>
@@ -4115,13 +4118,18 @@ function showLogModal() {
     const kcal    = parseInt(overlay.querySelector('#logKcal').value, 10);
     const tempStr = overlay.querySelector('#logTemp').value;
     const temp    = parseFloat(tempStr);
+    const rrStr   = overlay.querySelector('#logRR').value;
+    const rr      = parseFloat(rrStr);
     const hasKcal = !isNaN(kcal) && kcal > 0;
     const hasTemp = tempStr !== '' && !isNaN(temp);
+    const hasRR   = rrStr !== '' && !isNaN(rr);
     const hasHRVorRHR = hrv || rhr;
     if (!date) { showToast('Select a date'); return; }
     if (hasTemp && (temp < 30 || temp > 42)) { showToast('Enter a valid temperature (30–42°C)'); return; }
-    if (!hasHRVorRHR && !hasKcal && !hasTemp) { showToast('Enter at least one value'); return; }
+    if (hasRR && (rr < 5 || rr > 35)) { showToast('Enter a valid respiratory rate (5–35)'); return; }
+    if (!hasHRVorRHR && !hasKcal && !hasTemp && !hasRR) { showToast('Enter at least one value'); return; }
     if (hasKcal) { addKcalItem(date, { name: 'Manual', kcal }); saveWorkout(); }
+    if (hasRR) { rrData[date] = Math.round(rr * 10) / 10; saveRR(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     if (hasTemp) { tempData[date] = temp; saveTemp(); syncResultTempWithData(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     overlay.remove();
     if (hasHRVorRHR) {
@@ -4134,8 +4142,9 @@ function showLogModal() {
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => saveToGitHub(), 800);
       const parts = [];
-      if (hasKcal) parts.push(`${kcal.toLocaleString()} kcal`);
+      if (hasRR)   parts.push(`RR ${rrData[date].toFixed(1)}`);
       if (hasTemp) parts.push(`${temp.toFixed(2)}°C`);
+      if (hasKcal) parts.push(`${kcal.toLocaleString()} kcal`);
       showToast(`Logged ${parts.join(' · ')} · ${date}`);
     }
   });
