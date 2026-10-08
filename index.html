@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-07.1';
+const APP_VERSION = '2026-10-08.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -490,6 +490,7 @@ const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const getRhrKey          = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_${u}_v1`                  : 'hrv_rhr_v1'; };
+const getDayTagsKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_day_tags_${u}_v1`             : 'hrv_day_tags_v1'; };
 const getRemovedKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_removed_${u}_v1`              : 'hrv_removed_v1'; };
 const getRhrNotesKey     = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_notes_${u}_v1`            : 'hrv_rhr_notes_v1'; };
 const getRrKey           = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_resp_rate_${u}_v1`            : 'hrv_resp_rate_v1'; };
@@ -640,6 +641,7 @@ let rhrData = {};
 let rhrNotes = {};
 let tempData = {};
 let rrData = {};
+let dayTags = {}; // tags for days with no HRV reading (see tagTarget)
 let rrBaseline = null;        // manual starting baseline (breaths/min), or null
 let rrBaselineSetDate = null; // date it was set
 let workoutData = {};
@@ -1454,13 +1456,16 @@ function buildJournalCards(filter, search, sort, sortDir) {
   Object.keys(rhrData).forEach(d => dateSet.add(d));
   Object.keys(tempData).forEach(d => dateSet.add(d));
   Object.keys(rrData).forEach(d => dateSet.add(d));
+  // Kcal shows on the morning after the activity day, so a kcal-only day gets a card
+  Object.keys(workoutData).forEach(d => { const n = new Date(d + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1); dateSet.add(n.toISOString().slice(0, 10)); });
+  Object.entries(dayTags).forEach(([d, t]) => { if (hasTags(t)) dateSet.add(d); });
 
   // Tags present in data, in TAGS definition order
-  const tagSet = new Set(readings.flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
+  const tagSet = new Set([...readings, ...Object.values(dayTags)].flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
   const tags = [...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label).filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
-  if (filter) dates = dates.filter(date => { const r = readingByDate[date]; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
+  if (filter) dates = dates.filter(date => { const r = readingByDate[date] || dayTags[date]; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
   if (search) {
     const s = search.toLowerCase();
     dates = dates.filter(date => {
@@ -1518,13 +1523,13 @@ function buildJournalCards(filter, search, sort, sortDir) {
     const d = new Date(date + 'T12:00:00');
     const dateStr = `${DAY_NAMES[d.getDay()]} ${fmtDate(d)}`;
 
-    let tagHtml = '';
-    if (r) {
-      const tagColor = r.tag ? TAG_MAP[r.tag] : null;
-      tagHtml = tagColor
-        ? `<span class="tag-chip" style="border-color:${tagColor};color:${tagColor};" onclick="openTagPicker(event,'${r.id}')">${r.tag.toUpperCase()}</span>`
-        : `<span class="tag-empty" onclick="openTagPicker(event,'${r.id}')">TAG</span>`;
-    }
+    // Tags: on the HRV reading, or the day's own tags when there's no reading
+    const tagsOf = r || dayTags[date] || {};
+    const tagId = r ? r.id : `day:${date}`;
+    const tagColor = tagsOf.tag ? TAG_MAP[tagsOf.tag] : null;
+    const tagHtml = tagColor
+      ? `<span class="tag-chip" style="border-color:${tagColor};color:${tagColor};" onclick="openTagPicker(event,'${tagId}')">${tagsOf.tag.toUpperCase()}</span>`
+      : `<span class="tag-empty" onclick="openTagPicker(event,'${tagId}')">TAG</span>`;
 
     let hrvHtml;
     if (r) {
@@ -1602,7 +1607,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
-        <span style="display:flex;gap:4px;align-items:center;">${r ? ectopyPillHtml(r, `openTagPicker(event,'${r.id}')`) + extraPillsHtml(r, `openTagPicker(event,'${r.id}')`) : ''}${tagHtml}</span>
+        <span style="display:flex;gap:4px;align-items:center;">${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
@@ -1827,6 +1832,46 @@ function refreshJournalModal() {
 }
 
 // ---------- Tag Picker ----------
+// Tags normally live on the day's HRV reading. A day without one (a travel day
+// logged with only RHR or kcal, say) keeps them in dayTags, addressed by the id
+// "day:YYYY-MM-DD". Cleared days stay as {} so a sync can't bring old tags back.
+// Once an HRV reading exists for the day, foldDayTags moves the tags onto it.
+function tagTarget(id, create = false) {
+  const s = String(id);
+  if (!s.startsWith('day:')) return readings.find(r => String(r.id) === s) || null;
+  const d = s.slice(4);
+  if (!dayTags[d] && create) dayTags[d] = {};
+  return dayTags[d] || null;
+}
+const tagsForDate  = date => readings.find(r => r.date === date) || dayTags[date] || null;
+const tagIdForDate = date => { const r = readings.find(x => x.date === date); return r ? r.id : `day:${date}`; };
+const hasTags = t => !!(t && (t.tag || t.extras?.length || Number.isInteger(t.ectopy)));
+function loadDayTags() {
+  try { dayTags = JSON.parse(localStorage.getItem(getDayTagsKey()) || '{}') || {}; } catch { dayTags = {}; }
+}
+function saveDayTags() {
+  try { localStorage.setItem(getDayTagsKey(), JSON.stringify(dayTags)); } catch {}
+}
+function saveTags(id) {
+  if (!String(id).startsWith('day:')) { save(); return; }
+  saveDayTags(); clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800);
+}
+function foldDayTags() {
+  let moved = false;
+  for (const [d, t] of Object.entries(dayTags)) {
+    if (!hasTags(t)) continue;
+    const r = readings.find(x => x.date === d);
+    if (!r) continue;
+    if (!r.tag && t.tag) r.tag = t.tag;
+    const ex = new Set([...(r.extras || []), ...(t.extras || [])]);
+    if (ex.size) r.extras = EXTRA_TAGS.map(e => e.label).filter(l => ex.has(l));
+    if (!Number.isInteger(r.ectopy) && Number.isInteger(t.ectopy)) r.ectopy = t.ectopy;
+    dayTags[d] = {};
+    moved = true;
+  }
+  if (moved) { saveDayTags(); save(); }
+}
+
 let tagPickerEl = null;
 function openTagPicker(e, id) {
   e.stopPropagation();
@@ -1846,7 +1891,7 @@ function openTagPicker(e, id) {
     return el;
   };
   const fill = () => {
-    const r = readings.find(x => String(x.id) === String(id));
+    const r = tagTarget(id);
     picker.replaceChildren(
       ...TAGS.map(t => item(t, r?.tag === t.label, () => applyTag(id, r?.tag === t.label ? null : t.label))),
       Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
@@ -1882,32 +1927,32 @@ function openTagPicker(e, id) {
 function closeTagPicker() { tagPickerEl?.remove(); tagPickerEl = null; }
 
 function applyTag(id, tag) {
-  const r = readings.find(r => String(r.id) === String(id));
+  const r = tagTarget(id, true);
   if (!r) return;
   r.tag = tag || undefined;
-  save();
+  saveTags(id);
 
   refreshJournalModal();
   updateCalcTagBtn();
 }
 
 function setEctopy(id, grade) {
-  const r = readings.find(r => String(r.id) === String(id));
+  const r = tagTarget(id, true);
   if (!r) return;
   if (grade === null) delete r.ectopy; else r.ectopy = grade;
-  save();
+  saveTags(id);
   refreshJournalModal();
   updateCalcTagBtn();
   if (heatmapMode === 'ectopy') renderHeatmap();
 }
 
 function toggleExtraTag(id, label) {
-  const r = readings.find(r => String(r.id) === String(id));
+  const r = tagTarget(id, true);
   if (!r) return;
   const on = new Set(r.extras || []);
   on.has(label) ? on.delete(label) : on.add(label);
   r.extras = on.size ? EXTRA_TAGS.map(t => t.label).filter(l => on.has(l)) : undefined;
-  save();
+  saveTags(id);
   refreshJournalModal();
   updateCalcTagBtn();
 }
@@ -1920,12 +1965,11 @@ function updateCalcTagBtn() {
   const clearEx = () => { const ex = $('calcExtras'); if (ex) { ex.innerHTML = ''; ex.style.display = 'none'; } };
   try { savedAt = JSON.parse(raw).savedAt; } catch { btn.style.display = 'none'; clearEx(); return; }
   if (!savedAt) { btn.style.display = 'none'; clearEx(); return; }
-  const r = readings.find(r => r.date === savedAt);
+  const r = tagsForDate(savedAt) || {};
   const ex = $('calcExtras');
-  if (ex) { ex.innerHTML = r ? ectopyPillHtml(r, 'openCalcTagPicker(event)') + extraPillsHtml(r, 'openCalcTagPicker(event)') : ''; ex.style.display = ex.innerHTML ? 'contents' : 'none'; }
-  if (!r) { btn.style.display = 'none'; return; }
+  if (ex) { ex.innerHTML = ectopyPillHtml(r, 'openCalcTagPicker(event)') + extraPillsHtml(r, 'openCalcTagPicker(event)'); ex.style.display = ex.innerHTML ? 'contents' : 'none'; }
   btn.style.display = '';
-  btn.dataset.readingId = r.id;
+  btn.dataset.readingId = tagIdForDate(savedAt);
   if (r.tag) {
     const color = TAG_MAP[r.tag];
     btn.className = 'tag-chip';
@@ -2586,6 +2630,7 @@ function deleteReading(id) {
 }
 
 function deleteRHREntry(date) {
+  if (hasTags(dayTags[date])) { dayTags[date] = {}; saveDayTags(); }
   delete rhrData[date];
   delete rrData[date]; saveRR();
   delete tempData[date];
@@ -2627,6 +2672,7 @@ function buildCSV() {
     ...Object.keys(rhrData),
     ...Object.keys(tempData),
     ...Object.keys(rrData),
+    ...Object.keys(dayTags).filter(d => hasTags(dayTags[d])),
     // kcal belongs to the morning after the activity day (as in the app)
     ...Object.keys(workoutData).map(d => { const n = new Date(d + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1); return n.toISOString().slice(0, 10); })
   ])].sort().reverse();
@@ -2647,9 +2693,9 @@ function buildCSV() {
         rhrData[date] !== undefined ? rhrData[date] : '',
         tempData[date] !== undefined ? tempData[date].toFixed(2) : '',
         escField(r?.note || ''),
-        escField(r?.tag || ''),
-        escField((r?.extras || []).join(';')),
-        ectopyOf(r) ? r.ectopy : '',
+        escField((r || dayTags[date])?.tag || ''),
+        escField(((r || dayTags[date])?.extras || []).join(';')),
+        ectopyOf(r || dayTags[date]) ? (r || dayTags[date]).ectopy : '',
         rrData[date] !== undefined ? rrData[date].toFixed(1) : '',
         r === dayReadings[0] ? escField(kcalField(date)) : ''
       ].join(','));
@@ -2725,7 +2771,7 @@ function doImportCSV(text, overlay) {
     let start = 0;
     if (lines[0].toLowerCase().startsWith('date')) start = 1;
 
-    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, kcalAdded = 0, skipped = 0;
+    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, kcalAdded = 0, dayTagsAdded = 0, skipped = 0;
 
     for (let i = start; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -2747,6 +2793,16 @@ function doImportCSV(text, overlay) {
           readings.push(entry);
           hrvAdded++;
         } else { skipped++; }
+      }
+
+      // Tags on a day with no HRV reading go to that day's own tags
+      if (!(!isNaN(hrv) && hrv >= 20 && hrv <= 220) && !readings.some(r => r.date === date) && !hasTags(dayTags[date])) {
+        const ex = (activities || '').split(';').map(x => x.trim()).filter(x => EXTRA_MAP[x]);
+        const t = {};
+        if (tag?.trim() && TAG_MAP[tag.trim()]) t.tag = tag.trim();
+        if (ex.length) t.extras = ex;
+        if (/^[0-3]$/.test((ectopy || '').trim())) t.ectopy = Number(ectopy.trim());
+        if (hasTags(t)) { dayTags[date] = t; dayTagsAdded++; }
       }
 
       const rhr = parseFloat(rhrStr);
@@ -2779,7 +2835,8 @@ function doImportCSV(text, overlay) {
     if (tempAdded) saveTemp();
     if (rrAdded)   saveRR();
     if (kcalAdded) saveWorkout();
-    if (!hrvAdded && (rhrAdded || tempAdded || rrAdded || kcalAdded)) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
+    if (dayTagsAdded) saveDayTags();
+    if (!hrvAdded && (rhrAdded || tempAdded || rrAdded || kcalAdded || dayTagsAdded)) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     overlay.remove();
     render();
 
@@ -3365,9 +3422,11 @@ function renderHeatmap() {
 
   const tagByDate = {};
   readings.forEach(r => { if (r.tag) tagByDate[r.date] = r.tag; });
+  Object.entries(dayTags).forEach(([d, t]) => { if (t.tag && !tagByDate[d]) tagByDate[d] = t.tag; });
   // Ectopy colours the ride day it describes (the entry's previous day), like Kcal.
   const ectByDay = {};
   readings.forEach(r => { const g = ectopyOf(r); if (g) ectByDay[prevDay(r.date)] = g; });
+  Object.entries(dayTags).forEach(([d, t]) => { const g = ectopyOf(t); if (g && !ectByDay[prevDay(d)]) ectByDay[prevDay(d)] = g; });
 
   const today = new Date();
   today.setHours(12,0,0,0);
@@ -3501,6 +3560,7 @@ function renderHeatmap() {
 
 
 function render() {
+  foldDayTags();
   updateBaseline();
   updateMetrics();
   renderChart();
@@ -3633,6 +3693,8 @@ async function loadFromGitHub() {
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     saveRHR();
     rrData      = { ...remoteRr,      ...rrData      };
+    dayTags     = { ...((!Array.isArray(data) && data.dayTags) || {}), ...dayTags };
+    saveDayTags();
     if (!Array.isArray(data) && data.rrBaseline != null) {
       rrBaseline        = data.rrBaseline;
       rrBaselineSetDate = data.rrBaselineSetDate || null;
@@ -3725,6 +3787,7 @@ async function mergeRemoteChanges() {
     rhrData     = { ...remoteRhr,     ...rhrData     };
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     rrData      = { ...remoteRr,      ...rrData      };
+    dayTags     = { ...((!Array.isArray(data) && data.dayTags) || {}), ...dayTags };
     tempData    = { ...remoteTemp,    ...tempData    };
     workoutData = { ...remoteWorkout, ...workoutData };
     if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
@@ -3767,7 +3830,7 @@ async function putToGitHub(attempt = 0) {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
+  const payload = { readings, dayTags, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -3848,7 +3911,7 @@ function showSyncModal() {
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
     readings = [];
-    rhrData = {}; rhrNotes = {}; rrData = {}; tempData = {}; workoutData = {};
+    rhrData = {}; rhrNotes = {}; rrData = {}; dayTags = {}; tempData = {}; workoutData = {};
     removedReadings = loadRemoved();
     tempBaseline = null; tempBaselineSetDate = null;
     rrBaseline = null; rrBaselineSetDate = null;
@@ -4532,6 +4595,7 @@ async function init() {
   // is read live from rrData, so restoring first left RR blank until the sync.
   loadRHR();
   loadRR();
+  loadDayTags();
   loadTemp();
   loadWorkout();
   restoreCalcResult();

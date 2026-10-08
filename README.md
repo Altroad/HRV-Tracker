@@ -115,7 +115,7 @@ Tap the status bar for every combination.
 
 ## Tags & ectopy
 
-Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to toggle.
+Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to toggle. Days without an HRV reading (e.g. travel days logged with only RHR or kcal) can be tagged too; the tags move onto the HRV reading if one is logged for that day later.
 - **Training load** (one at a time): Rest, Active Recovery, <100TSS, 100-200TSS, 200-300TSS, 300TSS+, Race
 - **Sick · Sauna · Cold**: independent toggles
 - **Ectopy (PACs)**, one grade, logged on the morning entry for the previous day's ride:
@@ -133,7 +133,7 @@ Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to t
 - **14D chart:** each night's HRV dot has an inner ring for **RR** (green normal, red elevated, grey while the baseline builds) and an outer ring for **temperature** zone. The bold line is the rolling average (green above baseline, red below), the dotted line is RHR, and the strip along the bottom is kcal. Tap a dot for that night's numbers.
 - **60D chart:** a cleaner trend view without rings.
 - **Year at a Glance:** HRV / RHR / Kcal / Temp / Ect heatmap.
-- **Data Analysis:** every entry with HRV · RHR · RR · Temp · Kcal, period averages, sorting, note search and tag filters. Tap a note to edit it; swipe left to delete.
+- **Data Analysis:** every day with any data (including kcal-only days) showing HRV · RHR · RR · Temp · Kcal, period averages, sorting, note search and tag filters. Tap a note to edit it; swipe left to delete.
 
 ---
 
