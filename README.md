@@ -133,7 +133,7 @@ Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to t
 - **14D chart:** each night's HRV dot has an inner ring for **RR** (green normal, red elevated, grey while the baseline builds) and an outer ring for **temperature** zone. The bold line is the rolling average (green above baseline, red below), the dotted line is RHR, and the strip along the bottom is kcal. Tap a dot for that night's numbers.
 - **60D chart:** a cleaner trend view without rings.
 - **Year at a Glance:** HRV / RHR / Kcal / Temp / Ect heatmap.
-- **Data Analysis:** every day with any data (including kcal-only days) showing HRV · RHR · RR · Temp · Kcal, period averages, sorting, note search and tag filters. Tap a note to edit it; swipe left to delete.
+- **Data Analysis:** every day with any data (including kcal-only days) showing HRV · RHR · RR · Temp · Kcal, period averages, sorting, note search and tag filters. Tap a blank value (—) to type it in, tap a filled one to delete it, tap a note to edit it; swipe left to delete the day.
 
 ---
 

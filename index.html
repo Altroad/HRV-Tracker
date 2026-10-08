@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-08.2';
+const APP_VERSION = '2026-10-08.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1543,7 +1543,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-metric-value" style="color:${color}">${Math.round(r.hrv)}</span>
       </div>`;
     } else {
-      hrvHtml = `<div class="jnl-metric">
+      hrvHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="hrv" data-date="${date}">
         <div class="jnl-metric-label">HRV</div>
         <div class="jnl-metric-delta"></div>
         <span class="jnl-metric-nil">—</span>
@@ -1561,7 +1561,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-metric-value" style="color:${rhrColor}">${rhrVal}</span>
       </div>`;
     } else {
-      rhrHtml = `<div class="jnl-metric">
+      rhrHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="rhr" data-date="${date}">
         <div class="jnl-metric-label">RHR</div>
         <div class="jnl-metric-delta"></div>
         <span class="jnl-metric-nil">—</span>
@@ -1579,7 +1579,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-metric-value" style="color:${tempColor}">${Math.floor(tempVal)}<span style="font-size:14px">.${tempVal.toFixed(2).split('.')[1]}°</span></span>
       </div>`;
     } else {
-      tempHtml = `<div class="jnl-metric">
+      tempHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="temp" data-date="${date}">
         <div class="jnl-metric-label">TEMP</div>
         <div class="jnl-metric-delta"></div>
         <span class="jnl-metric-nil">—</span>
@@ -1596,7 +1596,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-metric-value" style="color:${rrColor}">${rrVal.toFixed(1)}</span>
       </div>`;
     } else {
-      rrHtml = `<div class="jnl-metric">
+      rrHtml = `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="rr" data-date="${date}">
         <div class="jnl-metric-label">RR</div>
         <div class="jnl-metric-delta"></div>
         <span class="jnl-metric-nil">—</span>
@@ -1609,7 +1609,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
         <span class="jnl-date">${dateStr}</span>
         <span style="display:flex;gap:4px;align-items:center;">${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
       </div>
-      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : ''}</div>
+      <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="kcal" data-date="${date}"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-nil">—</span></div>`}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
       <textarea class="note-input jnl-note" rows="3" onblur="closeNoteEditor(this,'${noteId}')">${noteVal ? escapeHtml(noteVal) : ''}</textarea>
     </div></div>`;
@@ -1788,6 +1788,9 @@ function showJournalModal() {
       }
       return;
     }
+    // A blank metric: tap to type a value in
+    const addEl = e.target.closest('[data-jnl-add]');
+    if (addEl) { openJnlValueEntry(addEl.dataset.jnlAdd, addEl.dataset.date); return; }
     // Individual metric delete
     const hrvEl  = e.target.closest('[data-jnl-hrv-id]');
     const rhrEl  = e.target.closest('[data-jnl-rhr-date]');
@@ -1816,6 +1819,57 @@ function showJournalModal() {
   });
   document.body.style.overflow = 'hidden';
   document.body.appendChild(overlay);
+}
+
+// Type a value into a blank Analysis cell. Kcal goes to the previous day's activity,
+// like everywhere else; the rest belong to the entry's own date.
+function openJnlValueEntry(kind, date) {
+  const cfg = {
+    hrv:  { label: 'HRV',  unit: 'ms',     min: 20, max: 220,   step: '1',    ph: 'e.g. 85' },
+    rhr:  { label: 'RHR',  unit: 'bpm',    min: 25, max: 120,   step: '1',    ph: 'e.g. 40' },
+    rr:   { label: 'RR',   unit: 'br/min', min: 5,  max: 35,    step: '0.1',  ph: 'e.g. 15.0' },
+    temp: { label: 'Temp', unit: '°C',     min: 30, max: 42,    step: '0.01', ph: 'e.g. 36.20' },
+    kcal: { label: 'Kcal', unit: 'kcal',   min: 1,  max: 15000, step: '1',    ph: 'e.g. 1500' },
+  }[kind];
+  if (!cfg) return;
+  const d = new Date(date + 'T12:00:00');
+  const dayLabel = `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTHS_LONG[d.getMonth()].slice(0, 3)}`;
+  const note = kind === 'kcal'
+    ? (() => { const a = new Date(prevDay(date) + 'T12:00:00'); return `For the previous day's activity (${DAY_NAMES[a.getDay()]} ${a.getDate()} ${MONTHS_LONG[a.getMonth()].slice(0, 3)}).`; })()
+    : `In ${cfg.unit}.`;
+  const overlay = openModal(`
+    <div class="modal-title">Add ${cfg.label} · ${dayLabel}</div>
+    <div class="modal-desc">${note}</div>
+    <input id="jnlValueInput" type="number" inputmode="decimal" step="${cfg.step}" min="${cfg.min}" max="${cfg.max}" placeholder="${cfg.ph}" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:16px;box-sizing:border-box;text-align:center;">
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-cancel>CANCEL</button>
+      <button class="modal-btn" data-save>SAVE</button>
+    </div>
+  `);
+  const input = overlay.querySelector('#jnlValueInput');
+  const saveIt = () => {
+    const v = parseFloat(input.value);
+    if (isNaN(v) || v < cfg.min || v > cfg.max) { showToast(`Enter a ${cfg.label} between ${cfg.min} and ${cfg.max}`); return; }
+    let shown;
+    if (kind === 'hrv') {
+      if (readings.some(r => r.date === date)) { overlay.remove(); return; }
+      readings.push({ id: newId(), date, hrv: Math.round(v) }); save(); shown = Math.round(v);
+    } else {
+      if (kind === 'rhr')  { rhrData[date] = Math.round(v); saveRHR(); shown = rhrData[date]; }
+      if (kind === 'rr')   { rrData[date] = Math.round(v * 10) / 10; saveRR(); shown = rrData[date].toFixed(1); }
+      if (kind === 'temp') { tempData[date] = v; saveTemp(); syncResultTempWithData(); shown = v.toFixed(2) + '°'; }
+      if (kind === 'kcal') { addKcalItem(prevDay(date), { name: 'Manual', kcal: Math.round(v) }); saveWorkout(); shown = Math.round(v).toLocaleString(); }
+      clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800);
+    }
+    overlay.remove();
+    render();
+    refreshJournalModal();
+    showToast(`Added ${cfg.label} ${shown} · ${dayLabel}`);
+  };
+  overlay.querySelector('[data-cancel]').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('[data-save]').addEventListener('click', saveIt);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveIt(); });
+  setTimeout(() => input.focus(), 50);
 }
 
 function refreshJournalModal() {
