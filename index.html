@@ -478,7 +478,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-08.3';
+const APP_VERSION = '2026-10-10.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1397,7 +1397,9 @@ function renderChart() {
     { data: rollingAvg, borderWidth: 5, pointRadius: 0, fill: false, tension: 0.4, spanGaps: true, segment: { borderColor: ctx => rollingAvg[ctx.p1DataIndex] >= BASELINE ? '#00e676' : '#ff1744' } }
   ];
   const chartScales = {
-    x: { grid: { color: 'rgba(30,42,51,0.8)' }, ticks: (chartRange <= 14 || isSparse)
+    // offset: centre each day in its slot, so the first and last dots (and their
+    // rings) aren't cut in half at the chart's edges
+    x: { offset: true, grid: { color: 'rgba(30,42,51,0.8)' }, ticks: (chartRange <= 14 || isSparse)
       ? { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' } }
       : { color: '#a0b4c0', font: { family: 'DM Mono', size: 20, weight: '500' },
           autoSkip: false,
