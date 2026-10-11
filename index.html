@@ -115,7 +115,7 @@
   /* Card headings match the Today panel: centred accent title over a subtle divider, toggles centred below */
   .chart-header { display:flex; flex-direction:column; align-items:stretch; gap:10px; margin-bottom:12px; }
   .chart-title { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); font-family:var(--font-mono); text-align:center; padding-bottom:10px; border-bottom:1px solid var(--border); }
-  .chart-header .chart-range-toggle { justify-content:center; }
+  .chart-header .chart-range-toggle { justify-content:center; flex-wrap:wrap; }
   .chart-range-toggle { display:flex; gap:4px; }
   .range-btn { background:none; border:1px solid var(--border); color:var(--muted); font-family:var(--font-mono); font-size:10px; letter-spacing:1px; padding:3px 8px; border-radius:4px; cursor:pointer; }
   .range-btn.active { border-color:var(--accent); color:var(--accent); }
@@ -188,6 +188,19 @@
   #calcWorkoutValue { font-family:var(--font-display); font-size:22px; letter-spacing:1px; line-height:1; color:var(--text); }
   .calc-yday-unit { font-family:var(--font-mono); font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
   .calc-yday-tags { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; }
+  /* How you feel: rating row, pill, and blind mode */
+  .calc-feel { display:flex; flex-direction:column; align-items:center; gap:8px; margin:0 0 12px; }
+  .calc-feel:empty { display:none; }
+  .feel-ask { font-family:var(--font-mono); font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--text); }
+  .feel-row { display:flex; gap:6px; width:100%; }
+  .feel-btn { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 2px 6px; background:none; border:1px solid color-mix(in srgb, var(--fc) 35%, transparent); border-radius:8px; color:var(--fc); cursor:pointer; font-family:var(--font-mono); }
+  .feel-btn.on { border-color:var(--fc); background:color-mix(in srgb, var(--fc) 15%, transparent); }
+  .feel-num { font-family:var(--font-display); font-size:20px; line-height:1; }
+  .feel-lbl { font-size:8px; letter-spacing:0.5px; text-transform:uppercase; opacity:0.85; }
+  .feel-hint { font-family:var(--font-mono); font-size:9px; color:var(--muted); letter-spacing:0.5px; }
+  .feel-pill { background:none; border:1px solid; border-radius:12px; padding:4px 12px; font-family:var(--font-mono); font-size:10px; letter-spacing:2px; cursor:pointer; }
+  #todayCard, .status-bar, .calc-result-values, #calcReadings, #calcWindowInfo { transition:filter 0.3s ease, opacity 0.3s ease; }
+  body.feel-blind #todayCard, body.feel-blind .status-bar, body.feel-blind .calc-result-values, body.feel-blind #calcReadings, body.feel-blind #calcSleepDisplay { filter:blur(9px); opacity:0.45; pointer-events:none; user-select:none; }
   .calc-temp-delta { font-size:9px; font-family:var(--font-mono); letter-spacing:2px; margin-top:4px; text-align:center; }
 
   /* Heatmap */
@@ -368,6 +381,7 @@
   </div>
   <div class="calc-result" id="calcResult">
     <div id="calcResultDate" class="calc-result-date"></div>
+    <div class="calc-feel" id="calcFeel"></div>
     <div id="calcWindowInfo" style="display:none;text-align:center;font-family:var(--font-mono);font-size:10px;letter-spacing:0.5px;color:var(--muted);margin:2px 0 8px;"></div>
     <div class="calc-result-values">
       <div class="calc-metric">
@@ -460,6 +474,7 @@
       <button class="range-btn" id="hmBtnKcal" onclick="setHeatmapMode('kcal')">Kcal</button>
       <button class="range-btn" id="hmBtnTemp" onclick="setHeatmapMode('temp')">Temp</button>
       <button class="range-btn" id="hmBtnEct" onclick="setHeatmapMode('ectopy')">Ect</button>
+      <button class="range-btn" id="hmBtnFeel" onclick="setHeatmapMode('feel')">Feel</button>
     </div>
   </div>
   <div id="heatmapWrap"></div>
@@ -478,7 +493,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-10.1';
+const APP_VERSION = '2026-10-11.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -490,6 +505,7 @@ const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const getRhrKey          = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_${u}_v1`                  : 'hrv_rhr_v1'; };
+const getFeelKey         = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_feel_${u}_v1`                 : 'hrv_feel_v1'; };
 const getDayTagsKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_day_tags_${u}_v1`             : 'hrv_day_tags_v1'; };
 const getRemovedKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_removed_${u}_v1`              : 'hrv_removed_v1'; };
 const getRhrNotesKey     = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_notes_${u}_v1`            : 'hrv_rhr_notes_v1'; };
@@ -642,6 +658,7 @@ let rhrNotes = {};
 let tempData = {};
 let rrData = {};
 let dayTags = {}; // tags for days with no HRV reading (see tagTarget)
+let feelData = {}; // morning 'how do you feel' rating per date, 1-5
 let rrBaseline = null;        // manual starting baseline (breaths/min), or null
 let rrBaselineSetDate = null; // date it was set
 let workoutData = {};
@@ -1461,13 +1478,15 @@ function buildJournalCards(filter, search, sort, sortDir) {
   // Kcal shows on the morning after the activity day, so a kcal-only day gets a card
   Object.keys(workoutData).forEach(d => { const n = new Date(d + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1); dateSet.add(n.toISOString().slice(0, 10)); });
   Object.entries(dayTags).forEach(([d, t]) => { if (hasTags(t)) dateSet.add(d); });
+  Object.keys(feelData).forEach(d => { if (feelOf(d)) dateSet.add(d); });
 
   // Tags present in data, in TAGS definition order
   const tagSet = new Set([...readings, ...Object.values(dayTags)].flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
-  const tags = [...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label).filter(l => tagSet.has(l));
+  Object.keys(feelData).forEach(d => { const f = feelOf(d); if (f) tagSet.add(feelFilterLabel(f)); });
+  const tags = [...[...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label), ...FEEL_LEVELS.slice(1).map(feelFilterLabel)].filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
-  if (filter) dates = dates.filter(date => { const r = readingByDate[date] || dayTags[date]; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
+  if (filter) dates = dates.filter(date => { const r = readingByDate[date] || dayTags[date]; const f = feelOf(date); if (f && feelFilterLabel(f) === filter) return true; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
   if (search) {
     const s = search.toLowerCase();
     dates = dates.filter(date => {
@@ -1484,6 +1503,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       if (sort === 'kcal') { va = workoutData[prevDay(a)] !== undefined ? getKcalTotal(prevDay(a)) : null; vb = workoutData[prevDay(b)] !== undefined ? getKcalTotal(prevDay(b)) : null; }
       if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
       if (sort === 'rr')   { va = rrData[a]     ?? null; vb = rrData[b]     ?? null; }
+      if (sort === 'feel') { va = feelOf(a)?.v ?? null; vb = feelOf(b)?.v ?? null; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
       if (vb === null) return -1;
@@ -1609,7 +1629,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
-        <span style="display:flex;gap:4px;align-items:center;">${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
+        <span style="display:flex;gap:4px;align-items:center;">${feelPillHtml(date, `openTagPicker(event,'${tagId}')`)}${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="kcal" data-date="${date}"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-nil">—</span></div>`}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
@@ -1662,7 +1682,7 @@ function buildJnlFiltersHtml(tags, activeFilter) {
 
 function buildJnlSortHtml(sort, sortDir) {
   const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
-  return ['hrv', 'rhr', 'rr', 'temp', 'kcal'].map(key => {
+  return ['hrv', 'rhr', 'rr', 'temp', 'kcal', 'feel'].map(key => {
     const isActive = sort === key;
     return `<button class="jnl-sort-btn${isActive ? ' active' : ''}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
   }).join('');
@@ -1888,6 +1908,58 @@ function refreshJournalModal() {
 }
 
 // ---------- Tag Picker ----------
+// ---------- How you feel ----------
+// A morning rating, 1-5, stored per date. Colours run like the HRV zones:
+// cyan at the top, red at the bottom.
+const FEEL_LEVELS = [null,
+  { v: 1, label: 'Wrecked', color: '#f44336' },
+  { v: 2, label: 'Flat',    color: '#ff9800' },
+  { v: 3, label: 'OK',      color: '#ffd600' },
+  { v: 4, label: 'Good',    color: '#4caf50' },
+  { v: 5, label: 'Great',   color: '#00e5ff' },
+];
+const feelOf = date => FEEL_LEVELS[feelData[date]] || null;
+const feelFilterLabel = f => `Feel ${f.v} · ${f.label}`;
+const feelPillHtml = (date, onclick) => { const f = feelOf(date); return f ? `<span class="tag-chip" style="border-color:${f.color};color:${f.color};" onclick="${onclick}">FEEL ${f.v}</span>` : ''; };
+function loadFeel() { try { feelData = JSON.parse(localStorage.getItem(getFeelKey()) || '{}') || {}; } catch { feelData = {}; } }
+function saveFeel() { try { localStorage.setItem(getFeelKey(), JSON.stringify(feelData)); } catch {} }
+// Rate (or clear with null) a day's feel, then sync and refresh what shows it.
+function setFeel(date, v) {
+  if (v === null) feelData[date] = 0; else feelData[date] = v; // 0 = cleared (survives sync merges)
+  saveFeel();
+  clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800);
+  syncResultFeel();
+  refreshJournalModal();
+  if (heatmapMode === 'feel') renderHeatmap();
+}
+const dateOfTagId = id => String(id).startsWith('day:') ? String(id).slice(4) : readings.find(r => String(r.id) === String(id))?.date;
+
+// Today panel: the rating row before you've rated (and, for today's result, the
+// rest of the morning's numbers blurred so they can't colour the rating), then a
+// single pill. Tap the pill to change it.
+let _feelEditing = false;
+function syncResultFeel() {
+  const el = $('calcFeel');
+  if (!el) return;
+  let savedAt = null;
+  try { savedAt = JSON.parse(localStorage.getItem(getLastResultKey()) || 'null')?.savedAt || null; } catch {}
+  if (!savedAt || !$('calcResult').classList.contains('show')) { el.innerHTML = ''; document.body.classList.remove('feel-blind'); return; }
+  const f = feelOf(savedAt);
+  // Blind only for a fresh result (dated yesterday or later, which also covers
+  // time-zone edges), so an old unrated result never stays blurred.
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const pad = n => String(n).padStart(2, '0');
+  const yesterdayIso = `${y.getFullYear()}-${pad(y.getMonth() + 1)}-${pad(y.getDate())}`;
+  document.body.classList.toggle('feel-blind', !f && savedAt >= yesterdayIso);
+  if (f && !_feelEditing) {
+    el.innerHTML = `<button class="feel-pill" style="border-color:${f.color};color:${f.color};" onclick="_feelEditing=true;syncResultFeel()">FEEL · ${f.label.toUpperCase()} ${f.v}</button>`;
+    return;
+  }
+  el.innerHTML = `<div class="feel-ask">How do you feel?</div>
+    <div class="feel-row">${FEEL_LEVELS.slice(1).map(l => `<button class="feel-btn${f && f.v === l.v ? ' on' : ''}" style="--fc:${l.color}" onclick="_feelEditing=false;setFeel('${savedAt}',${l.v})"><span class="feel-num">${l.v}</span><span class="feel-lbl">${l.label}</span></button>`).join('')}</div>
+    ${document.body.classList.contains('feel-blind') ? '<div class="feel-hint">Rate first — today\'s numbers show once you have</div>' : ''}`;
+}
+
 // Tags normally live on the day's HRV reading. A day without one (a travel day
 // logged with only RHR or kcal, say) keeps them in dayTags, addressed by the id
 // "day:YYYY-MM-DD". Cleared days stay as {} so a sync can't bring old tags back.
@@ -1954,7 +2026,10 @@ function openTagPicker(e, id) {
       ...EXTRA_TAGS.map(t => item(t, !!r?.extras?.includes(t.label), () => toggleExtraTag(id, t.label))),
       Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
       ...ECTOPY_GRADES.map(g => item({ label: `${g.label} · ${g.desc}`, color: g.color }, r?.ectopy === g.grade,
-        () => setEctopy(id, r?.ectopy === g.grade ? null : g.grade))));
+        () => setEctopy(id, r?.ectopy === g.grade ? null : g.grade))),
+      Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
+      ...FEEL_LEVELS.slice(1).map(l => { const d = dateOfTagId(id); const on = d && feelData[d] === l.v;
+        return item({ label: `FEEL ${l.v} · ${l.label}`, color: l.color }, on, () => d && setFeel(d, on ? null : l.v)); }));
   };
   fill();
   document.body.appendChild(picker);
@@ -2729,6 +2804,7 @@ function buildCSV() {
     ...Object.keys(tempData),
     ...Object.keys(rrData),
     ...Object.keys(dayTags).filter(d => hasTags(dayTags[d])),
+    ...Object.keys(feelData).filter(d => feelOf(d)),
     // kcal belongs to the morning after the activity day (as in the app)
     ...Object.keys(workoutData).map(d => { const n = new Date(d + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1); return n.toISOString().slice(0, 10); })
   ])].sort().reverse();
@@ -2739,7 +2815,7 @@ function buildCSV() {
   const escField = v => (v == null || v === '') ? '' : String(v).includes(',') || String(v).includes('"') || String(v).includes('\n')
     ? `"${String(v).replace(/"/g, '""')}"` : String(v);
 
-  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy,rr,kcal'];
+  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy,rr,kcal,feel'];
   for (const date of allDates) {
     const dayReadings = hrvByDate[date] || [null];
     for (const r of dayReadings) {
@@ -2753,7 +2829,8 @@ function buildCSV() {
         escField(((r || dayTags[date])?.extras || []).join(';')),
         ectopyOf(r || dayTags[date]) ? (r || dayTags[date]).ectopy : '',
         rrData[date] !== undefined ? rrData[date].toFixed(1) : '',
-        r === dayReadings[0] ? escField(kcalField(date)) : ''
+        r === dayReadings[0] ? escField(kcalField(date)) : '',
+        feelOf(date) ? feelData[date] : ''
       ].join(','));
     }
   }
@@ -2827,12 +2904,12 @@ function doImportCSV(text, overlay) {
     let start = 0;
     if (lines[0].toLowerCase().startsWith('date')) start = 1;
 
-    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, kcalAdded = 0, dayTagsAdded = 0, skipped = 0;
+    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, kcalAdded = 0, dayTagsAdded = 0, feelAdded = 0, skipped = 0;
 
     for (let i = start; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy, rrStr, kcalStr] = parseCSVLine(line);
+      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy, rrStr, kcalStr, feelStr] = parseCSVLine(line);
       const date = (dateStr || '').trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
@@ -2884,6 +2961,8 @@ function doImportCSV(text, overlay) {
         return kcal > 0 ? { name, kcal } : null;
       }).filter(Boolean);
       if (items.length && !(actDate in workoutData)) { workoutData[actDate] = items; kcalAdded++; }
+
+      if (/^[1-5]$/.test((feelStr || '').trim()) && !feelOf(date)) { feelData[date] = Number(feelStr.trim()); feelAdded++; }
     }
 
     if (hrvAdded)  { migrateSickTag(); save(); }
@@ -2892,7 +2971,8 @@ function doImportCSV(text, overlay) {
     if (rrAdded)   saveRR();
     if (kcalAdded) saveWorkout();
     if (dayTagsAdded) saveDayTags();
-    if (!hrvAdded && (rhrAdded || tempAdded || rrAdded || kcalAdded || dayTagsAdded)) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
+    if (feelAdded) saveFeel();
+    if (!hrvAdded && (rhrAdded || tempAdded || rrAdded || kcalAdded || dayTagsAdded || feelAdded)) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     overlay.remove();
     render();
 
@@ -2902,6 +2982,7 @@ function doImportCSV(text, overlay) {
     if (tempAdded) parts.push(`${tempAdded} Temp`);
     if (rrAdded)   parts.push(`${rrAdded} RR`);
     if (kcalAdded) parts.push(`${kcalAdded} Kcal`);
+    if (feelAdded) parts.push(`${feelAdded} Feel`);
     showToast(parts.length ? `Added: ${parts.join(' + ')}${skipped ? ` · ${skipped} skipped` : ''}` : 'Nothing new to import');
   } catch {
     showToast('Could not parse CSV');
@@ -3466,6 +3547,7 @@ function setHeatmapMode(mode) {
   $('hmBtnKcal').classList.toggle('active', mode === 'kcal');
   $('hmBtnTemp').classList.toggle('active', mode === 'temp');
   $('hmBtnEct').classList.toggle('active',  mode === 'ectopy');
+  $('hmBtnFeel').classList.toggle('active', mode === 'feel');
   renderHeatmap();
 }
 
@@ -3566,6 +3648,12 @@ function renderHeatmap() {
           const g = ectByDay[iso];
           if (g) {
             cell.style.background = g.color;
+            cell.style.color = 'rgba(0,0,0,0.45)';
+          }
+        } else if (heatmapMode === 'feel') {
+          const f = feelOf(iso);
+          if (f) {
+            cell.style.background = f.color;
             cell.style.color = 'rgba(0,0,0,0.45)';
           }
         } else if (heatmapMode === 'temp') {
@@ -3751,6 +3839,8 @@ async function loadFromGitHub() {
     rrData      = { ...remoteRr,      ...rrData      };
     dayTags     = { ...((!Array.isArray(data) && data.dayTags) || {}), ...dayTags };
     saveDayTags();
+    feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
+    saveFeel();
     if (!Array.isArray(data) && data.rrBaseline != null) {
       rrBaseline        = data.rrBaseline;
       rrBaselineSetDate = data.rrBaselineSetDate || null;
@@ -3844,6 +3934,7 @@ async function mergeRemoteChanges() {
     rhrNotes    = { ...remoteNotes,   ...rhrNotes    };
     rrData      = { ...remoteRr,      ...rrData      };
     dayTags     = { ...((!Array.isArray(data) && data.dayTags) || {}), ...dayTags };
+    feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
     tempData    = { ...remoteTemp,    ...tempData    };
     workoutData = { ...remoteWorkout, ...workoutData };
     if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
@@ -3886,7 +3977,7 @@ async function putToGitHub(attempt = 0) {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, dayTags, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
+  const payload = { readings, dayTags, feel: feelData, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -3967,7 +4058,7 @@ function showSyncModal() {
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
     readings = [];
-    rhrData = {}; rhrNotes = {}; rrData = {}; dayTags = {}; tempData = {}; workoutData = {};
+    rhrData = {}; rhrNotes = {}; rrData = {}; dayTags = {}; feelData = {}; tempData = {}; workoutData = {};
     removedReadings = loadRemoved();
     tempBaseline = null; tempBaselineSetDate = null;
     rrBaseline = null; rrBaselineSetDate = null;
@@ -4377,6 +4468,9 @@ function showInfoModal() {
       <strong style="color:var(--accent);letter-spacing:1px;">CALORIES</strong><br>
       An entry's kcal is from the <em>previous day's</em> activity — the ride that shaped that morning's HRV. Workouts come in with the capture. If both Strava and Garmin record the same ride, it's counted once, preferring Strava's figure (Garmin fills in when Strava has nothing). Add extra activity with the <strong>+</strong> on the Today panel (Quick Add — set your presets via ≡ → Configure Quick Add) or ≡ → Log Reading; tap an entry's KCAL in the Analysis tool to edit or remove items. The Today panel updates straight away. The KCAL baseline is your average over the last 42 days.<br><br>
 
+      <strong style="color:var(--accent);letter-spacing:1px;">HOW YOU FEEL</strong><br>
+      A morning rating at the top of the Today panel: 1 Wrecked · 2 Flat · 3 OK · 4 Good · 5 Great. Until you rate a fresh result, the morning's numbers (top card, status, Today figures and readings) stay blurred, so they can't colour how you say you feel. Tap the pill to change it, or rate any day from its tag picker. It shows as a FEEL pill on Analysis entries (filter and sort by it) and as the Feel heatmap mode, so you can compare it with the data.<br><br>
+
       <strong style="color:var(--accent);letter-spacing:1px;">TAGS</strong><br>
       Tap a tag pill (or <em>TAG</em>) on the Today panel or an Analysis entry to open the picker at the bottom of the screen. Lit options are active; tap to switch on or off, and the picker stays open until you tap outside it.<br>
       <strong>Training load</strong> — Rest, Active Recovery, &lt;100TSS … 300TSS+, Race. One at a time.<br>
@@ -4396,7 +4490,7 @@ function showInfoModal() {
       Tap <em>DATA ANALYSIS</em> for every entry with HRV, RHR, RR, temp and kcal, period averages, note search and tag filters. Tap a note to edit it; swipe an entry left and tap <em>DELETE</em> to remove it.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">SYNC, BACKUP &amp; UPDATES</strong><br>
-      Each user's data syncs to their own file on GitHub (set via ⟳). If the same entry was changed in two places, the version on this device wins rather than creating a duplicate. ≡ → Export CSV saves <em>Baseline_Backup.csv</em> with HRV, RHR, temp, notes, tags, activities, ectopy, RR and kcal items; Import CSV restores it. The footer shows the app version — tap it to check for updates; a newer version also offers an <em>UPDATE READY</em> button when you return to the app.
+      Each user's data syncs to their own file on GitHub (set via ⟳). If the same entry was changed in two places, the version on this device wins rather than creating a duplicate. ≡ → Export CSV saves <em>Baseline_Backup.csv</em> with HRV, RHR, temp, notes, tags, activities, ectopy, RR, kcal items and feel; Import CSV restores it. The footer shows the app version — tap it to check for updates; a newer version also offers an <em>UPDATE READY</em> button when you return to the app.
 
     </div>
     <button class="modal-btn" style="margin-top:12px;" data-close>CLOSE</button>
@@ -4560,6 +4654,7 @@ function restoreCalcResult() {
 // result's date (so a later import or backfill shows up), and the activity block is
 // labelled with the day before the result (usually "Yesterday").
 function syncResultRRAndActivity() {
+  syncResultFeel();
   let savedAt = null;
   try { savedAt = JSON.parse(localStorage.getItem(getLastResultKey()) || 'null')?.savedAt || null; } catch {}
   const yl = $('calcYdayLabel');
@@ -4661,6 +4756,7 @@ async function init() {
   loadRHR();
   loadRR();
   loadDayTags();
+  loadFeel();
   loadTemp();
   loadWorkout();
   restoreCalcResult();

@@ -113,6 +113,18 @@ Tap the status bar for every combination.
 
 ---
 
+## How you feel
+
+A morning rating at the top of the Today panel, so subjective feel can be compared with the data:
+
+| 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|
+| Wrecked | Flat | OK | Good | Great |
+
+- **Blind mode:** until you rate a fresh result, the morning's numbers stay blurred (top card, status, Today figures and readings), so they can't influence the rating.
+- After rating it collapses to a pill; tap it to change. Any day can also be rated from its tag picker.
+- Shows as a FEEL pill on Analysis entries (filter and sort by it) and as the **Feel** heatmap mode.
+
 ## Tags & ectopy
 
 Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to toggle. Days without an HRV reading (e.g. travel days logged with only RHR or kcal) can be tagged too; the tags move onto the HRV reading if one is logged for that day later.
@@ -132,7 +144,7 @@ Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to t
 
 - **14D chart:** each night's HRV dot has an inner ring for **RR** (green normal, red elevated, grey while the baseline builds) and an outer ring for **temperature** zone. The bold line is the rolling average (green above baseline, red below), the dotted line is RHR, and the strip along the bottom is kcal. Tap a dot for that night's numbers.
 - **60D chart:** a cleaner trend view without rings.
-- **Year at a Glance:** HRV / RHR / Kcal / Temp / Ect heatmap.
+- **Year at a Glance:** HRV / RHR / Kcal / Temp / Ect / Feel heatmap.
 - **Data Analysis:** every day with any data (including kcal-only days) showing HRV · RHR · RR · Temp · Kcal, period averages, sorting, note search and tag filters. Tap a blank value (—) to type it in, tap a filled one to delete it, tap a note to edit it; swipe left to delete the day.
 
 ---
@@ -142,7 +154,7 @@ Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to t
 - **GitHub sync** (set via ⟳): each user's data is stored in `data/<user>.json`. The token is kept in the browser only.
 - **Merging:** there's one reading per date. If an entry changed in two places, this device's version wins. Entries deleted or replaced on a device are remembered, so a sync can't bring them back.
 - **Saving:** saves run one at a time. Changes made during an upload go up together in one follow-up save, and a dropped connection gets one quiet retry.
-- **CSV backup:** **≡ → Export CSV** saves `Baseline_Backup.csv` with the columns `date, hrv, rhr, temp, note, tag, activities, ectopy, rr, kcal`. `activities` holds Sick/Sauna/Cold, and `kcal` holds the previous day's items as `Name=kcal;Name=kcal`. **Import CSV** restores it (adding only what's missing).
+- **CSV backup:** **≡ → Export CSV** saves `Baseline_Backup.csv` with the columns `date, hrv, rhr, temp, note, tag, activities, ectopy, rr, kcal, feel`. `activities` holds Sick/Sauna/Cold, and `kcal` holds the previous day's items as `Name=kcal;Name=kcal`. **Import CSV** restores it (adding only what's missing).
 - **Updates:** the footer shows the app version (tap it to check). A newer version shows an **UPDATE READY** button.
 
 ---
