@@ -2136,6 +2136,12 @@
         "name": "Activity",
         "kcal": 2445
       }
+    ],
+    "2026-10-11": [
+      {
+        "name": "Activity",
+        "kcal": 2312
+      }
     ]
   },
   "lastResult": {
@@ -2151,8 +2157,8 @@
     "rhrColor": "rgb(255, 171, 0)",
     "rhrWindow": "1:35–1:46",
     "rhrWindowVisible": true,
-    "workoutVisible": false,
-    "workout": "2,445",
+    "workoutVisible": true,
+    "workout": "2,312",
     "tempVisible": true,
     "temp": "36.22",
     "tempColor": "rgb(230, 124, 138)",
