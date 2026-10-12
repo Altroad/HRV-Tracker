@@ -1073,7 +1073,8 @@
     {
       "id": 327,
       "date": "2026-10-13",
-      "hrv": 63
+      "hrv": 63,
+      "tag": "Active Recovery"
     }
   ],
   "dayTags": {
