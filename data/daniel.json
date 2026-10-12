@@ -1075,7 +1075,10 @@
       "date": "2026-10-13",
       "hrv": 63,
       "tag": "Active Recovery",
-      "ectopy": 1
+      "ectopy": 1,
+      "extras": [
+        "Sauna"
+      ]
     }
   ],
   "dayTags": {
