@@ -1044,7 +1044,8 @@
       "hrv": 63,
       "tag": "Rest",
       "extras": [
-        "Sauna"
+        "Sauna",
+        "Cold"
       ],
       "ectopy": 1,
       "note": "Jet lag."
