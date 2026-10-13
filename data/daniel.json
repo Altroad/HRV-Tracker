@@ -2183,6 +2183,12 @@
         "name": "Manual",
         "kcal": 675
       }
+    ],
+    "2026-10-13": [
+      {
+        "name": "Activity",
+        "kcal": 921
+      }
     ]
   },
   "lastResult": {
@@ -2198,8 +2204,8 @@
     "rhrColor": "rgb(76, 175, 80)",
     "rhrWindow": "3:08–3:17",
     "rhrWindowVisible": true,
-    "workoutVisible": false,
-    "workout": "2,312",
+    "workoutVisible": true,
+    "workout": "921",
     "tempVisible": true,
     "temp": "36.49",
     "tempColor": "rgb(230, 124, 138)",
