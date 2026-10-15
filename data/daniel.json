@@ -1109,7 +1109,11 @@
     {
       "id": 332,
       "date": "2026-10-16",
-      "hrv": 69
+      "hrv": 69,
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
