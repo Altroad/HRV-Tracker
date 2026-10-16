@@ -1121,7 +1121,11 @@
       "id": 333,
       "date": "2026-10-17",
       "hrv": 74,
-      "ectopy": 0
+      "ectopy": 0,
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
