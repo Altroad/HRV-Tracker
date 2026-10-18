@@ -1139,6 +1139,11 @@
       "tag": "200-300TSS",
       "ectopy": 1,
       "note": "Pete’s Bucks last night. Big Chinese meal. No alcohol."
+    },
+    {
+      "id": 335,
+      "date": "2026-10-19",
+      "hrv": 84
     }
   ],
   "dayTags": {
@@ -1314,7 +1319,8 @@
     "2026-10-15": 39,
     "2026-10-16": 39,
     "2026-10-17": 38,
-    "2026-10-18": 39
+    "2026-10-18": 39,
+    "2026-10-19": 39
   },
   "rhrNotes": {
     "2026-10-08": "Flight. Yesterday 239TSS pre-flight."
@@ -1354,7 +1360,8 @@
     "2026-10-15": 14.6,
     "2026-10-16": 14.9,
     "2026-10-17": 15.6,
-    "2026-10-18": 15.6
+    "2026-10-18": 15.6,
+    "2026-10-19": 14.8
   },
   "rrBaseline": null,
   "rrBaselineSetDate": null,
@@ -1509,7 +1516,8 @@
     "2026-10-15": 36.32078170776367,
     "2026-10-16": 36.368778228759766,
     "2026-10-17": 36.834251403808594,
-    "2026-10-18": 37.0123291015625
+    "2026-10-18": 37.0123291015625,
+    "2026-10-19": 36.365150451660156
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -2283,29 +2291,29 @@
     ]
   },
   "lastResult": {
-    "savedAt": "2026-10-18",
-    "hrv": "56",
-    "hrvColor": "rgb(244, 67, 54)",
+    "savedAt": "2026-10-19",
+    "hrv": "84",
+    "hrvColor": "rgb(76, 175, 80)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
-    "windowInfo": "AUTO · deep 22:45  ·  window default",
+    "windowInfo": "AUTO · deep 23:44  ·  window +15 min",
     "windowInfoVisible": true,
-    "readings": "<div class=\"calc-chip deep dropped\">22:48 · <strong>37</strong></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:33</span><span class=\"calc-cell-v\">50</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:48</span><span class=\"calc-cell-v\">69</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:03</span><span class=\"calc-cell-v\">45</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:18</span><span class=\"calc-cell-v\">55</span></div></div><div class=\"calc-chip core\">1:18 · <strong>61</strong></div><div class=\"calc-chip deep dropped\">1:48 · <strong>89</strong></div>",
+    "readings": "<div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:48</span><span class=\"calc-cell-v\">67</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:03</span><span class=\"calc-cell-v\">106</span></div></div><div class=\"calc-group\" style=\"--ncells:4\"><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:03</span><span class=\"calc-cell-v\">110</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:18</span><span class=\"calc-cell-v\">79</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">1:34</span><span class=\"calc-cell-v\">53</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:48</span><span class=\"calc-cell-v\">70</span></div></div><div class=\"calc-chip deep\">3:18 · <strong>99</strong></div>",
     "rhrVisible": true,
     "rhr": "39",
     "rhrColor": "rgb(76, 175, 80)",
-    "rhrWindow": "3:15–3:27",
+    "rhrWindow": "2:38–2:47",
     "rhrWindowVisible": true,
-    "workoutVisible": true,
+    "workoutVisible": false,
     "workout": "2,874",
     "tempVisible": true,
-    "temp": "37.01",
-    "tempColor": "rgb(244, 67, 54)",
-    "tempDelta": "+0.67°",
-    "tempDeltaColor": "rgb(244, 67, 54)",
+    "temp": "36.37",
+    "tempColor": "rgb(230, 124, 138)",
+    "tempDelta": "+0.00°",
+    "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">5h 59m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">33m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">4h 2m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">1h 24m</span>",
-    "sleepNums": "{\"total\":359.1666666666667,\"deep\":32.96666666666667,\"core\":241.78333333333333,\"rem\":84.41666666666667}",
-    "sleepStages": "{\"segs\":[{\"type\":\"deep\",\"start\":1792237509000,\"end\":1792238498000},{\"type\":\"deep\",\"start\":1792247879000,\"end\":1792248868000},{\"type\":\"core\",\"start\":1792235471000,\"end\":1792237509000},{\"type\":\"core\",\"start\":1792238498000,\"end\":1792238738000},{\"type\":\"core\",\"start\":1792238798000,\"end\":1792240296000},{\"type\":\"core\",\"start\":1792240356000,\"end\":1792243833000},{\"type\":\"core\",\"start\":1792246111000,\"end\":1792247879000},{\"type\":\"core\",\"start\":1792248868000,\"end\":1792250906000},{\"type\":\"core\",\"start\":1792252704000,\"end\":1792253094000},{\"type\":\"core\",\"start\":1792253243000,\"end\":1792256301000},{\"type\":\"rem\",\"start\":1792243833000,\"end\":1792246111000},{\"type\":\"rem\",\"start\":1792250906000,\"end\":1792252704000},{\"type\":\"rem\",\"start\":1792256301000,\"end\":1792257290000}],\"winStart\":1792235471000,\"winEnd\":1792257290000}"
+    "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">7h 37m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">25m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">5h 19m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">1h 52m</span>",
+    "sleepNums": "{\"total\":456.5333333333333,\"deep\":24.966666666666665,\"core\":319.16666666666663,\"rem\":112.4}",
+    "sleepStages": "{\"segs\":[{\"type\":\"deep\",\"start\":1792327470000,\"end\":1792328399000},{\"type\":\"deep\",\"start\":1792340268000,\"end\":1792340837000},{\"type\":\"core\",\"start\":1792308528000,\"end\":1792309098000},{\"type\":\"core\",\"start\":1792309218000,\"end\":1792309427000},{\"type\":\"core\",\"start\":1792310267000,\"end\":1792310926000},{\"type\":\"core\",\"start\":1792320037000,\"end\":1792323214000},{\"type\":\"core\",\"start\":1792324923000,\"end\":1792327470000},{\"type\":\"core\",\"start\":1792328399000,\"end\":1792329178000},{\"type\":\"core\",\"start\":1792331786000,\"end\":1792335952000},{\"type\":\"core\",\"start\":1792336102000,\"end\":1792336491000},{\"type\":\"core\",\"start\":1792336941000,\"end\":1792337840000},{\"type\":\"core\",\"start\":1792337900000,\"end\":1792340268000},{\"type\":\"core\",\"start\":1792340837000,\"end\":1792340927000},{\"type\":\"core\",\"start\":1792341197000,\"end\":1792341227000},{\"type\":\"core\",\"start\":1792343744000,\"end\":1792344883000},{\"type\":\"core\",\"start\":1792344973000,\"end\":1792347101000},{\"type\":\"rem\",\"start\":1792323214000,\"end\":1792324923000},{\"type\":\"rem\",\"start\":1792329178000,\"end\":1792331246000},{\"type\":\"rem\",\"start\":1792336491000,\"end\":1792336941000},{\"type\":\"rem\",\"start\":1792341227000,\"end\":1792343744000}],\"winStart\":1792308528000,\"winEnd\":1792347101000}"
   }
 }
