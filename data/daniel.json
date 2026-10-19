@@ -1159,7 +1159,8 @@
       "extras": [
         "Sauna",
         "Cold"
-      ]
+      ],
+      "ectopy": 1
     }
   ],
   "dayTags": {
