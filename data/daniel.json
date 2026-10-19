@@ -1155,7 +1155,11 @@
       "id": 337,
       "date": "2026-10-20",
       "hrv": 56,
-      "tag": "Rest"
+      "tag": "Rest",
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
