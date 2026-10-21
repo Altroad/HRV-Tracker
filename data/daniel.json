@@ -1182,7 +1182,8 @@
         "Sauna",
         "Cold"
       ],
-      "tag": "100-200TSS"
+      "tag": "100-200TSS",
+      "ectopy": 0
     }
   ],
   "dayTags": {
