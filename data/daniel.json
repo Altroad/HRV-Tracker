@@ -1232,7 +1232,8 @@
       "id": 346,
       "date": "2026-10-27",
       "hrv": 78,
-      "tag": "Active Recovery"
+      "tag": "Active Recovery",
+      "ectopy": 0
     }
   ],
   "dayTags": {
