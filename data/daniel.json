@@ -1244,7 +1244,10 @@
       "date": "2026-10-28",
       "hrv": 58,
       "tag": "200-300TSS",
-      "ectopy": 1
+      "ectopy": 1,
+      "extras": [
+        "Sauna"
+      ]
     }
   ],
   "dayTags": {
