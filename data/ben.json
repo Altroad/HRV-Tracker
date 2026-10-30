@@ -1599,6 +1599,10 @@
       {
         "name": "Activity",
         "kcal": 427
+      },
+      {
+        "name": "Golf 18",
+        "kcal": 800
       }
     ]
   },
@@ -1616,7 +1620,7 @@
     "rhrWindow": "0:55–1:08",
     "rhrWindowVisible": true,
     "workoutVisible": true,
-    "workout": "427",
+    "workout": "1,227",
     "tempVisible": true,
     "temp": "35.55",
     "tempColor": "rgb(230, 124, 138)",
