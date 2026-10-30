@@ -131,12 +131,13 @@ Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to t
 - **Training load** (one at a time): Rest, Active Recovery, <100TSS, 100-200TSS, 200-300TSS, 300TSS+, Race
 - **Sick · Sauna · Cold**: independent toggles
 - **Ectopy (PACs)**, one grade, logged on the morning entry for the previous day's ride:
+  - **ECT X:** untested — the ride stayed below ~120 bpm, so nothing could provoke it
   - **ECT 0:** none
   - **ECT 1:** felt in 120–140 bpm transitions only
   - **ECT 2:** sustained HR excess at steady sub-LT1 power
   - **ECT 3:** session-breaking
 
-  A logged ECT 0 is kept separate from a day that wasn't logged.
+  A logged ECT 0 (clean on a ride that would have shown it) and ECT X (too easy to tell) are both kept separate from a day that wasn't logged.
 
 ---
 

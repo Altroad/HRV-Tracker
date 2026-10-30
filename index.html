@@ -493,7 +493,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-11.1';
+const APP_VERSION = '2026-10-30.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -597,15 +597,20 @@ const EXTRA_TAGS = [
 const EXTRA_MAP = Object.fromEntries(EXTRA_TAGS.map(t => [t.label, t.color]));
 // Daily ectopy (PAC) grade, set on the morning entry for the previous day's ride —
 // the same activity day the entry's kcal belongs to. 0 = none felt, which is kept
-// distinct from not logged (no value).
+// distinct from not logged (no value). 'X' = untested: the ride never went high
+// enough (about 120 bpm) to provoke it, so 'none felt' would overstate it.
 const ECTOPY_GRADES = [
-  { grade:0, label:'ECT 0', desc:'None',             color:'#66bb6a' },
-  { grade:1, label:'ECT 1', desc:'Transitions',      color:'#fbc02d' },
-  { grade:2, label:'ECT 2', desc:'Sustained',        color:'#f57c00' },
-  { grade:3, label:'ECT 3', desc:'Session-breaking', color:'#ff1744' },
+  { grade:'X', label:'ECT X', desc:'Untested',         color:'#90a4ae', about:"untested — the ride stayed below ~120 bpm, so there was nothing to provoke it" },
+  { grade:0,   label:'ECT 0', desc:'None',             color:'#66bb6a', about:'none felt and no data signature' },
+  { grade:1,   label:'ECT 1', desc:'Transitions',      color:'#fbc02d', about:'felt in 120–140 bpm transitions only' },
+  { grade:2,   label:'ECT 2', desc:'Sustained',        color:'#f57c00', about:'sustained HR excess at steady sub-LT1 power; efforts still possible' },
+  { grade:3,   label:'ECT 3', desc:'Session-breaking', color:'#ff1744', about:'session-breaking — weakness, breathlessness, recovery HR raised' },
 ];
 const ECTOPY_MAP = Object.fromEntries(ECTOPY_GRADES.map(g => [g.label, g]));
-const ectopyOf = r => (r && Number.isInteger(r.ectopy) && ECTOPY_GRADES[r.ectopy]) || null;
+const isEctopyGrade = v => ECTOPY_GRADES.some(g => g.grade === v);
+const ectopyOf = r => (r && ECTOPY_GRADES.find(g => g.grade === r.ectopy)) || null;
+// CSV text -> stored grade ('X' or 0-3), or undefined
+const parseEctopy = str => { const t = String(str || '').trim().toUpperCase(); return t === 'X' ? 'X' : /^[0-3]$/.test(t) ? Number(t) : undefined; };
 function ectopyPillHtml(r, onclick) {
   const g = ectopyOf(r);
   return g ? `<span class="tag-chip" style="border-color:${g.color};color:${g.color};" onclick="${onclick}">${g.label}</span>` : '';
@@ -1973,7 +1978,7 @@ function tagTarget(id, create = false) {
 }
 const tagsForDate  = date => readings.find(r => r.date === date) || dayTags[date] || null;
 const tagIdForDate = date => { const r = readings.find(x => x.date === date); return r ? r.id : `day:${date}`; };
-const hasTags = t => !!(t && (t.tag || t.extras?.length || Number.isInteger(t.ectopy)));
+const hasTags = t => !!(t && (t.tag || t.extras?.length || isEctopyGrade(t.ectopy)));
 function loadDayTags() {
   try { dayTags = JSON.parse(localStorage.getItem(getDayTagsKey()) || '{}') || {}; } catch { dayTags = {}; }
 }
@@ -1993,7 +1998,7 @@ function foldDayTags() {
     if (!r.tag && t.tag) r.tag = t.tag;
     const ex = new Set([...(r.extras || []), ...(t.extras || [])]);
     if (ex.size) r.extras = EXTRA_TAGS.map(e => e.label).filter(l => ex.has(l));
-    if (!Number.isInteger(r.ectopy) && Number.isInteger(t.ectopy)) r.ectopy = t.ectopy;
+    if (!isEctopyGrade(r.ectopy) && isEctopyGrade(t.ectopy)) r.ectopy = t.ectopy;
     dayTags[d] = {};
     moved = true;
   }
@@ -2922,7 +2927,7 @@ function doImportCSV(text, overlay) {
           if (tag?.trim())  entry.tag  = tag.trim();
           const ex = (activities || '').split(';').map(s => s.trim()).filter(s => EXTRA_MAP[s]);
           if (ex.length) entry.extras = ex;
-          if (/^[0-3]$/.test((ectopy || '').trim())) entry.ectopy = Number(ectopy.trim());
+          if (parseEctopy(ectopy) !== undefined) entry.ectopy = parseEctopy(ectopy);
           readings.push(entry);
           hrvAdded++;
         } else { skipped++; }
@@ -2934,7 +2939,7 @@ function doImportCSV(text, overlay) {
         const t = {};
         if (tag?.trim() && TAG_MAP[tag.trim()]) t.tag = tag.trim();
         if (ex.length) t.extras = ex;
-        if (/^[0-3]$/.test((ectopy || '').trim())) t.ectopy = Number(ectopy.trim());
+        if (parseEctopy(ectopy) !== undefined) t.ectopy = parseEctopy(ectopy);
         if (hasTags(t)) { dayTags[date] = t; dayTagsAdded++; }
       }
 
@@ -4479,8 +4484,8 @@ function showInfoModal() {
 
       <strong style="color:var(--accent);letter-spacing:1px;">ECTOPY (PACs)</strong><br>
       A manual daily grade of how ectopic beats showed up on a ride:<br>
-      ${ECTOPY_GRADES.map(g => `<span style="color:${g.color}">●</span> <strong>${g.label}</strong> — ${['none felt and no data signature', 'felt in 120–140 bpm transitions only', 'sustained HR excess at steady sub-LT1 power; efforts still possible', 'session-breaking — weakness, breathlessness, recovery HR raised'][g.grade]}`).join('<br>')}<br>
-      Log it on the morning entry for the <em>previous day's</em> ride, like kcal. A logged <strong>ECT 0</strong> means a clean ride and is kept separate from a day you didn't log. Grades show as pills, can be used as Analysis filters, and the <em>Ect</em> heatmap mode colours the ride day itself.<br><br>
+      ${ECTOPY_GRADES.map(g => `<span style="color:${g.color}">●</span> <strong>${g.label}</strong> — ${g.about}`).join('<br>')}<br>
+      Log it on the morning entry for the <em>previous day's</em> ride, like kcal. A logged <strong>ECT 0</strong> means a clean ride that would have shown it; use <strong>ECT X</strong> when the ride was too easy to tell. Both are kept separate from a day you didn't log. Grades show as pills, can be used as Analysis filters, and the <em>Ect</em> heatmap mode colours the ride day itself.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">CHART &amp; HEATMAP</strong><br>
       <strong>14D</strong> — each night's HRV dot with an inner ring for respiratory rate (green normal, red 1+ breath/min above baseline, grey while the baseline builds) and an outer ring for temperature zone; scroll back through the last 8 months. <strong>60D</strong> — a cleaner trend view without the rings. The bold line is your rolling average (green above baseline, red below); the dotted line is RHR. Tap a dot for that night's numbers.<br>
