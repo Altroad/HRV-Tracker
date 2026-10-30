@@ -1233,7 +1233,7 @@
       "date": "2026-10-27",
       "hrv": 78,
       "tag": "Active Recovery",
-      "ectopy": 0,
+      "ectopy": "X",
       "extras": [
         "Sauna",
         "Cold"
