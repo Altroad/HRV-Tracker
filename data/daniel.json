@@ -1350,7 +1350,8 @@
         "Sauna",
         "Cold"
       ],
-      "tag": "Active Recovery"
+      "tag": "Active Recovery",
+      "ectopy": "X"
     }
   ],
   "dayTags": {
