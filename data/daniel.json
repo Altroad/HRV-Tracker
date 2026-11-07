@@ -1357,7 +1357,10 @@
       "id": 359,
       "date": "2026-11-08",
       "hrv": 72,
-      "ectopy": 1
+      "ectopy": 1,
+      "extras": [
+        "Sauna"
+      ]
     }
   ],
   "dayTags": {
