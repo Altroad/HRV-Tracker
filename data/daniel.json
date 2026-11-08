@@ -1369,7 +1369,11 @@
       "date": "2026-11-09",
       "hrv": 96,
       "tag": "100-200TSS",
-      "ectopy": 0
+      "ectopy": 0,
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
