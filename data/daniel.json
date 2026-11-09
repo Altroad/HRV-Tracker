@@ -1379,7 +1379,10 @@
       "id": 361,
       "date": "2026-11-10",
       "hrv": 79,
-      "tag": "Rest"
+      "tag": "Rest",
+      "extras": [
+        "Sauna"
+      ]
     }
   ],
   "dayTags": {
