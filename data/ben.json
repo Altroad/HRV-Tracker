@@ -1714,6 +1714,12 @@
         "name": "Activity",
         "kcal": 839
       }
+    ],
+    "2026-11-12": [
+      {
+        "name": "Gym",
+        "kcal": 500
+      }
     ]
   },
   "lastResult": {
@@ -1729,8 +1735,8 @@
     "rhrColor": "rgb(76, 175, 80)",
     "rhrWindow": "2:55–3:11",
     "rhrWindowVisible": true,
-    "workoutVisible": false,
-    "workout": "839",
+    "workoutVisible": true,
+    "workout": "500",
     "tempVisible": true,
     "temp": "35.56",
     "tempColor": "rgb(230, 124, 138)",
