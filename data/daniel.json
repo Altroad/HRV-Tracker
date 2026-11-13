@@ -1416,7 +1416,8 @@
     {
       "id": 365,
       "date": "2026-11-14",
-      "hrv": 80
+      "hrv": 80,
+      "tag": "Active Recovery"
     }
   ],
   "dayTags": {
