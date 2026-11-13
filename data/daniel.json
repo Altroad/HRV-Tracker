@@ -1417,7 +1417,8 @@
       "id": 365,
       "date": "2026-11-14",
       "hrv": 80,
-      "tag": "Active Recovery"
+      "tag": "Active Recovery",
+      "ectopy": "X"
     }
   ],
   "dayTags": {
