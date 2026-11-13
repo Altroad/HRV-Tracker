@@ -1418,7 +1418,11 @@
       "date": "2026-11-14",
       "hrv": 80,
       "tag": "Active Recovery",
-      "ectopy": "X"
+      "ectopy": "X",
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
