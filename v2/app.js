@@ -68,12 +68,12 @@
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
   };
   const cssVar = (name, el) => getComputedStyle(el || document.documentElement).getPropertyValue(name).trim();
-  function toast(msg) {
+  function toast(msg, ms = 2800) {
     const t = $('toast');
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+    toast._t = setTimeout(() => t.classList.remove('show'), ms);
   }
   function canWrite() {
     return !previewMode && !offline && remoteReady && !!getGHToken();
@@ -427,6 +427,7 @@
 
   function bannerHTML() {
     if (previewMode) return `<strong>Read-only preview</strong> of data/${esc(previewName)}.json. Nothing on this page is saved.`;
+    if (loadError) return esc(loadError);
     if (offline) return `<strong>Offline copy.</strong> GitHub didn’t answer, so saving is turned off.`;
     if (remoteMissing) return `<strong>No file yet</strong> for this username. Logging a night creates data/${esc(getGHUser() || 'user')}.json.`;
     return '';
@@ -993,14 +994,54 @@
   }
 
   function closeSheet() {
+    const back = $('sheetRoot').firstElementChild;
+    if (back && back._unpin) back._unpin();
     $('sheetRoot').replaceChildren();
     document.body.style.overflow = '';
+  }
+  function pinVisualViewport(el) {
+    const vv = window.visualViewport;
+    if (!vv) return () => {};
+    const apply = () => {
+      el.style.top = vv.offsetTop + 'px';
+      el.style.height = vv.height + 'px';
+    };
+    apply();
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    return () => {
+      vv.removeEventListener('resize', apply);
+      vv.removeEventListener('scroll', apply);
+    };
+  }
+  function bindTap(el, fn) {
+    if (!el) return;
+    let x = 0, y = 0, moved = false, fromTouch = false;
+    el.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0];
+      x = t.clientX; y = t.clientY; moved = false;
+    }, { passive: true });
+    el.addEventListener('touchmove', e => {
+      const t = e.changedTouches[0];
+      if (Math.abs(t.clientX - x) > 12 || Math.abs(t.clientY - y) > 12) moved = true;
+    }, { passive: true });
+    el.addEventListener('touchend', e => {
+      if (moved || el.disabled) return;
+      e.preventDefault();
+      fromTouch = true;
+      fn();
+    });
+    el.addEventListener('click', e => {
+      if (fromTouch) { fromTouch = false; return; }
+      fn();
+    });
   }
   function openSheet(el) {
     const back = document.createElement('div');
     back.className = 'sheet-back';
     back.appendChild(el);
     back.addEventListener('click', ev => { if (ev.target === back) closeSheet(); });
+    back._unpin = pinVisualViewport(back);
     $('sheetRoot').replaceChildren(back);
     document.body.style.overflow = 'hidden';
     return back;
@@ -1032,35 +1073,49 @@
   function openAccount() {
     const user = getGHUser() || '';
     const token = getGHToken() || '';
-    const sheet = document.createElement('div');
-    sheet.className = 'sheet';
-    sheet.innerHTML = `<div class="grab"></div>
-      <h2>Account</h2>
-      <p class="sub">Letters and numbers only. The token stays in this browser under the same keys as the classic app, and it needs repo access so nights can sync.</p>
-      <label class="field"><span class="k">Username</span><input id="fUser" autocomplete="username" value="${esc(user)}" placeholder="daniel"></label>
-      <label class="field"><span class="k">GitHub token</span><input id="fToken" type="password" autocomplete="off" value="${esc(token)}" placeholder="ghp_…"></label>
-      <div class="btn-row" style="margin-bottom:10px">
-        <button class="btn ghost" type="button" id="showToken">Show</button>
-        <button class="btn ghost" type="button" id="testToken">Test</button>
+    const form = document.createElement('form');
+    form.className = 'sheet';
+    form.id = 'accountForm';
+    form.noValidate = true;
+    form.autocomplete = 'off';
+    form.innerHTML = `<div class="grab"></div>
+      <div class="sheet-scroll">
+        <h2>Account</h2>
+        <p class="sub">Letters and numbers only. The token stays in this browser under the same keys as the classic app, and it needs repo access so nights can sync.</p>
+        <label class="field"><span class="k">Username</span><input id="fUser" name="username" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" enterkeyhint="next" value="${esc(user)}" placeholder="daniel"></label>
+        <label class="field"><span class="k">GitHub token</span><input id="fToken" name="token" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" enterkeyhint="go" value="${esc(token)}" placeholder="ghp_…"></label>
+        <div class="btn-row" style="margin-bottom:10px">
+          <button class="btn ghost" type="button" id="showToken">Show</button>
+          <button class="btn ghost" type="button" id="testToken">Test</button>
+        </div>
+        <p class="hint" id="testOut" style="min-height:16px;margin:0 0 8px"></p>
+        <p class="auth-msg" id="authMsg" role="alert"></p>
       </div>
-      <p class="hint" id="testOut" style="min-height:16px;margin:0 0 12px"></p>
       <div class="sheet-actions">
         ${user && token && !previewMode ? '<button class="btn ghost" type="button" id="signOut">Sign out</button>' : '<button class="btn ghost" type="button" id="sheetClose">Close</button>'}
-        <button class="btn primary" type="button" id="signIn">Save &amp; sync</button>
+        <button class="btn primary" type="submit" id="signIn">Save &amp; sync</button>
       </div>`;
-    openSheet(sheet);
-    sheet.querySelector('#showToken').onclick = () => {
-      const input = sheet.querySelector('#fToken');
+    openSheet(form);
+    const showMsg = text => {
+      const el = form.querySelector('#authMsg');
+      if (!el) return;
+      el.textContent = text || '';
+    };
+    form.querySelector('#showToken').onclick = () => {
+      const input = form.querySelector('#fToken');
+      const value = input.value;
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      sheet.querySelector('#showToken').textContent = show ? 'Hide' : 'Show';
+      input.value = value;
+      form.querySelector('#showToken').textContent = show ? 'Hide' : 'Show';
     };
-    sheet.querySelector('#sheetClose')?.addEventListener('click', closeSheet);
-    sheet.querySelector('#testToken').onclick = async () => {
-      const out = sheet.querySelector('#testOut');
-      const pat = sheet.querySelector('#fToken').value.trim();
-      if (!pat) { out.textContent = 'Enter a token first'; return; }
+    form.querySelector('#sheetClose')?.addEventListener('click', closeSheet);
+    form.querySelector('#testToken').onclick = async () => {
+      const out = form.querySelector('#testOut');
+      const pat = form.querySelector('#fToken').value.trim();
+      if (!pat) { showMsg('Enter a token first.'); return; }
       out.textContent = 'Testing…';
+      showMsg('');
       try {
         const res = await fetch('https://api.github.com/user', {
           mode: 'cors', credentials: 'omit',
@@ -1072,8 +1127,7 @@
         } else out.textContent = `Token rejected (HTTP ${res.status})`;
       } catch (e) { out.textContent = `Network error — ${e.message}`; }
     };
-    sheet.querySelector('#signIn').onclick = () => signIn(sheet.querySelector('#fUser').value, sheet.querySelector('#fToken').value);
-    sheet.querySelector('#signOut')?.addEventListener('click', async () => {
+    form.querySelector('#signOut')?.addEventListener('click', async () => {
       const ok = await confirmChoice('Sign out on this device?', 'The classic app signs out too. Nights already in the repo stay there.', 'Sign out', 'Cancel');
       if (!ok) return;
       try {
@@ -1089,37 +1143,108 @@
       closeSheet();
       render();
     });
-    setTimeout(() => sheet.querySelector('#fUser').focus(), 50);
+    // iOS drops the click when the keyboard dismisses and the button moves.
+    // Handle a stationary touch ourselves, and also accept a real submit
+    // (keyboard Go, or a click that did land).
+    const submitBtn = form.querySelector('#signIn');
+    let touchX = 0, touchY = 0, touchMoved = false, fromTouch = false;
+    submitBtn.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0];
+      touchX = t.clientX;
+      touchY = t.clientY;
+      touchMoved = false;
+    }, { passive: true });
+    submitBtn.addEventListener('touchmove', e => {
+      const t = e.changedTouches[0];
+      if (Math.abs(t.clientX - touchX) > 12 || Math.abs(t.clientY - touchY) > 12) touchMoved = true;
+    }, { passive: true });
+    submitBtn.addEventListener('touchend', e => {
+      if (touchMoved) return;
+      e.preventDefault();
+      fromTouch = true;
+      beginSignIn(form);
+    });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      if (fromTouch) { fromTouch = false; return; }
+      beginSignIn(form);
+    });
   }
 
-  async function signIn(rawUser, rawToken) {
+  async function beginSignIn(form) {
+    if (!form.isConnected || form._busy) return;
+    form._busy = true;
+    const btn = form.querySelector('#signIn');
+    const msg = text => {
+      const el = form.querySelector('#authMsg');
+      if (el) el.textContent = text || '';
+    };
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    // Blur so iOS commits an autofilled password before we read it.
+    form.querySelectorAll('input').forEach(el => el.blur());
+    await new Promise(r => setTimeout(r, 40));
+    if (!form.isConnected) return;
+    const rawUser = form.querySelector('#fUser').value;
+    const rawToken = form.querySelector('#fToken').value;
     const user = String(rawUser || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const token = String(rawToken || '').trim();
-    if (!user) { toast('Enter a username'); return; }
-    if (!token) { toast('Enter a token'); return; }
-    if (previewMode) { toast('Leave the preview to sign in'); return; }
+    if (!user || !token) {
+      msg(!user ? 'Enter a username (letters and numbers).' : 'Enter a GitHub token.');
+      form._busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Save & sync'; }
+      return;
+    }
+    if (previewMode) {
+      msg('This preview is read-only. Open v2.html without ?preview= to sign in.');
+      form._busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Save & sync'; }
+      return;
+    }
+    const stored = await signIn(user, token);
+    if (stored === 'storage' && form.isConnected) {
+      msg('This browser blocked saving the sign-in. Check that private browsing allows site data.');
+      form._busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Save & sync'; }
+    }
+  }
+
+  async function signIn(user, token) {
     try {
       localStorage.setItem(GH_USER_KEY, user);
       localStorage.setItem(GH_PAT_KEY, token);
-    } catch { toast('This browser blocked storage'); return; }
+    } catch { return 'storage'; }
     resetMemory();
     removed = loadRemoved();
     ghFileSha = null;
     remoteReady = false;
+    offline = false;
     loadError = '';
     closeSheet();
+    $('banner').hidden = true;
     $('app').innerHTML = '<p class="note">Syncing…</p>';
-    const result = await loadFromGitHub();
-    if (!result.ok) {
-      offline = false;
-      remoteReady = false;
-      loadError = result.status === 401 || result.status === 403
-        ? `GitHub rejected the token (HTTP ${result.status}).`
-        : result.status ? `Could not load data/${user}.json (HTTP ${result.status}).` : 'Could not reach GitHub.';
-      if (loadReadingsFromLocal()) offline = true;
+    let result;
+    try {
+      result = await loadFromGitHub();
+    } catch (e) {
+      console.error(e);
+      result = { ok: false, status: 0 };
     }
+    if (!result || !result.ok) {
+      const status = result && result.status;
+      loadError = status === 401 || status === 403
+        ? `GitHub rejected the token (HTTP ${status}). Open Account and check it.`
+        : status ? `Could not load data/${user}.json (HTTP ${status}).`
+        : 'Could not reach GitHub. The sign-in is saved on this phone.';
+      remoteReady = false;
+      if (loadReadingsFromLocal()) offline = true;
+      render();
+      toast(loadError, 4600);
+      return 'loaded';
+    }
+    loadError = '';
     render();
-    if (result.ok) toast(result.empty ? `No file yet for ${user}` : `Synced as ${user}`);
+    toast(result.empty ? `No file yet for ${user}` : `Synced as ${user}`);
+    return 'loaded';
   }
 
   async function pull() {
@@ -1152,6 +1277,7 @@
     sheet.className = 'sheet';
     const ectopyVal = tags.ectopy === undefined || tags.ectopy === null ? '' : String(tags.ectopy);
     sheet.innerHTML = `<div class="grab"></div>
+      <div class="sheet-scroll">
       <h2>${reading ? 'Edit night' : 'Log a night'}</h2>
       <p class="sub">${writable ? 'Saves with the same GitHub write as the classic app. Removing a night stays over there.' : 'Read only here — sign in on a loaded file to save.'}</p>
       <label class="field"><span class="k">Date</span><input id="fDate" type="date" value="${esc(date)}" ${writable ? '' : 'disabled'}></label>
@@ -1179,6 +1305,7 @@
         <label class="field"><span class="k">Add kcal</span><input id="fKcal" inputmode="numeric" placeholder="0" ${writable ? '' : 'disabled'}></label>
         <label class="field"><span class="k">Name</span><input id="fKcalName" placeholder="Manual" ${writable ? '' : 'disabled'}></label>
       </div>
+      </div>
       <div class="sheet-actions">
         <button class="btn ghost" type="button" id="sheetClose">Close</button>
         <button class="btn primary" type="button" id="saveLog" ${writable ? '' : 'disabled'}>Save</button>
@@ -1197,14 +1324,14 @@
     sheet.querySelector('#fDate').addEventListener('change', ev => {
       if (/^\d{4}-\d{2}-\d{2}$/.test(ev.target.value)) openLog(ev.target.value);
     });
-    sheet.querySelector('#saveLog').onclick = () => commitLog(sheet, {
+    bindTap(sheet.querySelector('#saveLog'), () => commitLog(sheet, {
       date,
       tempPrefill,
       rrPrefill,
       reading,
       tags,
       feel,
-    });
+    }));
   }
 
   function selected(sheet, group) {
