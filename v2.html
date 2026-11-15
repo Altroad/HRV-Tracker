@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baseline</title>
+<meta name="theme-color" content="#090b10" id="themeColor">
+<!-- Parallel page. Does not register sw.js, so it never installs or changes the classic app's worker. -->
+<script>
+try {
+  var t = localStorage.getItem('hrv_v2_theme');
+  if (t !== 'light' && t !== 'dark') {
+    t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+  var m = document.getElementById('themeColor');
+  if (m) m.content = t === 'light' ? '#f3eee4' : '#090b10';
+} catch (e) {
+  document.documentElement.setAttribute('data-theme', 'dark');
+}
+</script>
+<link rel="stylesheet" href="v2/app.css">
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">Baseline</span>
+      <span class="brand-ver">v2</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="syncBtn" type="button" hidden aria-label="Reload from GitHub">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 4v4h-4"/><path d="M4 20v-4h4"/></svg>
+      </button>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch colour theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"></svg>
+      </button>
+      <button class="avatar" id="accountBtn" type="button" aria-label="Account">?</button>
+    </div>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+  <main id="app"></main>
+</div>
+<div id="toast" class="toast" role="status"></div>
+<div id="sheetRoot"></div>
+<script src="v2/logic.js"></script>
+<script src="v2/app.js"></script>
+</body>
+</html>
