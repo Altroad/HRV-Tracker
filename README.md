@@ -8,6 +8,15 @@ It runs entirely in the browser as an installable PWA, with no server and no acc
 
 ---
 
+## Version 2.0 (preview)
+
+A redesigned interface runs alongside the classic app at **https://altroad.github.io/HRV-Tracker/v2/** (files in `v2/`). It has every feature of the classic version and reads and writes the same data, so both can be used interchangeably.
+
+- **Light and dark themes**: the theme button cycles Auto (follows the phone), Light and Dark.
+- **Recovery rings** on the status card: 3-day HRV against baseline (outer) and RHR zone (inner).
+- Rounded cards, segmented controls, bottom-sheet menus and gentle animations (switched off when the phone's *Reduce Motion* is on).
+- It can be added to the home screen separately, as **Baseline 2**.
+
 ## The screen
 
 | # | Panel | What it shows |
