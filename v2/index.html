@@ -580,7 +580,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.0.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4850,7 +4850,14 @@ function applyTheme(pref, redraw = true) {
   const meta = $('themeColorMeta'); if (meta) meta.content = theme === 'dark' ? '#07090c' : '#f2f4f7';
   const btn = $('themeBtn'); if (btn) { btn.innerHTML = THEME_ICONS[pref]; btn.title = `Theme: ${pref}`; }
   // Canvases bake their colours in when drawn, so redraw them in the new palette.
-  if (changed && redraw) { render(); requestAnimationFrame(renderSleepTimeline); }
+  if (changed && redraw) {
+    render();
+    // The chart only redraws its axes when there are readings to plot, so repaint
+    // them directly too — otherwise an empty chart keeps the old theme's axis.
+    drawYAxis();
+    if ($('rhrAxisWrap')?.style.display !== 'none') drawRHRAxis();
+    requestAnimationFrame(renderSleepTimeline);
+  }
 }
 function cycleTheme() {
   const order = ['auto', 'light', 'dark'];
