@@ -115,9 +115,13 @@
   .metric-label { font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
   .metric-value { font-family:var(--font-display); font-size:28px; letter-spacing:-0.02em; line-height:1; filter:var(--zone-text-filter); }
   .metric-unit { font-size:11px; color:var(--muted); font-family:var(--font-mono); line-height:1.4; }
-  .metric-delta { font-size:11px; font-family:var(--font-mono); line-height:1.3; margin-top:2px; filter:var(--zone-text-filter); }
-  @keyframes metricSlideOut { 0%{opacity:1;transform:translateY(0);filter:blur(0)} 100%{opacity:0;transform:translateY(-18px);filter:blur(4px)} }
-  @keyframes metricSlideIn  { 0%{opacity:0;transform:translateY(18px);filter:blur(4px)} 100%{opacity:1;transform:translateY(0);filter:blur(0)} }
+  /* Always two lines tall, so the card keeps one height as it rotates through views
+     whose captions wrap differently (Kcal's never wrap) and nothing below it jumps. */
+  .metric-delta { font-size:11px; font-family:var(--font-mono); line-height:1.3; min-height:2.6em; margin-top:2px; filter:var(--zone-text-filter); }
+  /* Slide and fade only: animating filter here would override the light theme's
+     darkening of zone-coloured text and make the numbers flash during the flip. */
+  @keyframes metricSlideOut { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-18px)} }
+  @keyframes metricSlideIn  { 0%{opacity:0;transform:translateY(18px)} 100%{opacity:1;transform:translateY(0)} }
   .metric-anim-out { animation:metricSlideOut 0.34s ease-in forwards; }
   .metric-anim-in  { animation:metricSlideIn  0.4s var(--ease-out) forwards; }
   .zones { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
@@ -200,7 +204,7 @@
   .calc-result { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 16px; margin-bottom:12px; display:none; box-shadow:var(--shadow); }
   .calc-result.show { display:block; }
   .calc-result-date { display:table; margin:0 auto 14px; font-size:11px; font-family:var(--font-mono); color:var(--accent); background:var(--accent-soft); letter-spacing:0.16em; text-transform:uppercase; text-align:center; padding:5px 12px; border-radius:999px; }
-  .calc-result-values { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); align-items:start; gap:6px; }
+  .calc-result-values { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); align-items:stretch; gap:6px; }
   .calc-metric { display:flex; flex-direction:column; align-items:center; background:var(--surface2); border-radius:var(--radius-sm); padding:10px 2px 9px; min-width:0; }
   .calc-metric-label { font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px; }
   .calc-result-value { font-family:var(--font-display); font-size:26px; letter-spacing:-0.03em; text-align:center; line-height:1; filter:var(--zone-text-filter); white-space:nowrap; }
@@ -580,7 +584,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.0.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
