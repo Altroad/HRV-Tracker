@@ -133,9 +133,9 @@
   .today-card .zones { grid-column:1 / -1; margin-top:8px; }
 
   /* ---------- Press feedback ---------- */
-  .today-card, .status-bar, #captureBar { transition:transform .16s var(--ease-out), box-shadow .2s, background .35s ease; }
-  .today-card:active, .status-bar:active, #captureBar:active,
-  .today-card.pressed, .status-bar.pressed, #captureBar.pressed { transform:scale(0.982); }
+  .today-card, .status-bar { transition:transform .16s var(--ease-out), box-shadow .2s, background .35s ease; }
+  .today-card:active, .status-bar:active,
+  .today-card.pressed, .status-bar.pressed { transform:scale(0.982); }
   .menu-btn:active, .sync-btn:active, .info-btn:active, .theme-btn:active, .range-btn:active, .modal-btn:active, .quick-add-btn:active,
   .menu-btn.pressed, .sync-btn.pressed, .info-btn.pressed, .theme-btn.pressed, .range-btn.pressed, .modal-btn.pressed, .quick-add-btn.pressed { transform:scale(0.92); }
   #versionFooter { transition:transform .12s ease; }
@@ -254,11 +254,6 @@
   #todayCard, .status-bar, .calc-result-values, #calcReadings, #calcWindowInfo { transition:filter 0.35s ease, opacity 0.35s ease, transform .16s var(--ease-out), background .35s ease; }
   body.feel-blind #todayCard, body.feel-blind .status-bar, body.feel-blind .calc-result-values, body.feel-blind #calcReadings, body.feel-blind #calcSleepDisplay { filter:blur(10px); opacity:0.4; pointer-events:none; user-select:none; }
 
-  /* ---------- Capture window row ---------- */
-  #captureBar { display:flex; align-items:center; gap:10px; padding:14px 16px; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); cursor:pointer; color:var(--text); user-select:none; box-shadow:var(--shadow); font-size:14px; font-weight:600; }
-  #captureBar .cb-icon { width:30px; height:30px; border-radius:10px; display:grid; place-items:center; background:color-mix(in srgb, #8b5cf6 16%, transparent); font-size:15px; }
-  #captureBarValue { color:var(--accent); margin-left:auto; font-weight:600; font-size:13px; }
-  #captureBar .cb-chev { color:var(--muted); font-size:18px; line-height:1; margin-left:2px; }
 
   /* ---------- Heatmap ---------- */
   .heatmap-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
@@ -522,14 +517,7 @@
   </div>
 </div>
 
-<div id="captureBar" class="reveal" onclick="showCaptureWindowModal()" style="--i:5">
-  <span class="cb-icon">🌙</span>
-  <span>Capture window</span>
-  <span id="captureBarValue">Default</span>
-  <span class="cb-chev">›</span>
-</div>
-
-<div class="card reveal" style="--i:6">
+<div class="card reveal" style="--i:5">
   <div class="chart-header">
     <div class="chart-title">HRV / RHR / RR / Temp / Kcal</div>
     <div class="chart-range-toggle">
@@ -555,7 +543,7 @@
   </div>
 </div>
 
-<div class="card reveal" id="heatmapCard" style="--i:7">
+<div class="card reveal" id="heatmapCard" style="--i:6">
   <div class="chart-header">
     <div class="chart-title" style="white-space:nowrap;">Year at a Glance</div>
     <div class="chart-range-toggle">
@@ -570,7 +558,7 @@
   <div id="heatmapWrap"></div>
 </div>
 
-<div class="reveal" style="--i:8;padding:2px 0 14px;">
+<div class="reveal" style="--i:7;padding:2px 0 14px;">
   <button class="btn-secondary" style="width:100%;" onclick="showJournalModal()">Data Analysis</button>
 </div>
 
@@ -586,7 +574,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.3';
+const APP_VERSION = '2.0.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4323,6 +4311,7 @@ function showMenuModal() {
   const overlay = openModal(`
     <div class="modal-title">Tools</div>
     <button class="modal-btn" id="menuOvernight" style="text-align:left;">Overnight Capture</button>
+    <button class="modal-btn" id="menuCapture" style="text-align:left;display:flex;justify-content:space-between;align-items:center;">Capture Window <span style="color:var(--accent);font-size:13px;">${captureAutoOffset ? 'Auto' : (captureOffsetMin === 0 ? 'Default' : `+${captureOffsetMin} min`)}</span></button>
     <button class="modal-btn" id="menuLog"    style="text-align:left;">Log Reading</button>
     <button class="modal-btn" id="menuExport" style="text-align:left;">Export CSV</button>
     <button class="modal-btn" id="menuImport" style="text-align:left;">Import CSV</button>
@@ -4331,6 +4320,7 @@ function showMenuModal() {
     <button class="modal-btn cancel" data-close>Close</button>
   `);
   overlay.querySelector('#menuOvernight').addEventListener('click', () => { overlay.remove(); showSlowWaveModal(); });
+  overlay.querySelector('#menuCapture').addEventListener('click', () => { overlay.remove(); showCaptureWindowModal(); });
   overlay.querySelector('#menuLog').addEventListener('click',    () => { overlay.remove(); showLogModal(); });
   overlay.querySelector('#menuExport').addEventListener('click', () => { overlay.remove(); exportCSV(); });
   overlay.querySelector('#menuImport').addEventListener('click', () => { overlay.remove(); showImportCSVModal(); });
@@ -4544,7 +4534,7 @@ function showInfoModal() {
       The readings used are shown as chips — <strong style="color:#90caf9;">dark blue = deep</strong>, <strong style="color:var(--accent);">cyan = core</strong>, dark red = trimmed. Readings in one bordered block were recorded back to back.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">CAPTURE WINDOW</strong><br>
-      A late night pushes your sleep later, so the fixed Core top-up and RHR windows can shift with it — up to 1 hour later. Set it from the <em>CAPTURE WINDOW</em> bar under the Today panel:<br>
+      A late night pushes your sleep later, so the fixed Core top-up and RHR windows can shift with it — up to 1 hour later. Set it from ≡ → <em>Capture Window</em> (under Overnight Capture):<br>
       <strong>Auto</strong> — shifts by how much later than 11:30pm your first deep cycle began (rounded to 5 minutes, capped at 1 hour). Normal nights stay at the default.<br>
       <strong>Manual</strong> — a 0–60 minute slider. It stays set until you change it.<br>
       The deep anchor always follows your actual deep sleep; only the top-up and RHR windows move. The Today panel shows what was applied, e.g. <em>AUTO · deep 22:16 · window default</em>.<br><br>
@@ -4919,7 +4909,7 @@ async function init() {
   setHeaderDate();
   // iOS's :active heuristic is unreliable, so drive press states directly:
   // touchstart marks the nearest pressable element, touchend/cancel clears it.
-  const PRESSABLE = '.today-card, .status-bar, #captureBar, .menu-btn, .sync-btn, .info-btn, .theme-btn, .range-btn, .modal-btn, .quick-add-btn, #versionFooter';
+  const PRESSABLE = '.today-card, .status-bar, .menu-btn, .sync-btn, .info-btn, .theme-btn, .range-btn, .modal-btn, .quick-add-btn, #versionFooter';
   document.body.addEventListener('touchstart', e => {
     const el = e.target.closest && e.target.closest(PRESSABLE);
     if (el) el.classList.add('pressed');

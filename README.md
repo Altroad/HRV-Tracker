@@ -16,6 +16,7 @@ A redesigned interface runs alongside the classic app at **https://altroad.githu
 - **Recovery rings** on the status card: 3-day HRV against baseline (outer) and RHR zone (inner).
 - Rounded cards, segmented controls, bottom-sheet menus and gentle animations (switched off when the phone's *Reduce Motion* is on).
 - It can be added to the home screen separately, as **Baseline 2**.
+- The capture window setting lives in the Tools menu (≡ → Capture Window, under Overnight Capture) rather than on the main page.
 
 ## The screen
 
