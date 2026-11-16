@@ -144,22 +144,22 @@
   .update-bar.show:active { transform:translateX(-50%) scale(0.95); }
 
   /* ---------- Panel 3: status with recovery rings ---------- */
-  .status-bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:12px; display:flex; flex-direction:column; gap:14px; position:relative; box-shadow:var(--shadow); cursor:pointer; overflow:hidden; }
+  .status-bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:13px 14px; margin-bottom:12px; display:flex; flex-direction:column; gap:11px; position:relative; box-shadow:var(--shadow); cursor:pointer; overflow:hidden; }
   .status-bar::before { content:''; position:absolute; inset:0; background:radial-gradient(90% 120% at 0% 0%, var(--hero-glow, transparent), transparent 60%); opacity:.55; pointer-events:none; transition:background .6s ease; }
   .status-top { display:flex; align-items:center; gap:16px; position:relative; }
   .status-dot { display:none; }
-  .hero-ring { position:relative; width:96px; height:96px; flex-shrink:0; }
+  .hero-ring { position:relative; width:84px; height:84px; flex-shrink:0; }
   .hero-ring svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
   .ring-track { fill:none; stroke:var(--surface3); }
   .ring-fill { fill:none; stroke-linecap:round; transition:stroke-dashoffset 1.2s var(--ease-out), stroke .6s ease; }
   .hero-ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .hero-ring-val { font-family:var(--font-display); font-size:26px; letter-spacing:-0.03em; line-height:1; filter:var(--zone-text-filter); }
+  .hero-ring-val { font-family:var(--font-display); font-size:24px; letter-spacing:-0.03em; line-height:1; filter:var(--zone-text-filter); }
   .hero-ring-lbl { font-family:var(--font-mono); font-size:8px; letter-spacing:0.14em; color:var(--muted); text-transform:uppercase; margin-top:3px; }
   .status-copy { flex:1; min-width:0; }
   .status-kicker { font-family:var(--font-mono); font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
   .status-text { font-size:15px; font-weight:600; line-height:1.35; letter-spacing:-0.01em; filter:var(--zone-text-filter); }
   .status-subs { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; position:relative; }
-  .status-sub { font-size:10px; color:var(--text-2); font-family:var(--font-mono); line-height:1.4; background:var(--surface2); border-radius:var(--radius-sm); padding:8px 10px; }
+  .status-sub { font-size:10px; color:var(--text-2); font-family:var(--font-mono); line-height:1.4; background:var(--surface2); border-radius:var(--radius-sm); padding:6px 10px; }
   .status-sub span { filter:var(--zone-text-filter); }
   .status-sub span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .status-sub span:first-child { font-size:8.5px; letter-spacing:0.08em; text-transform:uppercase; opacity:.85; }
@@ -203,9 +203,9 @@
   .btn-secondary:active { transform:scale(.97); }
 
   /* ---------- Panel 4: Today ---------- */
-  .calc-result { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 16px; margin-bottom:12px; display:none; box-shadow:var(--shadow); }
+  .calc-result { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 14px 13px; margin-bottom:12px; display:none; box-shadow:var(--shadow); }
   .calc-result.show { display:block; }
-  .calc-result-date { display:table; margin:0 auto 14px; font-size:11px; font-family:var(--font-mono); color:var(--accent); background:var(--accent-soft); letter-spacing:0.16em; text-transform:uppercase; text-align:center; padding:5px 12px; border-radius:999px; }
+  .calc-result-date { display:table; margin:0 auto 10px; font-size:11px; font-family:var(--font-mono); color:var(--accent); background:var(--accent-soft); letter-spacing:0.16em; text-transform:uppercase; text-align:center; padding:5px 12px; border-radius:999px; }
   .calc-result-values { display:grid; grid-template-columns:repeat(auto-fit, minmax(0,1fr)); align-items:stretch; gap:6px; }
   .calc-metric { display:flex; flex-direction:column; align-items:center; background:var(--surface2); border-radius:var(--radius-sm); padding:10px 2px 9px; min-width:0; }
   .calc-metric-label { font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); margin-bottom:4px; }
@@ -214,7 +214,7 @@
   .calc-sleep-stats { font-family:var(--font-mono); font-size:11px; color:var(--text-2); text-align:center; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .calc-rhr-display { display:flex; flex-direction:column; align-items:center; }
   .calc-rhr-window { font-size:9px; font-family:var(--font-mono); color:var(--accent); margin-top:4px; white-space:nowrap; }
-  .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; justify-content:center; }
+  .calc-readings { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; align-items:center; justify-content:center; }
   .calc-chip { font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:999px; white-space:nowrap; background:var(--surface2); color:var(--text-2); min-width:calc(11ch + 22px); text-align:center; }
   .calc-chip.used { background:var(--surface); border:1px solid var(--accent); color:var(--text); }
   .calc-chip.dropped { color:var(--red); border:1px solid color-mix(in srgb, var(--red) 35%, transparent); background:color-mix(in srgb, var(--red) 8%, transparent); }
@@ -231,7 +231,7 @@
   .calc-cell.core { background:var(--accent-soft); color:var(--accent); }
   .calc-cell.deep.dropped, .calc-cell.core.dropped { color:var(--red); background:color-mix(in srgb, var(--red) 9%, transparent); }
   :root[data-theme="light"] .calc-chip.deep, :root[data-theme="light"] .calc-cell.deep { color:#2563eb; }
-  .calc-yday { margin-top:16px; padding-top:14px; border-top:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .calc-yday { margin-top:12px; padding-top:11px; border-top:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:10px; }
   .calc-yday-row { display:flex; align-items:center; justify-content:center; gap:12px; }
   .calc-yday-label { font-family:var(--font-mono); font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); }
   .calc-yday-kcal { display:inline-flex; align-items:baseline; gap:4px; cursor:pointer; }
@@ -240,7 +240,7 @@
   .calc-yday-tags { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px; }
   .calc-temp-delta { font-size:10px; font-family:var(--font-mono); margin-top:4px; text-align:center; filter:var(--zone-text-filter); }
   /* How you feel */
-  .calc-feel { display:flex; flex-direction:column; align-items:center; gap:9px; margin:0 0 14px; }
+  .calc-feel { display:flex; flex-direction:column; align-items:center; gap:8px; margin:0 0 10px; }
   .calc-feel:empty { display:none; }
   .feel-ask { font-size:16px; font-weight:700; letter-spacing:-0.01em; color:var(--text); }
   .feel-row { display:flex; gap:6px; width:100%; }
@@ -495,10 +495,10 @@
         <div class="calc-temp-delta" id="calcTempDelta" style="display:none;"></div>
       </div>
     </div>
-    <canvas id="sleepTimeline" style="display:none;width:100%;border-radius:10px;margin:18px 0 10px;"></canvas>
-    <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;margin-bottom:16px;"></div>
+    <canvas id="sleepTimeline" style="display:none;width:100%;border-radius:10px;margin:12px 0 8px;"></canvas>
+    <div class="calc-sleep-stats" id="calcSleepDisplay" style="display:none;margin-bottom:12px;"></div>
     <div id="calcLabel" style="display:none;">trimmed mean · drop highest + lowest</div>
-    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0 12px;">
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:4px 0 9px;">
       <span style="display:flex;gap:3px;">
         <span class="calc-chip deep mini">DEEP</span>
         <span class="calc-chip deep dropped mini">TRIM</span>
@@ -581,7 +581,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.6';
+const APP_VERSION = '2.0.7';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5078,9 +5078,15 @@ async function runAutoImportText(text) {
   saveToGitHub();
   const fab = $('importFab');
   if (fab) { fab.style.opacity = '0'; setTimeout(() => { fab.style.display = 'none'; }, 600); }
+  // Bring the morning's result into view: the status card at the top (just under
+  // the phone's status bar) with the Today panel below it, so both read together.
   setTimeout(() => {
-    const el = $('calcResult');
-    window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - 12));
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+    document.body.appendChild(probe);
+    const safeTop = probe.offsetHeight; probe.remove();
+    const el = document.querySelector('.status-bar');
+    window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - safeTop - 8), behavior: 'smooth' });
   }, 200);
 }
 
