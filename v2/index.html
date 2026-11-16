@@ -84,9 +84,11 @@
 
   /* ---------- Header ---------- */
   .app-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 2px 14px; }
-  .hdr-title h1 { font-family:var(--font-body); font-weight:800; font-size:28px; letter-spacing:-0.02em; line-height:1.05; color:var(--text); }
+  /* Wordmark: spaced capitals with a small accent tagline (letters only, no mark) */
+  .hdr-title h1 { font-family:var(--font-body); font-weight:800; font-size:21px; letter-spacing:0.28em; margin-right:-0.28em; text-transform:uppercase; line-height:1; color:var(--text); }
+  .hdr-tag { font-family:var(--font-body); font-size:9.5px; font-weight:700; letter-spacing:0.24em; text-transform:uppercase; color:var(--accent); margin-top:6px; }
   .hdr-title { min-width:0; }
-  .hdr-date { font-size:12.5px; color:var(--text-2); margin-top:3px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hdr-date { font-size:12.5px; color:var(--text-2); margin-top:7px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .hdr-actions { display:flex; gap:6px; flex-shrink:0; }
   .icon-btn { width:36px; height:36px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text-2); display:grid; place-items:center; cursor:pointer; box-shadow:var(--shadow); transition:transform .15s var(--ease-out), color .2s, border-color .2s, background .3s; padding:0; }
   .icon-btn svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -366,6 +368,7 @@
 <header class="app-header reveal" style="--i:0">
   <div class="hdr-title">
     <h1>Baseline</h1>
+    <div class="hdr-tag">HRV · Recovery</div>
     <div class="hdr-date" id="hdrDate"></div>
   </div>
   <div class="hdr-actions">
@@ -581,7 +584,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.7';
+const APP_VERSION = '2.0.8';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
