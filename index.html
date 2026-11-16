@@ -493,7 +493,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-10-30.1';
+const APP_VERSION = '2026-11-16.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2119,9 +2119,13 @@ function updateCalcTagBtn() {
 }
 
 function openCalcTagPicker(e) {
-  const btn = $('calcTagBtn');
-  if (!btn || !btn.dataset.readingId) return;
-  openTagPicker(e, btn.dataset.readingId);
+  // Resolve the day's entry now, not from what the button saw at startup: before
+  // readings load it points at the day's no-HRV tag store, and taps made then were
+  // saved there instead of on the reading (and could be lost when folded in).
+  let savedAt = null;
+  try { savedAt = JSON.parse(localStorage.getItem(getLastResultKey()) || 'null')?.savedAt || null; } catch {}
+  if (!savedAt) return;
+  openTagPicker(e, tagIdForDate(savedAt));
 }
 
 
@@ -3710,6 +3714,7 @@ function renderHeatmap() {
 
 function render() {
   foldDayTags();
+  updateCalcTagBtn(); // pills and button follow the loaded entry
   updateBaseline();
   updateMetrics();
   renderChart();

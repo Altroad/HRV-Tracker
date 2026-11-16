@@ -273,8 +273,15 @@
   .note-preview { font-family:var(--font-body); font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:8px 11px; background:var(--surface2); border-radius:var(--radius-sm); cursor:pointer; line-height:1.4; }
   .note-preview.note-empty { color:var(--muted); font-style:italic; }
   .note-input { width:100%; background:var(--surface2); border:1px solid var(--border-strong); border-radius:var(--radius-sm); color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:8px 10px; resize:none; outline:none; display:none; height:76px; }
-  .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:22px; padding:10px; z-index:10000; box-shadow:var(--shadow-pop); display:flex; flex-direction:column; gap:5px; min-width:220px; animation:sheetUp .28s var(--ease-out); }
-  .tag-picker-item { font-family:var(--font-mono); font-size:12px; padding:7px 13px; border-radius:var(--radius-sm); cursor:pointer; border:1.5px solid transparent; -webkit-user-select:none; user-select:none; filter:var(--zone-text-filter); transition:background .2s, transform .12s; }
+  .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:14px 14px 12px; z-index:10000; box-shadow:var(--shadow-pop); display:flex; flex-direction:column; gap:12px; animation:sheetUp .28s var(--ease-out); }
+  .tp-head { display:flex; align-items:baseline; justify-content:space-between; margin:0 2px 6px; font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); }
+  .tp-hint { letter-spacing:0.04em; text-transform:none; font-size:10px; }
+  .tp-grid { display:grid; gap:6px; }
+  .tp-cap { font-size:11px; line-height:1.35; color:var(--text-2); text-align:center; margin:7px 4px 0; min-height:2.7em; }
+  .tp-cap b { font-weight:700; filter:var(--zone-text-filter); }
+  .tp-num { font-family:var(--font-display); font-size:17px; line-height:1; }
+  .tp-lbl { font-size:8px; letter-spacing:0.05em; text-transform:uppercase; opacity:.9; margin-top:2px; }
+  .tag-picker-item { font-family:var(--font-mono); font-size:12px; padding:9px 6px; border-radius:var(--radius-sm); cursor:pointer; border:1.5px solid transparent; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; flex-direction:column; align-items:center; justify-content:center; -webkit-user-select:none; user-select:none; filter:var(--zone-text-filter); transition:background .2s, transform .12s; }
   .tag-picker-item.on { font-weight:700; }
   .tag-picker-item:active { transform:scale(.97); }
   .tag-picker-divider { border-top:1px solid var(--border); margin:2px 4px; }
@@ -574,7 +581,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.4';
+const APP_VERSION = '2.0.6';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -2100,28 +2107,51 @@ function openTagPicker(e, id) {
   // ones light up (bright border + tinted fill). Tapping a lit option turns
   // it off. Training-load tags are one-at-a-time; the activity tags toggle freely.
   // The picker stays open so a whole day can be tagged in one go — tap outside to close.
-  const item = (t, on, onTap) => {
+  // Grouped into sections, each laid out to suit it: training load in two columns,
+  // the activity toggles side by side, and ectopy and feel as compact 5-step
+  // scales (the lit ectopy grade's description shows underneath).
+  const item = (t, on, onTap, html) => {
     const el = document.createElement('div');
     el.className = 'tag-picker-item' + (on ? ' on' : '');
-    el.textContent = t.label;
+    if (html) el.innerHTML = html; else el.textContent = t.label;
     el.style.cssText = `color:${t.color};border-color:${t.color}${on ? `;background:${t.color}26` : '4d'};`;
     el.addEventListener('click', ev => { ev.stopPropagation(); onTap(); fill(); });
     return el;
   };
+  const section = (title, hint, cols, items, extra) => {
+    const sec = document.createElement('div');
+    sec.className = 'tp-sec';
+    sec.innerHTML = `<div class="tp-head"><span>${title}</span>${hint ? `<span class="tp-hint">${hint}</span>` : ''}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'tp-grid';
+    grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    grid.append(...items);
+    sec.append(grid);
+    if (extra) sec.append(extra);
+    return sec;
+  };
   const fill = () => {
     const r = tagTarget(id);
+    const d = dateOfTagId(id);
+    const lit = ECTOPY_GRADES.find(g => g.grade === r?.ectopy);
+    const ectCaption = document.createElement('div');
+    ectCaption.className = 'tp-cap';
+    ectCaption.innerHTML = lit ? `<b style="color:${lit.color}">${lit.label}</b> — ${lit.about}` : 'Grade the previous day\'s ride, X to 3';
     picker.replaceChildren(
-      ...TAGS.map(t => item(t, r?.tag === t.label, () => applyTag(id, r?.tag === t.label ? null : t.label))),
-      Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
-      ...EXTRA_TAGS.map(t => item(t, !!r?.extras?.includes(t.label), () => toggleExtraTag(id, t.label))),
-      Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
-      ...ECTOPY_GRADES.map(g => item({ label: `${g.label} · ${g.desc}`, color: g.color }, r?.ectopy === g.grade,
-        () => setEctopy(id, r?.ectopy === g.grade ? null : g.grade))),
-      Object.assign(document.createElement('div'), { className: 'tag-picker-divider' }),
-      ...FEEL_LEVELS.slice(1).map(l => { const d = dateOfTagId(id); const on = d && feelData[d] === l.v;
-        return item({ label: `FEEL ${l.v} · ${l.label}`, color: l.color }, on, () => d && setFeel(d, on ? null : l.v)); }));
+      section('Training', 'one at a time', 2,
+        TAGS.map(t => item(t, r?.tag === t.label, () => applyTag(id, r?.tag === t.label ? null : t.label)))),
+      section('Activity', '', 3,
+        EXTRA_TAGS.map(t => item(t, !!r?.extras?.includes(t.label), () => toggleExtraTag(id, t.label)))),
+      section('Ectopy', '', 5,
+        ECTOPY_GRADES.map(g => item({ label: g.label.replace('ECT ', ''), color: g.color }, r?.ectopy === g.grade,
+          () => setEctopy(id, r?.ectopy === g.grade ? null : g.grade))), ectCaption),
+      section('Feel', '', 5,
+        FEEL_LEVELS.slice(1).map(l => { const on = d && feelData[d] === l.v;
+          return item({ label: String(l.v), color: l.color }, on, () => d && setFeel(d, on ? null : l.v),
+            `<span class="tp-num">${l.v}</span><span class="tp-lbl">${l.label}</span>`); })));
   };
   fill();
+  picker.style.width = Math.min(window.innerWidth - 16, 420) + 'px';
   document.body.appendChild(picker);
   tagPickerEl = picker;
   // Centre it at the bottom of the screen, in thumb reach, clear of the home
@@ -2204,9 +2234,13 @@ function updateCalcTagBtn() {
 }
 
 function openCalcTagPicker(e) {
-  const btn = $('calcTagBtn');
-  if (!btn || !btn.dataset.readingId) return;
-  openTagPicker(e, btn.dataset.readingId);
+  // Resolve the day's entry now, not from what the button saw at startup: before
+  // readings load it points at the day's no-HRV tag store, and taps made then were
+  // saved there instead of on the reading (and could be lost when folded in).
+  let savedAt = null;
+  try { savedAt = JSON.parse(localStorage.getItem(getLastResultKey()) || 'null')?.savedAt || null; } catch {}
+  if (!savedAt) return;
+  openTagPicker(e, tagIdForDate(savedAt));
 }
 
 
@@ -3796,6 +3830,7 @@ function renderHeatmap() {
 
 function render() {
   foldDayTags();
+  updateCalcTagBtn(); // pills and button follow the loaded entry
   updateBaseline();
   updateMetrics();
   renderChart();
