@@ -817,8 +817,8 @@
     "catchUp": 1,
     "sleepNeed": 480,
     "caution": -0.25,
-    "tone": -0.25,
-    "updatedAt": 1794894330881
+    "tone": -0.75,
+    "updatedAt": 1794894996280
   },
   "rhr": {
     "2026-05-17": 48,
