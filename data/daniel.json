@@ -1458,6 +1458,11 @@
         "Cold"
       ],
       "ectopy": "X"
+    },
+    {
+      "id": 370,
+      "date": "2026-11-18",
+      "hrv": 49
     }
   ],
   "dayTags": {
@@ -1514,6 +1519,15 @@
       "awake": 18,
       "start": "21:51",
       "end": "04:07"
+    },
+    "2026-11-18": {
+      "total": 345,
+      "deep": 46,
+      "core": 239,
+      "rem": 59,
+      "awake": 16,
+      "start": "21:56",
+      "end": "03:56"
     }
   },
   "tune": {
@@ -1713,7 +1727,8 @@
     "2026-11-14": 39,
     "2026-11-15": 43,
     "2026-11-16": 41,
-    "2026-11-17": 39
+    "2026-11-17": 39,
+    "2026-11-18": 40
   },
   "rhrNotes": {
     "2026-10-08": "Flight. Yesterday 239TSS pre-flight."
@@ -1783,7 +1798,8 @@
     "2026-11-14": 14.9,
     "2026-11-15": 15.4,
     "2026-11-16": 14.9,
-    "2026-11-17": 15
+    "2026-11-17": 15,
+    "2026-11-18": 15.1
   },
   "rrBaseline": null,
   "rrBaselineSetDate": null,
@@ -1968,7 +1984,8 @@
     "2026-11-14": 36.25764083862305,
     "2026-11-15": 36.28736114501953,
     "2026-11-16": 36.492061614990234,
-    "2026-11-17": 35.96416473388672
+    "2026-11-17": 35.96416473388672,
+    "2026-11-18": 36.34451675415039
   },
   "tempBaseline": 36.45,
   "tempBaselineSetDate": "2026-05-18",
@@ -2899,32 +2916,38 @@
         "name": "Activity",
         "kcal": 2644
       }
+    ],
+    "2026-11-17": [
+      {
+        "name": "Activity",
+        "kcal": 2980
+      }
     ]
   },
   "lastResult": {
-    "savedAt": "2026-11-17",
-    "hrv": "74",
-    "hrvColor": "rgb(255, 152, 0)",
+    "savedAt": "2026-11-18",
+    "hrv": "49",
+    "hrvColor": "rgb(244, 67, 54)",
     "label": "Overnight Capture · Deep anchor + top-up · 7 readings",
     "windowInfo": "window default",
     "windowInfoVisible": true,
-    "readings": "<div class=\"calc-chip deep\">22:20 · <strong>84</strong></div><div class=\"calc-group\" style=\"--ncells:2\"><div class=\"calc-cell deep dropped\"><span class=\"calc-cell-t\">23:35</span><span class=\"calc-cell-v\">54</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">23:51</span><span class=\"calc-cell-v\">80</span></div></div><div class=\"calc-group\" style=\"--ncells:3\"><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:20</span><span class=\"calc-cell-v\">59</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:35</span><span class=\"calc-cell-v\">95</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:50</span><span class=\"calc-cell-v\">58</span></div></div><div class=\"calc-chip deep\">1:20 · <strong>89</strong></div>",
+    "readings": "<div class=\"calc-chip deep\">22:50 · <strong>40</strong></div><div class=\"calc-group\" style=\"--ncells:3\"><div class=\"calc-cell deep\"><span class=\"calc-cell-t\">23:35</span><span class=\"calc-cell-v\">49</span></div><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">23:50</span><span class=\"calc-cell-v\">71</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">0:05</span><span class=\"calc-cell-v\">61</span></div></div><div class=\"calc-group\" style=\"--ncells:3\"><div class=\"calc-cell core dropped\"><span class=\"calc-cell-t\">0:50</span><span class=\"calc-cell-v\">39</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:05</span><span class=\"calc-cell-v\">48</span></div><div class=\"calc-cell core\"><span class=\"calc-cell-t\">1:20</span><span class=\"calc-cell-v\">46</span></div></div>",
     "rhrVisible": true,
-    "rhr": "39",
+    "rhr": "40",
     "rhrColor": "rgb(76, 175, 80)",
-    "rhrWindow": "1:26–1:36",
+    "rhrWindow": "3:05–3:16",
     "rhrWindowVisible": true,
-    "workoutVisible": false,
-    "workout": "2,644",
+    "workoutVisible": true,
+    "workout": "2,980",
     "tempVisible": true,
-    "temp": "35.96",
+    "temp": "36.34",
     "tempColor": "rgb(230, 124, 138)",
-    "tempDelta": "-0.40°",
+    "tempDelta": "-0.02°",
     "tempDeltaColor": "rgb(230, 124, 138)",
     "tempDeltaVisible": true,
     "sleepVisible": true,
-    "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">5h 58m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">56m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">4h 9m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">53m</span>",
-    "sleepNums": "{\"total\":357.66666666666674,\"deep\":55.95,\"core\":248.75000000000006,\"rem\":52.96666666666667}",
-    "sleepStages": "{\"segs\":[{\"type\":\"deep\",\"start\":1794827321000,\"end\":1794828640000},{\"type\":\"deep\",\"start\":1794829719000,\"end\":1794829839000},{\"type\":\"deep\",\"start\":1794832417000,\"end\":1794833256000},{\"type\":\"deep\",\"start\":1794837092000,\"end\":1794837692000},{\"type\":\"deep\",\"start\":1794838411000,\"end\":1794838890000},{\"type\":\"core\",\"start\":1794826272000,\"end\":1794827321000},{\"type\":\"core\",\"start\":1794828640000,\"end\":1794828820000},{\"type\":\"core\",\"start\":1794828850000,\"end\":1794829509000},{\"type\":\"core\",\"start\":1794829869000,\"end\":1794831128000},{\"type\":\"core\",\"start\":1794831398000,\"end\":1794832417000},{\"type\":\"core\",\"start\":1794833256000,\"end\":1794834035000},{\"type\":\"core\",\"start\":1794835084000,\"end\":1794835773000},{\"type\":\"core\",\"start\":1794836013000,\"end\":1794837092000},{\"type\":\"core\",\"start\":1794837692000,\"end\":1794838411000},{\"type\":\"core\",\"start\":1794838890000,\"end\":1794840209000},{\"type\":\"core\",\"start\":1794840269000,\"end\":1794840299000},{\"type\":\"core\",\"start\":1794841588000,\"end\":1794846323000},{\"type\":\"core\",\"start\":1794847432000,\"end\":1794848841000},{\"type\":\"rem\",\"start\":1794829509000,\"end\":1794829719000},{\"type\":\"rem\",\"start\":1794834035000,\"end\":1794835084000},{\"type\":\"rem\",\"start\":1794840209000,\"end\":1794840269000},{\"type\":\"rem\",\"start\":1794840299000,\"end\":1794841588000},{\"type\":\"rem\",\"start\":1794846323000,\"end\":1794846893000}],\"winStart\":1794826272000,\"winEnd\":1794848841000}"
+    "sleep": "<span style=\"color:var(--text);opacity:0.6;margin-right:3px\">T</span><span style=\"color:var(--text)\">5h 45m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#6686ff;opacity:0.6;margin-right:3px\">D</span><span style=\"color:#6686ff\">46m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#00e5ff;opacity:0.6;margin-right:3px\">C</span><span style=\"color:#00e5ff\">3h 59m</span><span style=\"color:var(--muted);padding:0 4px\"> · </span><span style=\"color:#ce93d8;opacity:0.6;margin-right:3px\">R</span><span style=\"color:#ce93d8\">59m</span>",
+    "sleepNums": "{\"total\":344.66666666666663,\"deep\":46.43333333333334,\"core\":238.76666666666665,\"rem\":59.46666666666667}",
+    "sleepStages": "{\"segs\":[{\"type\":\"deep\",\"start\":1794915855000,\"end\":1794916454000},{\"type\":\"deep\",\"start\":1794918372000,\"end\":1794919811000},{\"type\":\"deep\",\"start\":1794920141000,\"end\":1794920320000},{\"type\":\"deep\",\"start\":1794925326000,\"end\":1794925895000},{\"type\":\"core\",\"start\":1794912978000,\"end\":1794914716000},{\"type\":\"core\",\"start\":1794914866000,\"end\":1794915855000},{\"type\":\"core\",\"start\":1794916454000,\"end\":1794916694000},{\"type\":\"core\",\"start\":1794917293000,\"end\":1794918372000},{\"type\":\"core\",\"start\":1794919811000,\"end\":1794920141000},{\"type\":\"core\",\"start\":1794920320000,\"end\":1794921609000},{\"type\":\"core\",\"start\":1794923018000,\"end\":1794925326000},{\"type\":\"core\",\"start\":1794925895000,\"end\":1794927843000},{\"type\":\"core\",\"start\":1794928952000,\"end\":1794932249000},{\"type\":\"core\",\"start\":1794932549000,\"end\":1794932908000},{\"type\":\"core\",\"start\":1794933868000,\"end\":1794934617000},{\"type\":\"rem\",\"start\":1794916694000,\"end\":1794917293000},{\"type\":\"rem\",\"start\":1794921609000,\"end\":1794922958000},{\"type\":\"rem\",\"start\":1794927843000,\"end\":1794928413000},{\"type\":\"rem\",\"start\":1794932249000,\"end\":1794932519000},{\"type\":\"rem\",\"start\":1794932908000,\"end\":1794933688000}],\"winStart\":1794912978000,\"winEnd\":1794934617000}"
   }
 }
