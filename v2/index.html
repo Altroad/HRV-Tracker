@@ -342,7 +342,13 @@
   .jnl-swipe-wrap { position:relative; overflow:hidden; border-radius:var(--radius); flex-shrink:0; transform:translateZ(0); -webkit-transform:translateZ(0); }
   .jnl-swipe-bg { position:absolute; right:0; top:0; bottom:0; width:84px; background:var(--red); display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; color:#fff; opacity:0; }
   .jnl-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 12px 10px; display:flex; flex-direction:column; gap:8px; position:relative; will-change:transform; box-shadow:var(--shadow); }
-  .jnl-card-top { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .jnl-card-top { display:flex; align-items:center; gap:6px; }
+  .jnl-badges { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+  .jnl-tags { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  .jnl-tags:empty { display:none; }
+  /* Slightly smaller pills inside the cards */
+  .jnl-card .tag-chip, .jnl-card .tag-empty { font-size:9.5px; padding:3px 9px; letter-spacing:0.05em; }
+  .jnl-card .grade-chip { font-size:11px; padding:3px 9px; }
   .jnl-date { font-family:var(--font-body); font-size:13px; font-weight:700; color:var(--text); flex:1; min-width:0; }
   .jnl-metrics { display:flex; gap:4px; }
   .jnl-metric { flex:1; display:flex; flex-direction:column; align-items:center; padding:7px 2px 6px; background:var(--surface2); border-radius:var(--radius-sm); min-width:0; }
@@ -628,7 +634,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.4';
+const APP_VERSION = '2.1.5';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1777,10 +1783,13 @@ function buildJournalCards(filter, search, sort, sortDir) {
 
     const delAttr = r ? `data-swipe-del-id="${r.id}"` : `data-swipe-del-date="${date}"`;
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
+      <!-- Row 1: the date, with the day's verdict (grade, feel) on the right.
+           Row 2: the tags, wrapping so a busy day never runs off the card. -->
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
-        <span style="display:flex;gap:4px;align-items:center;">${gradeByDate[date] ? `<span class="tag-chip grade-chip" style="border-color:${gradeByDate[date].color};color:${gradeByDate[date].color};background:color-mix(in srgb, ${gradeByDate[date].color} 14%, transparent)">${gradeByDate[date].grade}</span>` : ''}${feelPillHtml(date, `openTagPicker(event,'${tagId}')`)}${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
+        <span class="jnl-badges">${gradeByDate[date] ? `<span class="tag-chip grade-chip" style="border-color:${gradeByDate[date].color};color:${gradeByDate[date].color};background:color-mix(in srgb, ${gradeByDate[date].color} 14%, transparent)">${gradeByDate[date].grade}</span>` : ''}${feelPillHtml(date, `openTagPicker(event,'${tagId}')`)}</span>
       </div>
+      <div class="jnl-tags">${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="kcal" data-date="${date}"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-nil">—</span></div>`}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
       <textarea class="note-input jnl-note" rows="3" onblur="closeNoteEditor(this,'${noteId}')">${noteVal ? escapeHtml(noteVal) : ''}</textarea>
