@@ -18,6 +18,10 @@ A redesigned interface runs alongside the classic app at **https://altroad.githu
 - It can be added to the home screen separately, as **Baseline 2**.
 - The capture window setting lives in the Tools menu (≡ → Capture Window, under Overnight Capture) rather than on the main page.
 
+### Readiness grade (v2)
+
+The status card's ring shows the day's grade: **A+ / A / A−** Prime, **B+ / B / B−** Ready, **C+ / C** Steady, **C−** Recover. It starts from HRV against what's usual for you after the previous day's load (your last 30 days), RHR zone, sleep against your need and penalties for raised RR or temperature, then applies load caps (morning after a big day ≤ B−; two days after ≤ C+, C after back-to-back, C− after three) and illness rules. **Tap the ring to tune it** — Big day, Catch-up, Sleep need, Caution and HRV ↔ RHR — with a live 14-day strip, agreement with your feel ratings and a breakdown of why.
+
 ## The screen
 
 | # | Panel | What it shows |

@@ -156,7 +156,40 @@
   .ring-fill { fill:none; stroke-linecap:round; transition:stroke-dashoffset 1.2s var(--ease-out), stroke .6s ease; }
   .hero-ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .hero-ring-val { font-family:var(--font-display); font-size:24px; letter-spacing:-0.03em; line-height:1; filter:var(--zone-text-filter); }
-  .hero-ring-lbl { font-family:var(--font-mono); font-size:8px; letter-spacing:0.14em; color:var(--muted); text-transform:uppercase; margin-top:3px; }
+  .hero-ring-lbl { font-family:var(--font-mono); font-size:7.5px; letter-spacing:0.04em; color:var(--muted); text-transform:uppercase; margin-top:2px; filter:var(--zone-text-filter); }
+  .hero-ring { cursor:pointer; transition:transform .18s var(--ease-spring); -webkit-tap-highlight-color:transparent; }
+  .hero-ring:active { transform:scale(.94); }
+  .hero-ring-val.grade-pop { animation:gradePop .5s var(--ease-spring); }
+  @keyframes gradePop { 0% { transform:scale(.6); opacity:0; } 100% { transform:none; opacity:1; } }
+  /* Tune sheet */
+  .tune-head { display:flex; align-items:center; gap:14px; }
+  .tune-grade { width:74px; height:74px; border-radius:22px; background:var(--surface2); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+  .tg-letter { font-family:var(--font-display); font-size:30px; line-height:1; letter-spacing:-0.03em; filter:var(--zone-text-filter); }
+  .tg-word { font-family:var(--font-mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; margin-top:3px; filter:var(--zone-text-filter); }
+  .tune-sub { font-size:13px; color:var(--text-2); margin-top:3px; }
+  .tune-strip { display:grid; grid-template-columns:repeat(14, minmax(0,1fr)); gap:3px; }
+  .ts-cell { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .ts-g { width:100%; border-radius:6px; padding:5px 0; text-align:center; font-family:var(--font-display); font-size:10px; color:rgba(0,0,0,0.62); transition:background .25s; }
+  .ts-d { font-family:var(--font-mono); font-size:8px; color:var(--muted); }
+  .tune-match { font-size:12.5px; color:var(--text-2); text-align:center; background:var(--surface2); border-radius:var(--radius-sm); padding:8px 10px; }
+  .tune-match b { color:var(--text); }
+  .tune-sliders { display:flex; flex-direction:column; gap:12px; }
+  .tune-row { display:block; }
+  .tr-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .tr-name { font-size:14px; font-weight:700; color:var(--text); }
+  .tr-val { font-family:var(--font-mono); font-size:12px; color:var(--accent); }
+  .tune-row input[type=range] { width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:var(--surface3); outline:none; }
+  .tune-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; border-radius:50%; background:var(--surface); border:3px solid var(--accent); box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:pointer; }
+  .tune-row input[type=range]::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:var(--surface); border:3px solid var(--accent); cursor:pointer; }
+  .tune-why { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
+  .tune-why-h { font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .tw-row { display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:baseline; font-size:12px; padding:3px 0; }
+  .tw-row.muted { opacity:.55; }
+  .tw-l { font-weight:700; color:var(--text); }
+  .tw-d { color:var(--text-2); }
+  .tw-p { font-family:var(--font-display); font-size:13px; text-align:right; filter:var(--zone-text-filter); }
+  .tw-cap { font-size:12px; color:#f59e0b; padding:4px 0 0; filter:var(--zone-text-filter); }
+  .tw-foot { font-family:var(--font-mono); font-size:10.5px; color:var(--muted); border-top:1px solid var(--border); margin-top:6px; padding-top:6px; }
   .status-copy { flex:1; min-width:0; }
   .status-kicker { font-family:var(--font-mono); font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
   .status-text { font-size:15px; font-weight:600; line-height:1.35; letter-spacing:-0.01em; filter:var(--zone-text-filter); }
@@ -268,6 +301,7 @@
 
   /* ---------- Tags ---------- */
   .tag-chip { display:inline-block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.06em; padding:4px 10px; border-radius:999px; cursor:pointer; flex-shrink:0; border:1.5px solid transparent; -webkit-user-select:none; user-select:none; filter:var(--zone-text-filter); }
+  .grade-chip { font-family:var(--font-display); font-size:11px; letter-spacing:0; padding:3px 9px; cursor:default; }
   .tag-empty { display:inline-block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; padding:4px 11px; border-radius:999px; border:1.5px dashed var(--border-strong); color:var(--text-2); cursor:pointer; flex-shrink:0; -webkit-user-select:none; user-select:none; }
   .tag-empty:hover, .tag-empty:active { border-color:var(--text); color:var(--text); }
   .note-btn { background:none; border:none; font-size:18px; cursor:pointer; padding:4px 6px; flex-shrink:0; opacity:0.35; }
@@ -443,14 +477,14 @@
 <div class="status-bar reveal" onclick="showStatesModal()" style="--i:3">
   <div class="status-top">
     <!-- Recovery rings: outer = 3-day HRV against baseline, inner = RHR zone -->
-    <div class="hero-ring" id="heroRing" aria-hidden="true">
+    <div class="hero-ring" id="heroRing" role="button" aria-label="Readiness grade — tap to tune" onclick="event.stopPropagation(); showTuneModal()">
       <svg viewBox="0 0 100 100">
         <circle class="ring-track" cx="50" cy="50" r="44" stroke-width="9"/>
         <circle class="ring-fill" id="heroRingHRV" cx="50" cy="50" r="44" stroke-width="9" stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
         <circle class="ring-track" cx="50" cy="50" r="32" stroke-width="6"/>
         <circle class="ring-fill" id="heroRingRHR" cx="50" cy="50" r="32" stroke-width="6" stroke-dasharray="201.06" stroke-dashoffset="201.06"/>
       </svg>
-      <div class="hero-ring-center"><div class="hero-ring-val" id="heroRingVal">—</div><div class="hero-ring-lbl">3D HRV</div></div>
+      <div class="hero-ring-center"><div class="hero-ring-val" id="heroRingVal">—</div><div class="hero-ring-lbl" id="heroRingLbl">Readiness</div></div>
     </div>
     <div class="status-copy">
       <div class="status-kicker" id="statusKicker">Recovery</div>
@@ -563,6 +597,7 @@
       <button class="range-btn" id="hmBtnTemp" onclick="setHeatmapMode('temp')">Temp</button>
       <button class="range-btn" id="hmBtnEct" onclick="setHeatmapMode('ectopy')">Ect</button>
       <button class="range-btn" id="hmBtnFeel" onclick="setHeatmapMode('feel')">Feel</button>
+      <button class="range-btn" id="hmBtnGrade" onclick="setHeatmapMode('grade')">Grade</button>
     </div>
   </div>
   <div id="heatmapWrap"></div>
@@ -584,7 +619,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.0.9';
+const APP_VERSION = '2.1.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1587,10 +1622,11 @@ function buildJournalCards(filter, search, sort, sortDir) {
   // Tags present in data, in TAGS definition order
   const tagSet = new Set([...readings, ...Object.values(dayTags)].flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
   Object.keys(feelData).forEach(d => { const f = feelOf(d); if (f) tagSet.add(feelFilterLabel(f)); });
-  const tags = [...[...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label), ...FEEL_LEVELS.slice(1).map(feelFilterLabel)].filter(l => tagSet.has(l));
+  const gradeByDate = {}; readings.forEach(r => { const g = computeGrade(r.date); if (g) { gradeByDate[r.date] = g; tagSet.add('Grade · ' + g.word); } });
+  const tags = [...[...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label), ...FEEL_LEVELS.slice(1).map(feelFilterLabel), ...['Prime', 'Ready', 'Steady', 'Recover'].map(w => 'Grade · ' + w)].filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
-  if (filter) dates = dates.filter(date => { const r = readingByDate[date] || dayTags[date]; const f = feelOf(date); if (f && feelFilterLabel(f) === filter) return true; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
+  if (filter) dates = dates.filter(date => { const r = readingByDate[date] || dayTags[date]; const f = feelOf(date); if (f && feelFilterLabel(f) === filter) return true; if (gradeByDate[date] && 'Grade · ' + gradeByDate[date].word === filter) return true; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
   if (search) {
     const s = search.toLowerCase();
     dates = dates.filter(date => {
@@ -1608,6 +1644,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
       if (sort === 'temp') { va = tempData[a]   ?? null; vb = tempData[b]   ?? null; }
       if (sort === 'rr')   { va = rrData[a]     ?? null; vb = rrData[b]     ?? null; }
       if (sort === 'feel') { va = feelOf(a)?.v ?? null; vb = feelOf(b)?.v ?? null; }
+      if (sort === 'grade') { va = gradeByDate[a] ? 9 - GRADES.indexOf(gradeByDate[a].grade) : null; vb = gradeByDate[b] ? 9 - GRADES.indexOf(gradeByDate[b].grade) : null; }
       if (va === null && vb === null) return 0;
       if (va === null) return 1;
       if (vb === null) return -1;
@@ -1733,7 +1770,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
     cards += `<div class="jnl-swipe-wrap"><div class="jnl-swipe-bg">DELETE</div><div class="jnl-card" ${delAttr}>
       <div class="jnl-card-top">
         <span class="jnl-date">${dateStr}</span>
-        <span style="display:flex;gap:4px;align-items:center;">${feelPillHtml(date, `openTagPicker(event,'${tagId}')`)}${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
+        <span style="display:flex;gap:4px;align-items:center;">${gradeByDate[date] ? `<span class="tag-chip grade-chip" style="border-color:${gradeByDate[date].color};color:${gradeByDate[date].color};background:color-mix(in srgb, ${gradeByDate[date].color} 14%, transparent)">${gradeByDate[date].grade}</span>` : ''}${feelPillHtml(date, `openTagPicker(event,'${tagId}')`)}${ectopyPillHtml(tagsOf, `openTagPicker(event,'${tagId}')`) + extraPillsHtml(tagsOf, `openTagPicker(event,'${tagId}')`)}${tagHtml}</span>
       </div>
       <div class="jnl-metrics">${hrvHtml}${rhrHtml}${rrHtml}${tempHtml}${hasKcal ? `<div class="jnl-metric" style="cursor:pointer;" onclick="showKcalItemsModal('${activityDate}')"><div class="jnl-metric-label" style="display:flex;align-items:center;gap:3px;">KCAL<span style="font-size:7px;opacity:0.5;">✎</span></div><div class="jnl-metric-delta"></div><span class="jnl-metric-value" style="color:var(--text)">${kcalTotal.toLocaleString()}</span></div>` : `<div class="jnl-metric" style="cursor:pointer;" data-jnl-add="kcal" data-date="${date}"><div class="jnl-metric-label">KCAL</div><div class="jnl-metric-delta"></div><span class="jnl-metric-nil">—</span></div>`}</div>
       <p class="note-preview${noteVal ? '' : ' note-empty'}" onclick="openNoteEditor(this.nextElementSibling)">${noteVal ? escapeHtml(noteVal) : 'Add a note…'}</p>
@@ -1786,7 +1823,7 @@ function buildJnlFiltersHtml(tags, activeFilter) {
 
 function buildJnlSortHtml(sort, sortDir) {
   const arrow = sortDir === 'desc' ? ' ↓' : ' ↑';
-  return ['hrv', 'rhr', 'rr', 'temp', 'kcal', 'feel'].map(key => {
+  return ['grade', 'hrv', 'rhr', 'rr', 'temp', 'kcal', 'feel'].map(key => {
     const isActive = sort === key;
     return `<button class="jnl-sort-btn${isActive ? ' active' : ''}" onclick="setJnlSort('${key}')">${key.toUpperCase()}${isActive ? arrow : ''}</button>`;
   }).join('');
@@ -3705,6 +3742,7 @@ function setHeatmapMode(mode) {
   $('hmBtnTemp').classList.toggle('active', mode === 'temp');
   $('hmBtnEct').classList.toggle('active',  mode === 'ectopy');
   $('hmBtnFeel').classList.toggle('active', mode === 'feel');
+  $('hmBtnGrade').classList.toggle('active', mode === 'grade');
   renderHeatmap();
 }
 
@@ -3807,6 +3845,9 @@ function renderHeatmap() {
             cell.style.background = g.color;
             cell.style.color = 'rgba(0,0,0,0.45)';
           }
+        } else if (heatmapMode === 'grade') {
+          const g = byDate[iso] !== undefined ? computeGrade(iso) : null;
+          if (g) { cell.style.background = g.color; cell.style.color = 'rgba(0,0,0,0.5)'; cell.textContent = g.grade; }
         } else if (heatmapMode === 'feel') {
           const f = feelOf(iso);
           if (f) {
@@ -4000,6 +4041,7 @@ async function loadFromGitHub() {
     feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
     sleepData   = { ...((!Array.isArray(data) && data.sleep) || {}), ...sleepData };
     saveSleep();
+    if (!Array.isArray(data) && data.tune && (data.tune.updatedAt || 0) > (tuneSettings.updatedAt || 0)) { tuneSettings = { ...TUNE_DEFAULTS, ...data.tune }; saveTune(false); }
     saveFeel();
     if (!Array.isArray(data) && data.rrBaseline != null) {
       rrBaseline        = data.rrBaseline;
@@ -4097,6 +4139,7 @@ async function mergeRemoteChanges() {
     feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
     sleepData   = { ...((!Array.isArray(data) && data.sleep) || {}), ...sleepData };
     saveSleep();
+    if (!Array.isArray(data) && data.tune && (data.tune.updatedAt || 0) > (tuneSettings.updatedAt || 0)) { tuneSettings = { ...TUNE_DEFAULTS, ...data.tune }; saveTune(false); }
     tempData    = { ...remoteTemp,    ...tempData    };
     workoutData = { ...remoteWorkout, ...workoutData };
     if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
@@ -4139,7 +4182,7 @@ async function putToGitHub(attempt = 0) {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, dayTags, feel: feelData, sleep: sleepData, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
+  const payload = { readings, dayTags, feel: feelData, sleep: sleepData, tune: tuneSettings, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -4221,6 +4264,7 @@ function showSyncModal() {
     ghFileSha = null;
     readings = [];
     rhrData = {}; rhrNotes = {}; rrData = {}; dayTags = {}; feelData = {}; sleepData = {}; tempData = {}; workoutData = {};
+    loadTune();
     removedReadings = loadRemoved();
     tempBaseline = null; tempBaselineSetDate = null;
     rrBaseline = null; rrBaselineSetDate = null;
@@ -4653,6 +4697,10 @@ function showInfoModal() {
       <strong style="color:var(--accent);letter-spacing:1px;">ANALYSIS TOOL</strong><br>
       Tap <em>DATA ANALYSIS</em> for every entry with HRV, RHR, RR, temp and kcal, period averages, note search and tag filters. Tap a note to edit it; swipe an entry left and tap <em>DELETE</em> to remove it.<br><br>
 
+      <strong style="color:var(--accent);letter-spacing:1px;">READINESS GRADE</strong><br>
+      The ring on the status card shows the day's grade: <strong>A+ · A · A−</strong> Prime (go hard), <strong>B+ · B · B−</strong> Ready (train as planned), <strong>C+ · C</strong> Steady (keep it aerobic), <strong>C−</strong> Recover (easy or rest). It starts from HRV judged against what's usual for you after yesterday's load (your last 30 days), then RHR zone, sleep against your need, and penalties for raised breathing rate or temperature. Rules then cap it: the morning after a big day (2,500+ kcal or a 200TSS+/Race tag) can't be better than B− (C+ after a much bigger day), and two days after one — when it tends to catch up — it's capped at C+ (C after back-to-back big days, C− after three). Sick or a triple alarm means Recover.<br>
+      <strong>Tap the ring to tune it</strong>: Big day, Catch-up, Sleep need, Caution and HRV ↔ RHR. Changes apply as you slide, with a 14-day strip, how often the grade agrees with your feel ratings, and a breakdown of why today got its grade. Settings sync like your data.<br><br>
+
       <strong style="color:var(--accent);letter-spacing:1px;">BASELINE 2.0</strong><br>
       This is the redesigned version. The theme button (top right) cycles <strong>Auto</strong> (follows your phone's light/dark setting) → <strong>Light</strong> → <strong>Dark</strong>. The rings on the status card show your 3-day HRV against baseline (outer) and your RHR zone (inner). It shares all its data with the classic version (link at the bottom of the screen), so you can switch between them freely.<br><br>
 
@@ -4898,6 +4946,218 @@ function syncResultTempWithData() {
   $('calcTempDisplay').style.display = '';
 }
 
+// ---------- v2: readiness grade ----------
+// A daily grade, A+ … C−, from the morning's signals and the recent training load.
+// Score (0–100, internal only) starts at 70 and moves with:
+//   HRV against what's normal for yesterday's load (a line fitted to your history),
+//   RHR zone, sleep against your need, and penalties for raised RR or temperature.
+// Then rules cap it: a big day caps the next morning, the catch-up caps morning +2,
+// and illness forces Recover. Every step is recorded so the breakdown can explain it.
+const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
+const GRADE_CUTS = [92, 86, 80, 75, 70, 65, 58, 50];           // score ≥ cut → that grade; below the last → C−
+const BIG_TAGS = new Set(['200-300TSS', '300TSS+', 'Race']);
+const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, sleepNeed: null, caution: 0, tone: 0 };
+const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
+const TUNE_KEY = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_tune_${u}_v1` : 'hrv_tune_v1'; };
+let tuneSettings = { ...TUNE_DEFAULTS, updatedAt: 0 };
+function loadTune() { try { tuneSettings = { ...TUNE_DEFAULTS, ...JSON.parse(localStorage.getItem(TUNE_KEY()) || '{}') }; } catch { tuneSettings = { ...TUNE_DEFAULTS, updatedAt: 0 }; } }
+function saveTune(sync = true) {
+  tuneSettings.updatedAt = Date.now();
+  try { localStorage.setItem(TUNE_KEY(), JSON.stringify(tuneSettings)); } catch {}
+  if (sync) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 1200); }
+}
+
+const gradeBand = g => g.startsWith('A') ? { word: 'Prime', color: COLORS.accent } : g.startsWith('B') ? { word: 'Ready', color: COLORS.green }
+  : g === 'C−' ? { word: 'Recover', color: COLORS.red } : { word: 'Steady', color: '#f59e0b' };
+const worseGrade = (a, b) => GRADES[Math.max(GRADES.indexOf(a), GRADES.indexOf(b))];
+const isoAdd = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const fmtHM = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+
+// The activity of day X shows on the morning entry of X+1 (its kcal and TSS tag).
+function activityLoad(x, t = tuneSettings) {
+  const kcal = workoutData[x] !== undefined ? getKcalTotal(x) : 0;
+  const tag = tagsForDate(isoAdd(x, 1))?.tag || null;
+  return { kcal, tag, big: kcal >= t.bigKcal || BIG_TAGS.has(tag) };
+}
+// Your usual sleep: average of stored nights (needs 5), else 7h 30m.
+function sleepNeedFor(t = tuneSettings) {
+  if (t.sleepNeed) return t.sleepNeed;
+  const v = Object.values(sleepData).map(z => z.total).filter(Boolean);
+  return v.length >= 5 ? Math.round(v.reduce((a, b) => a + b, 0) / v.length / 5) * 5 : 450;
+}
+// HRV expected after a given previous-day kcal: least-squares line over your history.
+let _hrvModel = null, _hrvModelKey = '';
+function hrvModel() {
+  const key = readings.length + ':' + Object.keys(workoutData).length;
+  if (_hrvModel && _hrvModelKey === key) return _hrvModel;
+  const pts = readings.map(r => [Math.min(workoutData[isoAdd(r.date, -1)] !== undefined ? getKcalTotal(isoAdd(r.date, -1)) : 0, 4500), r.hrv]);
+  let a = BASELINE, b = 0;
+  if (pts.length >= 20) {
+    const n = pts.length, mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    const sxx = pts.reduce((s, p) => s + (p[0] - mx) ** 2, 0), sxy = pts.reduce((s, p) => s + (p[0] - mx) * (p[1] - my), 0);
+    b = sxx ? sxy / sxx : 0; a = my - b * mx;
+  }
+  _hrvModelKey = key; _hrvModel = { a, b, expected: k => a + b * Math.min(k, 4500) };
+  return _hrvModel;
+}
+// Expected HRV for a morning: the load effect (slope) learned from all your history,
+// centred on your previous 30 days, so it follows your current level the way a
+// rolling baseline does rather than an all-time average.
+function expectedHRV(date, kcal) {
+  const m = hrvModel();
+  const from = isoAdd(date, -30);
+  const prior = readings.filter(r => r.date < date && r.date >= from);
+  if (prior.length < 10) return m.expected(kcal);
+  const ks = prior.map(r => Math.min(workoutData[isoAdd(r.date, -1)] !== undefined ? getKcalTotal(isoAdd(r.date, -1)) : 0, 4500));
+  const meanH = prior.reduce((s, r) => s + r.hrv, 0) / prior.length, meanK = ks.reduce((a, b) => a + b, 0) / ks.length;
+  return meanH + m.b * (Math.min(kcal, 4500) - meanK);
+}
+
+function computeGrade(date, t = tuneSettings) {
+  const r = readings.find(x => x.date === date);
+  if (!r) return null;
+  const parts = [], caps = [];
+  const hrvW = 1 + 0.5 * t.tone, rhrW = 1 - 0.5 * t.tone;      // tone −1 RHR-led … +1 HRV-led
+  let score = 70;
+  // HRV vs load-expected
+  const y = activityLoad(isoAdd(date, -1), t);
+  const exp = expectedHRV(date, y.kcal);
+  const ratio = (r.hrv - exp) / exp;
+  const hrvPts = Math.max(-35, Math.min(25, ratio * 120)) * hrvW;
+  score += hrvPts;
+  parts.push({ label: 'HRV', detail: `${Math.round(r.hrv)} vs ~${Math.round(exp)} usual for you after ${y.kcal ? y.kcal.toLocaleString() + ' kcal' : 'a rest day'} (last 30 days)`, pts: hrvPts });
+  // RHR zone
+  const rhr = rhrData[date];
+  if (rhr !== undefined) {
+    const dv = rhr - rhrBaseline;
+    const base = dv <= -1 ? 8 : dv <= 1 ? 5 : dv <= 4 ? 0 : dv <= 7 ? -12 : -25;
+    parts.push({ label: 'RHR', detail: `${rhr} bpm (${dv >= 0 ? '+' : ''}${dv} vs baseline)`, pts: base * rhrW });
+    score += base * rhrW;
+  }
+  // Sleep vs need
+  const sl = sleepData[date], need = sleepNeedFor(t);
+  if (sl?.total) {
+    const pts = sl.total >= need ? 4 : -Math.min(20, (need - sl.total) / 60 * 8);
+    parts.push({ label: 'Sleep', detail: `${fmtHM(sl.total)} vs ${fmtHM(need)} need`, pts });
+    score += pts;
+  } else parts.push({ label: 'Sleep', detail: 'not recorded — left out', pts: 0, muted: true });
+  // RR and temperature only count when raised
+  const rrDev = rrDevFor(date);
+  if (rrDev !== null) {
+    const pts = rrDev >= 2 ? -20 : rrDev >= 1 ? -12 : rrDev >= 0.5 ? -4 : 0;
+    parts.push({ label: 'RR', detail: `${fmtRrDev(rrDev)} breaths/min vs baseline`, pts });
+    score += pts;
+  }
+  const eb = getEffectiveBaseline(), tv = tempData[date];
+  const tDev = tv !== undefined && eb !== null ? tv - eb : null;
+  if (tDev !== null) {
+    const pts = tDev > 0.5 ? -15 : 0;
+    parts.push({ label: 'Temp', detail: `${fmtTempDev(tDev)} vs baseline`, pts });
+    score += pts;
+  }
+  score = Math.max(0, Math.min(100, score));
+  // Score → grade; Caution shifts every cut up (protective) or down (relaxed).
+  const shift = t.caution * 6;
+  let i = GRADE_CUTS.findIndex(c => score >= c + shift);
+  let grade = i === -1 ? 'C−' : GRADES[i];
+  const raw = grade;
+  // Load caps
+  if (t.catchUp > 0) {
+    if (y.big) {
+      const cap = y.kcal >= t.bigKcal + 500 ? 'C+' : 'B−';
+      if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: big day yesterday (${y.kcal ? y.kcal.toLocaleString() + ' kcal' : y.tag})`);
+      grade = worseGrade(grade, cap);
+    } else {
+      let n = 0; while (n < 7 && activityLoad(isoAdd(date, -2 - n), t).big) n++;
+      if (n > 0) {
+        const steps = { 1: ['B−', 'C+', 'C'], 2: ['C+', 'C', 'C−'], 3: ['C', 'C−', 'C−'] }[t.catchUp];
+        const cap = steps[Math.min(n, 3) - 1];
+        if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: catch-up two days after ${n > 1 ? n + ' big days in a row' : 'a big day'}`);
+        grade = worseGrade(grade, cap);
+      }
+    }
+  }
+  // Illness
+  const sick = !!tagsForDate(date)?.extras?.includes('Sick');
+  const signals = [r.hrv < ZONE_OK, rhr !== undefined && rhr > rhrBaseline + 7, tDev !== null && tDev > 0.5, rrDev !== null && rrDev >= RR_ANOMALY].filter(Boolean).length;
+  if (sick || signals >= 3) { if (grade !== 'C−') caps.push(sick ? 'Recover: Sick tagged' : `Recover: ${signals}-system alarm`); grade = 'C−'; }
+  else if (tDev !== null && tDev > 0.5 && rrDev !== null && rrDev >= RR_ANOMALY) { if (worseGrade(grade, 'C') !== grade) caps.push('Capped at C: early illness signal (temp + breathing up)'); grade = worseGrade(grade, 'C'); }
+  return { date, grade, raw, score: Math.round(score), parts, caps, ...gradeBand(grade) };
+}
+// Does the grade agree with how you said you felt? (Prime≈5, Ready≈4, Steady≈3, Recover≈2; within one.)
+function feelAgreement(t = tuneSettings) {
+  let n = 0, agree = 0;
+  for (const [d, f] of Object.entries(feelData)) {
+    if (!f) continue;
+    const g = computeGrade(d, t); if (!g) continue;
+    n++; const want = { Prime: 5, Ready: 4, Steady: 3, Recover: 2 }[g.word];
+    if (Math.abs(want - f) <= 1) agree++;
+  }
+  return { n, agree };
+}
+const latestReadingDate = () => readings.reduce((m, r) => (r.date > m ? r.date : m), '');
+
+// ---------- v2: Tune sheet ----------
+// Opened by tapping the readiness ring. Sliders apply as you move them: the grade
+// at the top, the 14-day strip and the agreement with your feel ratings all update live.
+function showTuneModal() {
+  const today = latestReadingDate();
+  const overlay = openModal(`
+    <div class="tune-head">
+      <div class="tune-grade" id="tuneGrade"></div>
+      <div class="tune-copy"><div class="modal-title">Tune</div><div class="tune-sub" id="tuneSub"></div></div>
+    </div>
+    <div class="tune-strip" id="tuneStrip"></div>
+    <div class="tune-match" id="tuneMatch"></div>
+    <div class="tune-sliders">
+      ${tuneRow('bigKcal', 'Big day', 1800, 3500, 100)}
+      ${tuneRow('catchUp', 'Catch-up', 0, 3, 1)}
+      ${tuneRow('sleepNeed', 'Sleep need', 360, 540, 15)}
+      ${tuneRow('caution', 'Caution', -1, 1, 0.25)}
+      ${tuneRow('tone', 'HRV ↔ RHR', -1, 1, 0.25)}
+    </div>
+    <div class="tune-why"><div class="tune-why-h">Why this grade</div><div id="tuneWhy"></div></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" data-reset>Reset</button>
+      <button class="modal-btn" data-close>Done</button>
+    </div>
+  `);
+  overlay.querySelector('.modal').classList.add('tune-modal');
+  const box = overlay.querySelector('.modal'); box.style.overflowY = 'auto';
+  const val = k => k === 'sleepNeed' ? sleepNeedFor() : tuneSettings[k];
+  const label = (k, v) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
+    : k === 'sleepNeed' ? fmtHM(v) + (tuneSettings.sleepNeed ? '' : ' · auto')
+    : k === 'caution' ? (v === 0 ? 'Balanced' : v < 0 ? `Relaxed ${Math.round(-v * 4)}` : `Protective ${Math.round(v * 4)}`)
+    : (v === 0 ? 'Even' : v > 0 ? `HRV-led ${Math.round(v * 4)}` : `RHR-led ${Math.round(-v * 4)}`);
+  const paint = () => {
+    overlay.querySelectorAll('input[data-k]').forEach(inp => { const k = inp.dataset.k; inp.value = val(k); overlay.querySelector(`[data-v="${k}"]`).textContent = label(k, val(k)); });
+    const g = today && computeGrade(today);
+    $('tuneGrade').innerHTML = g ? `<div class="tg-letter" style="color:${g.color}">${g.grade}</div><div class="tg-word" style="color:${g.color}">${g.word}</div>` : '<div class="tg-letter">—</div>';
+    $('tuneSub').textContent = g ? `${resultDateLabel(today) || today} · score ${g.score}` : 'Log a reading to see a grade';
+    const days = [...readings].map(r => r.date).sort().slice(-14);
+    $('tuneStrip').innerHTML = days.map(d => { const x = computeGrade(d); const dt = new Date(d + 'T12:00:00');
+      return `<div class="ts-cell" title="${d}"><div class="ts-g" style="background:${x.color}">${x.grade}</div><div class="ts-d">${'SMTWTFS'[dt.getDay()]}</div></div>`; }).join('');
+    const m = feelAgreement();
+    $('tuneMatch').innerHTML = m.n ? `Agrees with how you felt on <b>${m.agree} of ${m.n}</b> rated days` : 'Rate how you feel each morning to see how well the grade matches';
+    $('tuneWhy').innerHTML = g ? [
+      ...g.parts.map(p => `<div class="tw-row${p.muted ? ' muted' : ''}"><span class="tw-l">${p.label}</span><span class="tw-d">${p.detail}</span><span class="tw-p" style="color:${p.pts > 0.5 ? COLORS.green : p.pts < -0.5 ? COLORS.red : 'var(--muted)'}">${p.pts > 0.5 ? '+' : ''}${Math.round(p.pts)}</span></div>`),
+      ...g.caps.map(c => `<div class="tw-cap">${c}</div>`),
+      `<div class="tw-foot">Score ${g.score} → ${g.raw}${g.raw !== g.grade ? ` → ${g.grade}` : ''}</div>`].join('') : '';
+  };
+  overlay.querySelectorAll('input[data-k]').forEach(inp => inp.addEventListener('input', () => {
+    const k = inp.dataset.k; tuneSettings[k] = Number(inp.value); saveTune(false); paint(); render();
+  }));
+  overlay.querySelector('[data-reset]').addEventListener('click', () => { tuneSettings = { ...TUNE_DEFAULTS }; saveTune(false); paint(); render(); showToast('Tune reset to defaults'); });
+  const done = () => { saveTune(true); overlay.remove(); };
+  overlay.querySelector('[data-close]').addEventListener('click', done);
+  overlay.addEventListener('click', e => { if (e.target === overlay) saveTune(true); });
+  paint();
+}
+function tuneRow(k, name, min, max, step) {
+  return `<label class="tune-row"><div class="tr-top"><span class="tr-name">${name}</span><span class="tr-val" data-v="${k}"></span></div>
+    <input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}"></label>`;
+}
+
 // ---------- v2: theme ----------
 // 'auto' follows the phone's light/dark setting; the button cycles auto → light → dark.
 const THEME_KEY = 'hrv_theme_v2';
@@ -4943,17 +5203,24 @@ let _heroShown = null;
 function updateHeroRing(hrv, color, rhrZone, rhrColor, hrvZone) {
   const fill = $('heroRingHRV'), inner = $('heroRingRHR'), val = $('heroRingVal');
   if (!fill || !val) return;
-  const p = Math.max(0.04, Math.min(1, BASELINE ? hrv / (BASELINE * 1.3) : 0));
-  fill.style.stroke = color;
+  // Outer ring: today's readiness grade (score fills the ring, in the grade's colour).
+  const today = latestReadingDate();
+  const g = today ? computeGrade(today) : null;
+  const ringColor = g ? g.color : color;
+  // Fill follows the final grade (after any caps), so the ring and letter agree: A+ full … C− a sliver.
+  const p = g ? (GRADES.length - GRADES.indexOf(g.grade)) / GRADES.length : 0.04;
+  fill.style.stroke = ringColor;
   fill.style.strokeDashoffset = RING_HRV_C * (1 - p);
   const rp = { Excellent: 1, Good: 0.72, Elevated: 0.45, High: 0.22 }[rhrZone] ?? 0;
   inner.style.stroke = rhrColor || 'transparent';
   inner.style.strokeDashoffset = RING_RHR_C * (1 - rp);
-  val.style.color = color;
-  countUp(val, Math.round(hrv), _heroShown);
-  _heroShown = Math.round(hrv);
-  $('statusKicker').textContent = `Recovery · HRV ${hrvZone}${rhrZone ? ` · RHR ${rhrZone}` : ''}`;
-  document.querySelector('.status-bar')?.style.setProperty('--hero-glow', `color-mix(in srgb, ${color} 22%, transparent)`);
+  val.style.color = ringColor;
+  if (g && val.textContent !== g.grade) { val.textContent = g.grade; val.classList.remove('grade-pop'); void val.offsetWidth; val.classList.add('grade-pop'); }
+  if (!g) val.textContent = '—';
+  $('heroRingLbl').textContent = g ? g.word : 'Readiness';
+  $('heroRingLbl').style.color = g ? ringColor : '';
+  $('statusKicker').textContent = `Readiness · HRV ${hrvZone}${rhrZone ? ` · RHR ${rhrZone}` : ''}`;
+  document.querySelector('.status-bar')?.style.setProperty('--hero-glow', `color-mix(in srgb, ${ringColor} 22%, transparent)`);
 }
 // Animate a whole number from its previous value (or 0) to the new one.
 function countUp(el, to, from) {
@@ -5004,6 +5271,7 @@ async function init() {
   loadDayTags();
   loadFeel();
   loadSleep();
+  loadTune();
   loadTemp();
   loadWorkout();
   restoreCalcResult();
