@@ -493,7 +493,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2026-11-16.1';
+const APP_VERSION = '2026-11-17.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -505,6 +505,7 @@ const GH_REPO  = 'HRV-Tracker';
 const GH_PAT_KEY  = 'hrv_github_pat';
 const GH_USER_KEY = 'hrv_github_user';
 const getRhrKey          = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_rhr_${u}_v1`                  : 'hrv_rhr_v1'; };
+const getSleepKey        = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_sleep_${u}_v1`                : 'hrv_sleep_v1'; };
 const getFeelKey         = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_feel_${u}_v1`                 : 'hrv_feel_v1'; };
 const getDayTagsKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_day_tags_${u}_v1`             : 'hrv_day_tags_v1'; };
 const getRemovedKey      = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_removed_${u}_v1`              : 'hrv_removed_v1'; };
@@ -664,6 +665,9 @@ let tempData = {};
 let rrData = {};
 let dayTags = {}; // tags for days with no HRV reading (see tagTarget)
 let feelData = {}; // morning 'how do you feel' rating per date, 1-5
+// Each night's sleep, keyed by the capture morning's date: minutes asleep (total,
+// deep, core, rem), minutes awake within the night, and when sleep started/ended.
+let sleepData = {};
 let rrBaseline = null;        // manual starting baseline (breaths/min), or null
 let rrBaselineSetDate = null; // date it was set
 let workoutData = {};
@@ -1926,6 +1930,8 @@ const FEEL_LEVELS = [null,
 const feelOf = date => FEEL_LEVELS[feelData[date]] || null;
 const feelFilterLabel = f => `Feel ${f.v} · ${f.label}`;
 const feelPillHtml = (date, onclick) => { const f = feelOf(date); return f ? `<span class="tag-chip" style="border-color:${f.color};color:${f.color};" onclick="${onclick}">FEEL ${f.v}</span>` : ''; };
+function loadSleep() { try { sleepData = JSON.parse(localStorage.getItem(getSleepKey()) || '{}') || {}; } catch { sleepData = {}; } }
+function saveSleep() { try { localStorage.setItem(getSleepKey(), JSON.stringify(sleepData)); } catch {} }
 function loadFeel() { try { feelData = JSON.parse(localStorage.getItem(getFeelKey()) || '{}') || {}; } catch { feelData = {}; } }
 function saveFeel() { try { localStorage.setItem(getFeelKey(), JSON.stringify(feelData)); } catch {} }
 // Rate (or clear with null) a day's feel, then sync and refresh what shows it.
@@ -2814,6 +2820,7 @@ function buildCSV() {
     ...Object.keys(rrData),
     ...Object.keys(dayTags).filter(d => hasTags(dayTags[d])),
     ...Object.keys(feelData).filter(d => feelOf(d)),
+    ...Object.keys(sleepData),
     // kcal belongs to the morning after the activity day (as in the app)
     ...Object.keys(workoutData).map(d => { const n = new Date(d + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1); return n.toISOString().slice(0, 10); })
   ])].sort().reverse();
@@ -2824,7 +2831,7 @@ function buildCSV() {
   const escField = v => (v == null || v === '') ? '' : String(v).includes(',') || String(v).includes('"') || String(v).includes('\n')
     ? `"${String(v).replace(/"/g, '""')}"` : String(v);
 
-  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy,rr,kcal,feel'];
+  const rows = ['date,hrv,rhr,temp,note,tag,activities,ectopy,rr,kcal,feel,sleep'];
   for (const date of allDates) {
     const dayReadings = hrvByDate[date] || [null];
     for (const r of dayReadings) {
@@ -2839,7 +2846,8 @@ function buildCSV() {
         ectopyOf(r || dayTags[date]) ? (r || dayTags[date]).ectopy : '',
         rrData[date] !== undefined ? rrData[date].toFixed(1) : '',
         r === dayReadings[0] ? escField(kcalField(date)) : '',
-        feelOf(date) ? feelData[date] : ''
+        feelOf(date) ? feelData[date] : '',
+        sleepData[date] ? (z => `${z.total}/${z.deep}/${z.core}/${z.rem}/${z.awake ?? ''}/${z.start || ''}-${z.end || ''}`)(sleepData[date]) : ''
       ].join(','));
     }
   }
@@ -2913,12 +2921,12 @@ function doImportCSV(text, overlay) {
     let start = 0;
     if (lines[0].toLowerCase().startsWith('date')) start = 1;
 
-    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, kcalAdded = 0, dayTagsAdded = 0, feelAdded = 0, skipped = 0;
+    let hrvAdded = 0, rhrAdded = 0, tempAdded = 0, rrAdded = 0, kcalAdded = 0, dayTagsAdded = 0, feelAdded = 0, sleepAdded = 0, skipped = 0;
 
     for (let i = start; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy, rrStr, kcalStr, feelStr] = parseCSVLine(line);
+      const [dateStr, hrvStr, rhrStr, tempStr, note, tag, activities, ectopy, rrStr, kcalStr, feelStr, sleepStr] = parseCSVLine(line);
       const date = (dateStr || '').trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
@@ -2972,6 +2980,13 @@ function doImportCSV(text, overlay) {
       if (items.length && !(actDate in workoutData)) { workoutData[actDate] = items; kcalAdded++; }
 
       if (/^[1-5]$/.test((feelStr || '').trim()) && !feelOf(date)) { feelData[date] = Number(feelStr.trim()); feelAdded++; }
+
+      // Sleep: "total/deep/core/rem/awake/start-end" in minutes
+      const sm = (sleepStr || '').trim().match(/^(\d+)\/(\d+)\/(\d+)\/(\d+)\/(\d*)\/(\d{2}:\d{2})?-(\d{2}:\d{2})?$/);
+      if (sm && !sleepData[date]) {
+        sleepData[date] = { total: +sm[1], deep: +sm[2], core: +sm[3], rem: +sm[4], ...(sm[5] !== '' ? { awake: +sm[5] } : {}), ...(sm[6] ? { start: sm[6] } : {}), ...(sm[7] ? { end: sm[7] } : {}) };
+        sleepAdded++;
+      }
     }
 
     if (hrvAdded)  { migrateSickTag(); save(); }
@@ -2981,7 +2996,8 @@ function doImportCSV(text, overlay) {
     if (kcalAdded) saveWorkout();
     if (dayTagsAdded) saveDayTags();
     if (feelAdded) saveFeel();
-    if (!hrvAdded && (rhrAdded || tempAdded || rrAdded || kcalAdded || dayTagsAdded || feelAdded)) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
+    if (sleepAdded) saveSleep();
+    if (!hrvAdded && (rhrAdded || tempAdded || rrAdded || kcalAdded || dayTagsAdded || feelAdded || sleepAdded)) { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveToGitHub(), 800); }
     overlay.remove();
     render();
 
@@ -2992,6 +3008,7 @@ function doImportCSV(text, overlay) {
     if (rrAdded)   parts.push(`${rrAdded} RR`);
     if (kcalAdded) parts.push(`${kcalAdded} Kcal`);
     if (feelAdded) parts.push(`${feelAdded} Feel`);
+    if (sleepAdded) parts.push(`${sleepAdded} Sleep`);
     showToast(parts.length ? `Added: ${parts.join(' + ')}${skipped ? ` · ${skipped} skipped` : ''}` : 'Nothing new to import');
   } catch {
     showToast('Could not parse CSV');
@@ -3335,6 +3352,18 @@ function runSlowWaveCalc(text, overlay) {
     ].filter(s => s.end > s.start);
     lastSleepStages = tlSegs.length ? { segs:tlSegs, winStart:Math.min(...tlSegs.map(s=>s.start)), winEnd:Math.max(...tlSegs.map(s=>s.end)) } : null;
     lastSleepNums = granularTotal > 0 ? { total: granularTotal, deep: deepM, core: coreM, rem: remM } : null;
+    // Keep the night's sleep with that morning's entry (it used to live only in the
+    // Today panel). Times are local clock times taken straight from the export.
+    if (granularTotal > 0 && $('inputDate').value) {
+      const asleepSegs = [...deepStages, ...coreStages, ...remStages].filter(sg => sg.start && sg.end);
+      const t0 = Math.min(...asleepSegs.map(sg => parseSleepTs(sg.start).getTime())), t1 = Math.max(...asleepSegs.map(sg => parseSleepTs(sg.end).getTime()));
+      const awakeM = sumDur(stages.filter(sg => sg.value === 'Awake' && sg.start && parseSleepTs(sg.start).getTime() >= t0 && parseSleepTs(sg.end).getTime() <= t1));
+      const first = asleepSegs.reduce((a, b) => parseSleepTs(a.start) <= parseSleepTs(b.start) ? a : b);
+      const last  = asleepSegs.reduce((a, b) => parseSleepTs(a.end) >= parseSleepTs(b.end) ? a : b);
+      sleepData[$('inputDate').value] = { total: Math.round(granularTotal), deep: Math.round(deepM), core: Math.round(coreM), rem: Math.round(remM),
+        awake: Math.round(awakeM), start: first.start.trim().slice(11, 16), end: last.end.trim().slice(11, 16) };
+      saveSleep();
+    }
     if (granularTotal > 0) {
       $('calcSleepDisplay').innerHTML = buildSleepHtml(granularTotal, deepM, coreM, remM);
       $('calcSleepDisplay').style.display = '';
@@ -3850,6 +3879,8 @@ async function loadFromGitHub() {
     dayTags     = { ...((!Array.isArray(data) && data.dayTags) || {}), ...dayTags };
     saveDayTags();
     feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
+    sleepData   = { ...((!Array.isArray(data) && data.sleep) || {}), ...sleepData };
+    saveSleep();
     saveFeel();
     if (!Array.isArray(data) && data.rrBaseline != null) {
       rrBaseline        = data.rrBaseline;
@@ -3945,6 +3976,8 @@ async function mergeRemoteChanges() {
     rrData      = { ...remoteRr,      ...rrData      };
     dayTags     = { ...((!Array.isArray(data) && data.dayTags) || {}), ...dayTags };
     feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
+    sleepData   = { ...((!Array.isArray(data) && data.sleep) || {}), ...sleepData };
+    saveSleep();
     tempData    = { ...remoteTemp,    ...tempData    };
     workoutData = { ...remoteWorkout, ...workoutData };
     if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
@@ -3987,7 +4020,7 @@ async function putToGitHub(attempt = 0) {
   const lastResultRaw = localStorage.getItem(getLastResultKey());
   let lastResult = null;
   if (lastResultRaw) { try { lastResult = JSON.parse(lastResultRaw); } catch {} }
-  const payload = { readings, dayTags, feel: feelData, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
+  const payload = { readings, dayTags, feel: feelData, sleep: sleepData, rhr: rhrData, rhrNotes, rr: rrData, rrBaseline, rrBaselineSetDate, temp: tempData, tempBaseline, tempBaselineSetDate, workout: workoutData, lastResult };
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: 'Update HRV readings', content };
   if (ghFileSha) body.sha = ghFileSha;
@@ -4068,7 +4101,7 @@ function showSyncModal() {
     localStorage.setItem(GH_PAT_KEY, token);
     ghFileSha = null;
     readings = [];
-    rhrData = {}; rhrNotes = {}; rrData = {}; dayTags = {}; feelData = {}; tempData = {}; workoutData = {};
+    rhrData = {}; rhrNotes = {}; rrData = {}; dayTags = {}; feelData = {}; sleepData = {}; tempData = {}; workoutData = {};
     removedReadings = loadRemoved();
     tempBaseline = null; tempBaselineSetDate = null;
     rrBaseline = null; rrBaselineSetDate = null;
@@ -4767,6 +4800,7 @@ async function init() {
   loadRR();
   loadDayTags();
   loadFeel();
+  loadSleep();
   loadTemp();
   loadWorkout();
   restoreCalcResult();
