@@ -192,7 +192,7 @@
   .tune-share b { color:var(--text); }
   .tune-why { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
   .tune-why-h { font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
-  .tw-row { display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:baseline; font-size:12px; padding:3px 0; }
+  .tw-row { display:grid; grid-template-columns:54px 1fr auto; gap:8px; align-items:baseline; font-size:12px; padding:3px 0; }
   .tw-row.muted { opacity:.55; }
   .tw-l { font-weight:700; color:var(--text); }
   .tw-d { color:var(--text-2); }
@@ -636,7 +636,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.6';
+const APP_VERSION = '2.1.7';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4773,7 +4773,7 @@ function showInfoModal() {
       Tap <em>DATA ANALYSIS</em> for every entry with HRV, RHR, RR, temp and kcal, period averages, note search and tag filters. Tap a note to edit it; swipe an entry left and tap <em>DELETE</em> to remove it.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">READINESS GRADE</strong><br>
-      The ring on the status card shows the day's grade: <strong>A+ · A · A−</strong> Prime (go hard), <strong>B+ · B · B−</strong> Ready (train as planned), <strong>C+ · C</strong> Steady (keep it aerobic), <strong>C−</strong> Recover (easy or rest). It starts from HRV judged against what's usual for you after yesterday's load (your last 30 days), then RHR zone, sleep against your need, and penalties for raised breathing rate or temperature. Rules then cap it: the morning after a big day (2,500+ kcal or a 200TSS+/Race tag) can't be better than B− (C+ after a much bigger day), and two days after one — when it tends to catch up — it's capped at C+ (C after back-to-back big days, C− after three). Sick or a triple alarm means Recover.<br>
+      The ring on the status card shows the day's grade: <strong>A+ · A · A−</strong> Prime (go hard), <strong>B+ · B · B−</strong> Ready (train as planned), <strong>C+ · C</strong> Steady (keep it aerobic), <strong>C−</strong> Recover (easy or rest). It starts from HRV judged against what's usual for you after yesterday's load (your last 30 days), then RHR zone, sleep (last night against your need, your 3-night sleep debt, and how restful it was), and penalties for raised breathing rate or temperature. Rules then cap it: the morning after a big day (2,500+ kcal or a 200TSS+/Race tag) can't be better than B− (C+ after a much bigger day), and two days after one — when it tends to catch up — it's capped at C+ (C after back-to-back big days, C− after three). Sick or a triple alarm means Recover.<br>
       <strong>Tap the ring to tune it</strong>: Big day, Catch-up, Sleep need, Caution and HRV ↔ RHR. Changes apply as you slide, with a 14-day strip, how often the grade agrees with your feel ratings, and a breakdown of why today got its grade. Settings sync like your data.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">BASELINE 2.0</strong><br>
@@ -5111,12 +5111,30 @@ function computeGrade(date, t = tuneSettings) {
     parts.push({ label: 'RHR', detail: `${rhr} bpm (${dv >= 0 ? '+' : ''}${dv} vs baseline)`, pts: base * rhrW });
     score += base * rhrW;
   }
-  // Sleep vs need
+  // Sleep: last night vs need, the 3-night debt, and how restful it was
   const sl = sleepData[date], need = sleepNeedFor(t);
   if (sl?.total) {
-    const pts = sl.total >= need ? 4 : -Math.min(20, (need - sl.total) / 60 * 8);
+    const pts = sl.total >= need ? 6 : -Math.min(30, (need - sl.total) / 60 * 10);
     parts.push({ label: 'Sleep', detail: `${fmtHM(sl.total)} vs ${fmtHM(need)} need`, pts });
     score += pts;
+    // Debt: average shortfall over the last 3 stored nights (needs 2)
+    const recent = [0, 1, 2].map(i => sleepData[isoAdd(date, -i)]?.total).filter(Boolean);
+    if (recent.length >= 2) {
+      const short = recent.reduce((a, m) => a + Math.max(0, need - m), 0) / recent.length;
+      const dpts = -Math.min(12, short / 60 * 8);
+      parts.push({ label: 'Debt', detail: short >= 5 ? `averaging ${fmtHM(short)} short over ${recent.length} nights` : `on track over ${recent.length} nights`, pts: dpts });
+      score += dpts;
+    }
+    // Quality: deep + REM share against your usual (needs 5 other nights), and time awake
+    const others = Object.entries(sleepData).filter(([d, z]) => d !== date && z.total).map(([, z]) => (z.deep + z.rem) / z.total);
+    let qpts = 0; const notes = [];
+    if (others.length >= 5 && sl.total) {
+      const usual = others.reduce((a, b) => a + b, 0) / others.length, share = (sl.deep + sl.rem) / sl.total;
+      qpts += Math.max(-6, Math.min(6, (share - usual) * 100 * 0.6));
+      notes.push(`deep + REM ${Math.round(share * 100)}% vs ${Math.round(usual * 100)}% usual`);
+    }
+    if ((sl.awake || 0) >= 30) { qpts -= 4; notes.push(`${sl.awake} min awake`); }
+    if (notes.length) { parts.push({ label: 'Quality', detail: notes.join(' · '), pts: qpts }); score += qpts; }
   } else parts.push({ label: 'Sleep', detail: 'not recorded — left out', pts: 0, muted: true });
   // RR and temperature only count when raised
   const rrDev = rrDevFor(date);
@@ -5163,11 +5181,12 @@ function computeGrade(date, t = tuneSettings) {
 }
 // How much each signal moved the score across your history, with the current settings.
 function gradeShares(t = tuneSettings) {
-  const sum = { HRV: 0, RHR: 0, other: 0 }; let total = 0;
+  const sum = { HRV: 0, RHR: 0, Sleep: 0, other: 0 }; let total = 0;
+  const group = l => l === 'HRV' || l === 'RHR' ? l : (l === 'Sleep' || l === 'Debt' || l === 'Quality') ? 'Sleep' : 'other';
   for (const r of readings) { const g = computeGrade(r.date, t); if (!g) continue;
-    for (const p of g.parts) { const v = Math.abs(p.pts); total += v; if (p.label === 'HRV' || p.label === 'RHR') sum[p.label] += v; else sum.other += v; } }
+    for (const p of g.parts) { const v = Math.abs(p.pts); total += v; sum[group(p.label)] += v; } }
   const pc = v => total ? Math.round(v / total * 100) : 0;
-  return { HRV: pc(sum.HRV), RHR: pc(sum.RHR), other: pc(sum.other) };
+  return { HRV: pc(sum.HRV), RHR: pc(sum.RHR), Sleep: pc(sum.Sleep), other: pc(sum.other) };
 }
 // Does the grade agree with how you said you felt? (Prime≈5, Ready≈4, Steady≈3, Recover≈2; within one.)
 function feelAgreement(t = tuneSettings) {
@@ -5226,7 +5245,7 @@ function showTuneModal() {
       return `<div class="ts-cell" title="${d}"><div class="ts-g" style="background:${x.color}">${x.grade}</div><div class="ts-d">${'SMTWTFS'[dt.getDay()]}</div></div>`; }).join('');
     const m = feelAgreement();
     const sh = gradeShares();
-    $('tuneShare').innerHTML = `HRV drives <b>${sh.HRV}%</b> · RHR <b>${sh.RHR}%</b> · other <b>${sh.other}%</b> of the score`;
+    $('tuneShare').innerHTML = `HRV drives <b>${sh.HRV}%</b> · RHR <b>${sh.RHR}%</b> · Sleep <b>${sh.Sleep}%</b> · other <b>${sh.other}%</b> of the score`;
     $('tuneMatch').innerHTML = m.n ? `Agrees with how you felt on <b>${m.agree} of ${m.n}</b> rated days` : 'Rate how you feel each morning to see how well the grade matches';
     $('tuneWhy').innerHTML = g ? [
       ...g.parts.map(p => `<div class="tw-row${p.muted ? ' muted' : ''}"><span class="tw-l">${p.label}</span><span class="tw-d">${p.detail}</span><span class="tw-p" style="color:${p.pts > 0.5 ? COLORS.green : p.pts < -0.5 ? COLORS.red : 'var(--muted)'}">${p.pts > 0.5 ? '+' : ''}${Math.round(p.pts)}</span></div>`),
@@ -5255,8 +5274,8 @@ const TUNE_INFO = {
   catchUp: `<p>How hard the grade is held back <b>two mornings after</b> a big day — when the fatigue tends to land even if you feel fine — and after back-to-back big days.</p>
     <p class="ex"><b>Off:</b> no load caps at all (the next-morning cap too).<br><b>Light:</b> two days after → B− · after back-to-back → C+ · after three → C<br><b>Medium:</b> C+ · C · C−<br><b>Strong:</b> C · C− · C−</p>
     <p class="ex">After a 2,775 + 2,644 kcal weekend, Tuesday gets <b>C+</b> on Light, <b>C</b> on Medium, <b>C−</b> on Strong.</p>`,
-  sleepNeed: `<p>The sleep you need. Nights <b>short of it</b> cost points — about 8 per hour short (roughly one or two grade steps), up to 20. Meeting it adds a small boost (+4). <b>Auto</b> uses your average once 5 nights are stored (7h 30m until then); moving the slider sets your own.</p>
-    <p class="ex"><b>Need 7h 30m:</b> a 6h 30m night costs about −8 points; 7h 45m earns +4.<br><b>Need 6h 30m:</b> the same 6h 30m night costs nothing.</p>`,
+  sleepNeed: `<p>The sleep you need. It sets three things in the grade: <b>last night</b> (−10 per hour short, up to −30; +6 for meeting it), <b>sleep debt</b> (the average shortfall over your last 3 nights, up to −12) and, separately, <b>quality</b> (deep + REM share against your usual, ±6; −4 for 30+ min awake). <b>Auto</b> uses your average once 5 nights are stored (7h 30m until then); moving the slider sets your own.</p>
+    <p class="ex"><b>Need 7h 30m:</b> a 6h 30m night costs −10, plus about −3 debt if the two nights before were fine; three 6h 30m nights in a row cost −10 and −8 debt.<br><b>Need 6h 30m:</b> the same 6h 30m night earns +6.</p>`,
   caution: `<p>How readily the grade drops. <b>Protective</b> raises every grade's cut-off, so the same score lands a grade lower; <b>Relaxed</b> lowers them. It doesn't change the load caps or illness rules.</p>
     <p class="ex">A score of <b>74</b> is <b>B</b> on Balanced, <b>B−</b> fully Protective and <b>A−</b> fully Relaxed.</p>
     <p class="tip">Lean Protective in a race build when a missed warning costs more; Relaxed if the grade feels too gloomy.</p>`,
