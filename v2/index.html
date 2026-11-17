@@ -317,6 +317,7 @@
   .note-preview.note-empty { color:var(--muted); font-style:italic; }
   .note-input { width:100%; background:var(--surface2); border:1px solid var(--border-strong); border-radius:var(--radius-sm); color:var(--text); font-family:var(--font-body); font-size:13px; line-height:1.4; padding:8px 10px; resize:none; outline:none; display:none; height:76px; }
   .tag-picker { position:fixed; background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:14px 14px 12px; z-index:10000; box-shadow:var(--shadow-pop); display:flex; flex-direction:column; gap:12px; animation:sheetUp .28s var(--ease-out); }
+  .tag-picker::before { content:''; display:block; width:38px; height:5px; border-radius:3px; background:var(--border-strong); margin:-4px auto 0; flex-shrink:0; }
   .tp-head { display:flex; align-items:baseline; justify-content:space-between; margin:0 2px 6px; font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); }
   .tp-hint { letter-spacing:0.04em; text-transform:none; font-size:10px; }
   .tp-grid { display:grid; gap:6px; }
@@ -332,6 +333,7 @@
   /* ---------- Analysis (full-screen sheet) ---------- */
   .jnl-overlay { position:fixed; inset:0; background:var(--bg); z-index:9999; display:flex; flex-direction:column; overflow:hidden; touch-action:none; padding-top:env(safe-area-inset-top, 0px); animation:sheetUp .35s var(--ease-out); }
   .jnl-modal { display:flex; flex-direction:column; flex:1; max-width:560px; width:100%; margin:0 auto; min-height:0; }
+  .jnl-grab { width:38px; height:5px; border-radius:3px; background:var(--border-strong); margin:8px auto 0; flex-shrink:0; }
   .jnl-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px; flex-shrink:0; }
   .jnl-title { font-family:var(--font-body); font-size:22px; font-weight:800; letter-spacing:-0.02em; color:var(--text); text-transform:none; }
   .jnl-entry-count { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
@@ -626,7 +628,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.3';
+const APP_VERSION = '2.1.4';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1888,6 +1890,7 @@ function showJournalModal() {
   overlay.className = 'jnl-overlay';
   overlay.innerHTML = `
     <div class="jnl-modal">
+      <div class="jnl-grab"></div>
       <div class="jnl-header">
         <span class="jnl-title">Analysis Tool</span>
         <span class="jnl-entry-count">${count} entries</span>
@@ -1902,6 +1905,8 @@ function showJournalModal() {
   `;
   const closeJnl = () => { document.body.style.overflow = ''; overlay.remove(); };
   overlay.querySelector('.jnl-close').addEventListener('click', closeJnl);
+  // Pull down from the top area (not the list, which scrolls and swipes) to close.
+  enableSwipeDismiss(overlay, closeJnl, { handle: '.jnl-grab, .jnl-header, .jnl-summary, .jnl-search-row, .jnl-sort' });
   // Swipe-to-delete: swipe left to reveal strip, tap strip to delete
   const STRIP_W = 80;
   let swipeEl = null, swipeX0 = 0, swipeDx = 0, openCard = null;
@@ -2207,6 +2212,7 @@ function openTagPicker(e, id) {
   picker.style.width = Math.min(window.innerWidth - 16, 420) + 'px';
   document.body.appendChild(picker);
   tagPickerEl = picker;
+  enableSwipeDismiss(picker, () => { if (tagPickerEl === picker) closeTagPicker(); });
   // Centre it at the bottom of the screen, in thumb reach, clear of the home
   // indicator. Plain pixel top/left and scrolling only when it can't fit — the same
   // styling the anchored version used; a transform + always-scrollable variant
@@ -2955,6 +2961,55 @@ function deleteRHREntry(date) {
 
 
 // ---------- Modals ----------
+// Swipe down to close a sheet. The sheet follows the finger; a long or quick pull
+// closes it, anything less springs back. It only starts when the touched content is
+// scrolled to the top and the drag is mostly downward, and never on sliders or text
+// fields, so scrolling, sliding and swiping a card sideways all still work.
+// `handle` (a selector) limits where a drag may start.
+function enableSwipeDismiss(sheet, onDismiss, { handle, backdrop } = {}) {
+  let y0 = null, x0 = 0, dy = 0, t0 = 0, dragging = false;
+  const scrolledAbove = (el) => { for (let n = el; n && n !== sheet.parentNode; n = n.parentNode) if (n.scrollTop > 0) return true; return false; };
+  sheet.addEventListener('touchstart', e => {
+    y0 = null;
+    if (e.touches.length !== 1) return;
+    const t = e.target;
+    if (t.closest('input, textarea, select')) return;
+    if (handle && !t.closest(handle)) return;
+    if (scrolledAbove(t)) return;
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; dy = 0; t0 = performance.now(); dragging = false;
+  }, { passive: true });
+  sheet.addEventListener('touchmove', e => {
+    if (y0 === null) return;
+    const ddy = e.touches[0].clientY - y0, ddx = e.touches[0].clientX - x0;
+    if (!dragging) {
+      if (ddy < -4 || Math.abs(ddx) > Math.abs(ddy)) { y0 = null; return; }   // upward or sideways: not ours
+      if (ddy < 8) return;
+      dragging = true; sheet.style.transition = 'none';
+    }
+    dy = Math.max(0, ddy);
+    e.preventDefault();
+    sheet.style.transform = `translateY(${dy}px)`;
+    if (backdrop) backdrop.style.opacity = String(Math.max(0.25, 1 - dy / 500));
+  }, { passive: false });
+  const end = () => {
+    if (y0 === null || !dragging) { y0 = null; return; }
+    const v = dy / Math.max(1, performance.now() - t0);
+    y0 = null; dragging = false;
+    if (dy > 110 || v > 0.6) {
+      sheet.style.transition = 'transform .2s ease-in';
+      sheet.style.transform = 'translateY(110%)';
+      if (backdrop) { backdrop.style.transition = 'opacity .2s'; backdrop.style.opacity = '0'; }
+      setTimeout(onDismiss, 190);
+    } else {
+      sheet.style.transition = 'transform .28s var(--ease-spring)';
+      sheet.style.transform = '';
+      if (backdrop) { backdrop.style.transition = 'opacity .2s'; backdrop.style.opacity = ''; }
+    }
+  };
+  sheet.addEventListener('touchend', end);
+  sheet.addEventListener('touchcancel', end);
+}
+
 function openModal(innerHTML) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -2967,6 +3022,8 @@ function openModal(innerHTML) {
     if (!document.querySelector('.modal-overlay, .jnl-overlay')) document.body.style.overflow = '';
   }).observe(document.body, { childList: true });
   document.body.appendChild(overlay);
+  // Pulling the sheet down closes it exactly like tapping outside it.
+  enableSwipeDismiss(overlay.querySelector('.modal'), () => overlay.dispatchEvent(new MouseEvent('click', { bubbles: true })), { backdrop: overlay });
   return overlay;
 }
 
