@@ -188,6 +188,8 @@
   .tune-row input[type=range] { width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:var(--surface3); outline:none; }
   .tune-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; border-radius:50%; background:var(--surface); border:3px solid var(--accent); box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:pointer; }
   .tune-row input[type=range]::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:var(--surface); border:3px solid var(--accent); cursor:pointer; }
+  .tune-share { font-size:12px; color:var(--text-2); text-align:center; margin-top:-2px; }
+  .tune-share b { color:var(--text); }
   .tune-why { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
   .tune-why-h { font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
   .tw-row { display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:baseline; font-size:12px; padding:3px 0; }
@@ -634,7 +636,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.5';
+const APP_VERSION = '2.1.6';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4114,7 +4116,7 @@ async function loadFromGitHub() {
     feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
     sleepData   = { ...((!Array.isArray(data) && data.sleep) || {}), ...sleepData };
     saveSleep();
-    if (!Array.isArray(data) && data.tune && (data.tune.updatedAt || 0) > (tuneSettings.updatedAt || 0)) { tuneSettings = { ...TUNE_DEFAULTS, ...data.tune }; saveTune(false); }
+    if (!Array.isArray(data) && data.tune && (data.tune.updatedAt || 0) > (tuneSettings.updatedAt || 0)) { tuneSettings = { ...TUNE_DEFAULTS, ...migrateTune({ ...data.tune }) }; saveTune(false); }
     saveFeel();
     if (!Array.isArray(data) && data.rrBaseline != null) {
       rrBaseline        = data.rrBaseline;
@@ -4212,7 +4214,7 @@ async function mergeRemoteChanges() {
     feelData    = { ...((!Array.isArray(data) && data.feel) || {}), ...feelData };
     sleepData   = { ...((!Array.isArray(data) && data.sleep) || {}), ...sleepData };
     saveSleep();
-    if (!Array.isArray(data) && data.tune && (data.tune.updatedAt || 0) > (tuneSettings.updatedAt || 0)) { tuneSettings = { ...TUNE_DEFAULTS, ...data.tune }; saveTune(false); }
+    if (!Array.isArray(data) && data.tune && (data.tune.updatedAt || 0) > (tuneSettings.updatedAt || 0)) { tuneSettings = { ...TUNE_DEFAULTS, ...migrateTune({ ...data.tune }) }; saveTune(false); }
     tempData    = { ...remoteTemp,    ...tempData    };
     workoutData = { ...remoteWorkout, ...workoutData };
     if (tempBaseline == null && !Array.isArray(data) && data.tempBaseline != null) {
@@ -5029,11 +5031,13 @@ function syncResultTempWithData() {
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
 const GRADE_CUTS = [92, 86, 80, 75, 70, 65, 58, 50];           // score ≥ cut → that grade; below the last → C−
 const BIG_TAGS = new Set(['200-300TSS', '300TSS+', 'Race']);
-const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, sleepNeed: null, caution: 0, tone: 0 };
+const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
 const TUNE_KEY = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_tune_${u}_v1` : 'hrv_tune_v1'; };
 let tuneSettings = { ...TUNE_DEFAULTS, updatedAt: 0 };
-function loadTune() { try { tuneSettings = { ...TUNE_DEFAULTS, ...JSON.parse(localStorage.getItem(TUNE_KEY()) || '{}') }; } catch { tuneSettings = { ...TUNE_DEFAULTS, updatedAt: 0 }; } }
+// Older settings had one HRV↔RHR balance ('tone', −1…+1); turn it into the two weights.
+const migrateTune = t => { if (t.tone !== undefined && t.hrvW === undefined) { t.hrvW = 1 + 0.5 * t.tone; t.rhrW = 1 - 0.5 * t.tone; } delete t.tone; return t; };
+function loadTune() { try { tuneSettings = { ...TUNE_DEFAULTS, ...migrateTune(JSON.parse(localStorage.getItem(TUNE_KEY()) || '{}')) }; } catch { tuneSettings = { ...TUNE_DEFAULTS, updatedAt: 0 }; } }
 function saveTune(sync = true) {
   tuneSettings.updatedAt = Date.now();
   try { localStorage.setItem(TUNE_KEY(), JSON.stringify(tuneSettings)); } catch {}
@@ -5090,7 +5094,7 @@ function computeGrade(date, t = tuneSettings) {
   const r = readings.find(x => x.date === date);
   if (!r) return null;
   const parts = [], caps = [];
-  const hrvW = 1 + 0.5 * t.tone, rhrW = 1 - 0.5 * t.tone;      // tone −1 RHR-led … +1 HRV-led
+  const hrvW = t.hrvW ?? 1, rhrW = t.rhrW ?? 1;                  // independent weights, 0–2×
   let score = 70;
   // HRV vs load-expected
   const y = activityLoad(isoAdd(date, -1), t);
@@ -5157,6 +5161,14 @@ function computeGrade(date, t = tuneSettings) {
   else if (tDev !== null && tDev > 0.5 && rrDev !== null && rrDev >= RR_ANOMALY) { if (worseGrade(grade, 'C') !== grade) caps.push('Capped at C: early illness signal (temp + breathing up)'); grade = worseGrade(grade, 'C'); }
   return { date, grade, raw, score: Math.round(score), parts, caps, ...gradeBand(grade) };
 }
+// How much each signal moved the score across your history, with the current settings.
+function gradeShares(t = tuneSettings) {
+  const sum = { HRV: 0, RHR: 0, other: 0 }; let total = 0;
+  for (const r of readings) { const g = computeGrade(r.date, t); if (!g) continue;
+    for (const p of g.parts) { const v = Math.abs(p.pts); total += v; if (p.label === 'HRV' || p.label === 'RHR') sum[p.label] += v; else sum.other += v; } }
+  const pc = v => total ? Math.round(v / total * 100) : 0;
+  return { HRV: pc(sum.HRV), RHR: pc(sum.RHR), other: pc(sum.other) };
+}
 // Does the grade agree with how you said you felt? (Prime≈5, Ready≈4, Steady≈3, Recover≈2; within one.)
 function feelAgreement(t = tuneSettings) {
   let n = 0, agree = 0;
@@ -5187,7 +5199,9 @@ function showTuneModal() {
       ${tuneRow('catchUp', 'Catch-up', 0, 3, 1)}
       ${tuneRow('sleepNeed', 'Sleep need', 330, 510, 15)}
       ${tuneRow('caution', 'Caution', -1, 1, 0.25)}
-      ${tuneRow('tone', 'HRV ↔ RHR', -1, 1, 0.25)}
+      ${tuneRow('hrvW', 'HRV weight', 0, 2, 0.1)}
+      ${tuneRow('rhrW', 'RHR weight', 0, 2, 0.1)}
+      <div class="tune-share" id="tuneShare"></div>
     </div>
     <div class="tune-why"><div class="tune-why-h">Why this grade</div><div id="tuneWhy"></div></div>
     <div class="modal-actions">
@@ -5201,7 +5215,7 @@ function showTuneModal() {
   const label = (k, v) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
     : k === 'sleepNeed' ? fmtHM(v) + (tuneSettings.sleepNeed ? '' : ' · auto')
     : k === 'caution' ? (v === 0 ? 'Balanced' : v < 0 ? `Relaxed ${Math.round(-v * 4)}` : `Protective ${Math.round(v * 4)}`)
-    : (v === 0 ? 'Even' : v > 0 ? `HRV-led ${Math.round(v * 4)}` : `RHR-led ${Math.round(-v * 4)}`);
+    : `${Number(v).toFixed(1)}×${Number(v) === 1 ? ' · default' : Number(v) === 0 ? ' · off' : ''}`;
   const paint = () => {
     overlay.querySelectorAll('input[data-k]').forEach(inp => { const k = inp.dataset.k; inp.value = val(k); overlay.querySelector(`[data-v="${k}"]`).textContent = label(k, val(k)); });
     const g = today && computeGrade(today);
@@ -5211,6 +5225,8 @@ function showTuneModal() {
     $('tuneStrip').innerHTML = days.map(d => { const x = computeGrade(d); const dt = new Date(d + 'T12:00:00');
       return `<div class="ts-cell" title="${d}"><div class="ts-g" style="background:${x.color}">${x.grade}</div><div class="ts-d">${'SMTWTFS'[dt.getDay()]}</div></div>`; }).join('');
     const m = feelAgreement();
+    const sh = gradeShares();
+    $('tuneShare').innerHTML = `HRV drives <b>${sh.HRV}%</b> · RHR <b>${sh.RHR}%</b> · other <b>${sh.other}%</b> of the score`;
     $('tuneMatch').innerHTML = m.n ? `Agrees with how you felt on <b>${m.agree} of ${m.n}</b> rated days` : 'Rate how you feel each morning to see how well the grade matches';
     $('tuneWhy').innerHTML = g ? [
       ...g.parts.map(p => `<div class="tw-row${p.muted ? ' muted' : ''}"><span class="tw-l">${p.label}</span><span class="tw-d">${p.detail}</span><span class="tw-p" style="color:${p.pts > 0.5 ? COLORS.green : p.pts < -0.5 ? COLORS.red : 'var(--muted)'}">${p.pts > 0.5 ? '+' : ''}${Math.round(p.pts)}</span></div>`),
@@ -5244,9 +5260,12 @@ const TUNE_INFO = {
   caution: `<p>How readily the grade drops. <b>Protective</b> raises every grade's cut-off, so the same score lands a grade lower; <b>Relaxed</b> lowers them. It doesn't change the load caps or illness rules.</p>
     <p class="ex">A score of <b>74</b> is <b>B</b> on Balanced, <b>B−</b> fully Protective and <b>A−</b> fully Relaxed.</p>
     <p class="tip">Lean Protective in a race build when a missed warning costs more; Relaxed if the grade feels too gloomy.</p>`,
-  tone: `<p>Which signal the grade trusts more. <b>HRV-led</b> weights HRV 1.5× and RHR 0.5×; <b>RHR-led</b> the reverse; <b>Even</b> treats them equally.</p>
-    <p class="ex">A morning with HRV 10% above usual but RHR 5 bpm up:<br><b>Even:</b> +12 and −12 → no change<br><b>HRV-led:</b> +18 and −6 → about two grade steps higher<br><b>RHR-led:</b> +6 and −18 → about two steps lower</p>
-    <p class="tip">If your RHR barely moves (it's usually within 1–2 bpm), HRV-led lets HRV do more of the talking.</p>`,
+  hrvW: `<p>How much <b>HRV</b> counts. At 1× it moves the score by up to −35 / +25 against what's usual for you after the previous day's load; 2× doubles that, 0× ignores HRV entirely.</p>
+    <p class="ex">A morning 10% above your usual HRV adds <b>+12</b> at 1×, <b>+18</b> at 1.5×, <b>+6</b> at 0.5×.</p>
+    <p class="tip">The line underneath shows how much of the score HRV drives across your history. Raising both weights makes grades swing more; lowering both clusters them around B and leaves more to the load and illness rules.</p>`,
+  rhrW: `<p>How much <b>RHR</b> counts, independently of HRV. At 1×: excellent (at or below baseline) <b>+8</b>, normal +5, +2–4 bpm 0, +5–7 bpm <b>−12</b>, +8 or more <b>−25</b>.</p>
+    <p class="ex">RHR 5 bpm above baseline costs <b>−12</b> at 1×, <b>−18</b> at 1.5×, <b>−24</b> at 2×.</p>
+    <p class="tip">Your RHR is usually within 1–2 bpm of baseline, so a higher weight mainly makes the rare elevated mornings bite harder.</p>`,
 };
 function tuneRow(k, name, min, max, step) {
   return `<div class="tune-row"><button type="button" class="tr-top" data-info="${k}" aria-expanded="false"><span class="tr-name">${name} <span class="tr-i">ⓘ</span></span><span class="tr-val" data-v="${k}"></span></button>
