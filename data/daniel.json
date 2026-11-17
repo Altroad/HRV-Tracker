@@ -1517,12 +1517,13 @@
     }
   },
   "tune": {
-    "bigKcal": 2700,
+    "bigKcal": 3000,
     "catchUp": 1,
     "sleepNeed": 360,
-    "caution": -0.75,
-    "tone": 0.5,
-    "updatedAt": 1794907172320
+    "caution": 0,
+    "hrvW": 1.2,
+    "rhrW": 1.1,
+    "updatedAt": 1794937929276
   },
   "rhr": {
     "2026-05-15": 39,
