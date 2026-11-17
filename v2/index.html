@@ -175,7 +175,14 @@
   .tune-match b { color:var(--text); }
   .tune-sliders { display:flex; flex-direction:column; gap:12px; }
   .tune-row { display:block; }
-  .tr-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .tr-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; width:100%; background:none; border:none; padding:0; cursor:pointer; text-align:left; color:inherit; font:inherit; }
+  .tr-i { font-size:12px; color:var(--muted); font-weight:500; transition:color .2s; }
+  .tr-top[aria-expanded="true"] .tr-i { color:var(--accent); }
+  .tr-info { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin:0 0 9px; font-size:12.5px; line-height:1.5; color:var(--text-2); animation:pop .25s var(--ease-out); }
+  .tr-info p + p { margin-top:7px; }
+  .tr-info b { color:var(--text); }
+  .tr-info .ex { padding-left:9px; border-left:2px solid var(--accent); }
+  .tr-info .tip { font-style:italic; }
   .tr-name { font-size:14px; font-weight:700; color:var(--text); }
   .tr-val { font-family:var(--font-mono); font-size:12px; color:var(--accent); }
   .tune-row input[type=range] { width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:var(--surface3); outline:none; }
@@ -619,7 +626,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.2';
+const APP_VERSION = '2.1.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5147,15 +5154,38 @@ function showTuneModal() {
   overlay.querySelectorAll('input[data-k]').forEach(inp => inp.addEventListener('input', () => {
     const k = inp.dataset.k; tuneSettings[k] = Number(inp.value); saveTune(false); paint(); render();
   }));
+  overlay.querySelectorAll('[data-info]').forEach(btn => btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    overlay.querySelectorAll('[data-info]').forEach(b => { b.setAttribute('aria-expanded', 'false'); $('tuneInfo-' + b.dataset.info).hidden = true; });
+    if (open) { btn.setAttribute('aria-expanded', 'true'); $('tuneInfo-' + btn.dataset.info).hidden = false; }
+  }));
   overlay.querySelector('[data-reset]').addEventListener('click', () => { tuneSettings = { ...TUNE_DEFAULTS }; saveTune(false); paint(); render(); showToast('Tune reset to defaults'); });
   const done = () => { saveTune(true); overlay.remove(); };
   overlay.querySelector('[data-close]').addEventListener('click', done);
   overlay.addEventListener('click', e => { if (e.target === overlay) saveTune(true); });
   paint();
 }
+// What each setting does, with examples, shown when its name is tapped.
+const TUNE_INFO = {
+  bigKcal: `<p>The kcal level at which a day counts as <b>big</b>. A big day caps the <b>next morning</b> at B− (C+ if it was 500+ kcal over the line), and sets off the <b>catch-up</b> two mornings later. A 200–300TSS, 300TSS+ or Race tag always counts as big, whatever the kcal.</p>
+    <p class="ex"><b>At 2,500:</b> a 2,600 kcal ride caps tomorrow at B− and the day after at C+.<br><b>At 3,000:</b> that same ride is treated as normal — no caps.</p>
+    <p class="tip">Lower it if mid-size days still leave you flat; raise it if 2,500 kcal days don't trouble you.</p>`,
+  catchUp: `<p>How hard the grade is held back <b>two mornings after</b> a big day — when the fatigue tends to land even if you feel fine — and after back-to-back big days.</p>
+    <p class="ex"><b>Off:</b> no load caps at all (the next-morning cap too).<br><b>Light:</b> two days after → B− · after back-to-back → C+ · after three → C<br><b>Medium:</b> C+ · C · C−<br><b>Strong:</b> C · C− · C−</p>
+    <p class="ex">After a 2,775 + 2,644 kcal weekend, Tuesday gets <b>C+</b> on Light, <b>C</b> on Medium, <b>C−</b> on Strong.</p>`,
+  sleepNeed: `<p>The sleep you need. Nights <b>short of it</b> cost points — about 8 per hour short (roughly one or two grade steps), up to 20. Meeting it adds a small boost (+4). <b>Auto</b> uses your average once 5 nights are stored (7h 30m until then); moving the slider sets your own.</p>
+    <p class="ex"><b>Need 7h 30m:</b> a 6h 30m night costs about −8 points; 7h 45m earns +4.<br><b>Need 6h 30m:</b> the same 6h 30m night costs nothing.</p>`,
+  caution: `<p>How readily the grade drops. <b>Protective</b> raises every grade's cut-off, so the same score lands a grade lower; <b>Relaxed</b> lowers them. It doesn't change the load caps or illness rules.</p>
+    <p class="ex">A score of <b>74</b> is <b>B</b> on Balanced, <b>B−</b> fully Protective and <b>A−</b> fully Relaxed.</p>
+    <p class="tip">Lean Protective in a race build when a missed warning costs more; Relaxed if the grade feels too gloomy.</p>`,
+  tone: `<p>Which signal the grade trusts more. <b>HRV-led</b> weights HRV 1.5× and RHR 0.5×; <b>RHR-led</b> the reverse; <b>Even</b> treats them equally.</p>
+    <p class="ex">A morning with HRV 10% above usual but RHR 5 bpm up:<br><b>Even:</b> +12 and −12 → no change<br><b>HRV-led:</b> +18 and −6 → about two grade steps higher<br><b>RHR-led:</b> +6 and −18 → about two steps lower</p>
+    <p class="tip">If your RHR barely moves (it's usually within 1–2 bpm), HRV-led lets HRV do more of the talking.</p>`,
+};
 function tuneRow(k, name, min, max, step) {
-  return `<label class="tune-row"><div class="tr-top"><span class="tr-name">${name}</span><span class="tr-val" data-v="${k}"></span></div>
-    <input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}"></label>`;
+  return `<div class="tune-row"><button type="button" class="tr-top" data-info="${k}" aria-expanded="false"><span class="tr-name">${name} <span class="tr-i">ⓘ</span></span><span class="tr-val" data-v="${k}"></span></button>
+    <div class="tr-info" id="tuneInfo-${k}" hidden>${TUNE_INFO[k]}</div>
+    <input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}"></div>`;
 }
 
 // ---------- v2: theme ----------
