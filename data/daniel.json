@@ -1509,10 +1509,10 @@
   "tune": {
     "bigKcal": 2500,
     "catchUp": 2,
-    "sleepNeed": null,
+    "sleepNeed": 360,
     "caution": 0,
     "tone": 0,
-    "updatedAt": 1794876463248
+    "updatedAt": 1794878911607
   },
   "rhr": {
     "2026-05-15": 39,
