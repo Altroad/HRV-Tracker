@@ -619,7 +619,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.1';
+const APP_VERSION = '2.1.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5112,7 +5112,7 @@ function showTuneModal() {
     <div class="tune-sliders">
       ${tuneRow('bigKcal', 'Big day', 1800, 3500, 100)}
       ${tuneRow('catchUp', 'Catch-up', 0, 3, 1)}
-      ${tuneRow('sleepNeed', 'Sleep need', 360, 540, 15)}
+      ${tuneRow('sleepNeed', 'Sleep need', 330, 510, 15)}
       ${tuneRow('caution', 'Caution', -1, 1, 0.25)}
       ${tuneRow('tone', 'HRV ↔ RHR', -1, 1, 0.25)}
     </div>
