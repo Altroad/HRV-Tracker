@@ -1538,13 +1538,13 @@
     }
   },
   "tune": {
-    "bigKcal": 3000,
-    "catchUp": 1,
-    "sleepNeed": 360,
+    "bigKcal": 2500,
+    "catchUp": 2,
+    "sleepNeed": null,
     "caution": 0,
-    "hrvW": 1.2,
-    "rhrW": 1.1,
-    "updatedAt": 1794938157365
+    "hrvW": 1,
+    "rhrW": 1,
+    "updatedAt": 1794963495221
   },
   "rhr": {
     "2026-05-15": 39,
