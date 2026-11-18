@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.4.1';
+const APP_VERSION = '2.4.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5051,14 +5051,14 @@ const TUNE_DEFAULTS = { catchUp: 2, fitness: 2, sleepNeed: null, caution: 0, hrv
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
 // Your current fitness, as you judge it (watts, results, how training is going): a bracket
 // with the sweet spot near the top. Under-trained can't back up day after day; High is very
-// fit but less fresh than the sweet spot; Over is carrying fatigue. Each state moves the
-// Big day line and the catch-up. Good = neutral.
+// fit (single big days are fine) but fatigue is building, so backing them up costs more;
+// Over is carrying fatigue. Each state moves the Big day line and the catch-up. Good = neutral.
 const FIT_STATES = [
   { name: 'Light',      line: -0.15, cu: +1 },
   { name: 'Base',       line: -0.08, cu: 0 },
   { name: 'Good',       line: 0,     cu: 0 },
   { name: 'Sweet spot', line: +0.10, cu: -1 },
-  { name: 'High',       line: +0.06, cu: 0 },
+  { name: 'High',       line: +0.06, cu: +1 },
   { name: 'Over',       line: -0.15, cu: +1 },
 ];
 const fitState = t => FIT_STATES[t.fitness ?? TUNE_DEFAULTS.fitness] || FIT_STATES[2];
@@ -5443,9 +5443,9 @@ const TUNE_INFO = {
     <p class="ex"><b>Off:</b> no load caps at all (the next-morning cap too).<br><b>Light:</b> two days after → B− · after back-to-back → C+ · after three → C<br><b>Medium:</b> C+ · C · C−<br><b>Strong:</b> C · C− · C−</p>
     <p class="ex">After a 2,775 + 2,644 kcal weekend, Tuesday gets <b>C+</b> on Light, <b>C</b> on Medium, <b>C−</b> on Strong.</p>`,
   fitness: () => { const b = bigBase(), at = f => bigFor('', { fitness: f }).toLocaleString();
-    return `<p>Where your <b>fitness</b> is right now, as you judge it from your watts, results and how training is going. It's a bracket: too little and you can't back up day after day; <b>High</b> is very fit but less fresh than the sweet spot; <b>Over</b> is carrying fatigue. The sweet spot is where you absorb load best.</p>
+    return `<p>Where your <b>fitness</b> is right now, as you judge it from your watts, results and how training is going. It's a bracket: too little and you can't back up day after day; <b>High</b> is very fit, so a single big day is fine, but fatigue is building and back-to-backs cost more; <b>Over</b> is carrying fatigue. The sweet spot is where you absorb load best.</p>
     <p>It sets the <b>big day</b> line. A big day caps the <b>next morning</b> at B− (C+ if it was 500+ kcal over the line) and sets off the <b>catch-up</b> two mornings later. A 200–250TSS, 250TSS+ or Race tag always counts as big. Your usual big day is <b>${b.toLocaleString()} kcal</b>: 8% above your typical training day over the last year, so it follows your own numbers.</p>
-    <p class="ex"><b>Light:</b> big day ${at(0)} · catch-up a step firmer<br><b>Base:</b> ${at(1)}<br><b>Good:</b> ${at(2)} · no change<br><b>Sweet spot:</b> ${at(3)} · catch-up a step lighter<br><b>High:</b> ${at(4)}<br><b>Over:</b> ${at(5)} · catch-up a step firmer</p>
+    <p class="ex"><b>Light:</b> big day ${at(0)} · catch-up a step firmer<br><b>Base:</b> ${at(1)}<br><b>Good:</b> ${at(2)} · no change<br><b>Sweet spot:</b> ${at(3)} · catch-up a step lighter<br><b>High:</b> ${at(4)} · catch-up a step firmer<br><b>Over:</b> ${at(5)} · catch-up a step firmer</p>
     <p class="tip">Move it as your form changes. "Why this grade" also shows your 42-day load (average kcal per day, like CTL) as a reference, and a load <b>ramp</b> — the last 7 days more than 30% above that — always costs a few points.</p>`; },
 
   sleepNeed: `<p>The sleep you need. It sets three things in the grade: <b>last night</b> (−10 per hour short, up to −30; +6 for meeting it), <b>sleep debt</b> (the average shortfall over your last 3 nights, up to −12) and, separately, <b>quality</b> (deep + REM share against your usual, ±6; −4 for 30+ min awake). <b>Auto</b> uses your average once 5 nights are stored (7h 30m until then); moving the slider sets your own.</p>
