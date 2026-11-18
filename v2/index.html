@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.12';
+const APP_VERSION = '2.2.0';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5039,11 +5039,14 @@ function syncResultTempWithData() {
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
 const GRADE_CUTS = [92, 86, 80, 75, 70, 65, 58, 50];           // score ≥ cut → that grade; below the last → C−
 const BIG_TAGS = new Set(['200-300TSS', '300TSS+', 'Race']);
-const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
+const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, fitW: 2, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
+const FIT_NAMES = ['Off', 'Light', 'Normal', 'Strong'];
+const FIT_MULT = [0, 0.5, 1, 1.5];            // how far fitness moves the Big day line
+const FIT_EASE = [Infinity, 1.10, 1.05, 1.03]; // fitness vs usual at which catch-up eases a step
 // The slider values a favourite saves and restores (it lives inside tuneSettings so it
 // syncs with them, and Reset keeps it).
-const TUNE_KEYS = ['bigKcal', 'catchUp', 'sleepNeed', 'caution', 'hrvW', 'rhrW'];
+const TUNE_KEYS = ['bigKcal', 'catchUp', 'fitW', 'sleepNeed', 'caution', 'hrvW', 'rhrW'];
 const tunePick = t => Object.fromEntries(TUNE_KEYS.map(k => [k, t[k] ?? TUNE_DEFAULTS[k]]));
 const tuneMatches = (a, b) => TUNE_KEYS.every(k => (a[k] ?? TUNE_DEFAULTS[k]) === (b[k] ?? TUNE_DEFAULTS[k]));
 const TUNE_KEY = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_tune_${u}_v1` : 'hrv_tune_v1'; };
@@ -5063,11 +5066,63 @@ const worseGrade = (a, b) => GRADES[Math.max(GRADES.indexOf(a), GRADES.indexOf(b
 const isoAdd = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const fmtHM = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
 
+// ---- Fitness, like CTL ----
+// Fitness = average kcal per day over the 42 days before a morning (days without
+// activity count as 0); the 7-day average is the recent load (like ATL). "Usual" is
+// the average fitness over the previous 6 months, so the effect follows how fit you
+// are compared with your own normal, not an absolute number.
+let _load = null, _loadKey = '';
+const dayNum = iso => Math.round(Date.parse(iso + 'T12:00:00Z') / 864e5);
+function loadSeries() {
+  const keys = Object.keys(workoutData);
+  let tot = 0; for (const k of keys) tot += getKcalTotal(k);
+  const key = keys.length + ':' + tot;
+  if (_load && _loadKey === key) return _load;
+  _loadKey = key;
+  if (!keys.length) return (_load = { first: null, cache: new Map() });
+  const nums = keys.map(dayNum), first = Math.min(...nums), last = Math.max(...nums);
+  const pre = new Float64Array(last - first + 2);                 // prefix sums of daily kcal
+  const daily = new Float64Array(last - first + 1);
+  keys.forEach((k, i) => { daily[nums[i] - first] += getKcalTotal(k); });
+  for (let i = 0; i < daily.length; i++) pre[i + 1] = pre[i] + daily[i];
+  return (_load = { first, last, pre, cache: new Map() });
+}
+// Average kcal/day over the n days before the morning `date`; null until enough history.
+function loadAvg(L, morningNum, n) {
+  const end = morningNum - 1, start = Math.max(morningNum - n, L.first);
+  const days = end - start + 1;
+  if (days < (n >= 42 ? 28 : n)) return null;
+  const idx = d => Math.max(0, Math.min(L.last - L.first + 1, d - L.first));
+  return (L.pre[idx(end + 1)] - L.pre[idx(start)]) / days;
+}
+function fitnessFor(date) {
+  const L = loadSeries(); if (!L.first) return null;
+  if (L.cache.has(date)) return L.cache.get(date);
+  const m = dayNum(date), ctl = loadAvg(L, m, 42), atl = loadAvg(L, m, 7);
+  let out = null;
+  if (ctl) {
+    const samples = [];
+    for (let j = 0; j <= 180; j += 7) { const v = loadAvg(L, m - j, 42); if (v) samples.push(v); }
+    if (samples.length >= 4) {
+      const usual = samples.reduce((a, b) => a + b, 0) / samples.length;
+      out = { ctl, atl, usual, f: ctl / usual, acwr: atl !== null ? atl / ctl : null };
+    }
+  }
+  L.cache.set(date, out); return out;
+}
+// The Big day line for the activity of day x, moved by fitness going into that day.
+function bigFor(x, t = tuneSettings) {
+  const m = FIT_MULT[t.fitW ?? TUNE_DEFAULTS.fitW] || 0, fit = m ? fitnessFor(x) : null;
+  if (!fit) return t.bigKcal;
+  return Math.round(t.bigKcal * (1 + Math.max(-0.15, Math.min(0.15, fit.f - 1)) * m) / 50) * 50;
+}
+
 // The activity of day X shows on the morning entry of X+1 (its kcal and TSS tag).
 function activityLoad(x, t = tuneSettings) {
   const kcal = workoutData[x] !== undefined ? getKcalTotal(x) : 0;
   const tag = tagsForDate(isoAdd(x, 1))?.tag || null;
-  return { kcal, tag, big: kcal >= t.bigKcal || BIG_TAGS.has(tag) };
+  const line = bigFor(x, t);
+  return { kcal, tag, line, big: kcal >= line || BIG_TAGS.has(tag) };
 }
 // Your usual sleep: average of stored nights (needs 5), else 7h 30m.
 function sleepNeedFor(t = tuneSettings) {
@@ -5163,6 +5218,19 @@ function computeGrade(date, t = tuneSettings) {
     parts.push({ label: 'Temp', detail: `${fmtTempDev(tDev)} vs baseline`, pts });
     score += pts;
   }
+  // Fitness: shown for context; a fast ramp in load (7-day well above 42-day) costs a little.
+  const fitW = t.fitW ?? TUNE_DEFAULTS.fitW, fm = FIT_MULT[fitW] || 0;
+  const fit = fm ? fitnessFor(date) : null;
+  const eased = !!fit && fit.f >= FIT_EASE[fitW];
+  if (fit) {
+    const pct = Math.round((fit.f - 1) * 100);
+    parts.push({ label: 'Fitness', info: true, detail: `${Math.round(fit.ctl).toLocaleString()} kcal/day over 42 days, ${pct === 0 ? 'as usual' : `${Math.abs(pct)}% ${pct > 0 ? 'above' : 'below'} your usual`} · big day ${bigFor(isoAdd(date, -1), t).toLocaleString()} kcal${eased && t.catchUp > 0 ? ' · catch-up eased' : ''}`, pts: 0 });
+    if (fit.acwr !== null && fit.acwr > 1.3) {
+      const pts = -Math.min(8, (fit.acwr - 1.3) * 20) * fm;
+      parts.push({ label: 'Ramp', detail: `last 7 days ${Math.round((fit.acwr - 1) * 100)}% above your 42-day load`, pts });
+      score += pts;
+    }
+  }
   score = Math.max(0, Math.min(100, score));
   // Score → grade; Caution shifts every cut up (protective) or down (relaxed).
   const shift = t.caution * 6;
@@ -5172,15 +5240,16 @@ function computeGrade(date, t = tuneSettings) {
   // Load caps
   if (t.catchUp > 0) {
     if (y.big) {
-      const cap = y.kcal >= t.bigKcal + 500 ? 'C+' : 'B−';
+      const cap = y.kcal >= y.line + 500 ? 'C+' : 'B−';
       if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: big day yesterday (${y.kcal ? y.kcal.toLocaleString() + ' kcal' : y.tag})`);
       grade = worseGrade(grade, cap);
     } else {
       let n = 0; while (n < 7 && activityLoad(isoAdd(date, -2 - n), t).big) n++;
-      if (n > 0) {
-        const steps = { 1: ['B−', 'C+', 'C'], 2: ['C+', 'C', 'C−'], 3: ['C', 'C−', 'C−'] }[t.catchUp];
+      const cu = t.catchUp - (eased ? 1 : 0);           // fitter than usual → one step lighter
+      if (n > 0 && cu > 0) {
+        const steps = { 1: ['B−', 'C+', 'C'], 2: ['C+', 'C', 'C−'], 3: ['C', 'C−', 'C−'] }[cu];
         const cap = steps[Math.min(n, 3) - 1];
-        if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: catch-up two days after ${n > 1 ? n + ' big days in a row' : 'a big day'}`);
+        if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: catch-up two days after ${n > 1 ? n + ' big days in a row' : 'a big day'}${eased ? ' (eased: fitness high)' : ''}`);
         grade = worseGrade(grade, cap);
       }
     }
@@ -5229,6 +5298,7 @@ function showTuneModal() {
     <div class="tune-sliders">
       ${tuneRow('bigKcal', 'Big day', 1800, 3500, 100)}
       ${tuneRow('catchUp', 'Catch-up', 0, 3, 1)}
+      ${tuneRow('fitW', 'Fitness', 0, 3, 1)}
       ${tuneRow('sleepNeed', 'Sleep need', 330, 510, 15)}
       ${tuneRow('caution', 'Caution', -1, 1, 0.25)}
       ${tuneRow('hrvW', 'HRV weight', 0, 2, 0.1)}
@@ -5265,7 +5335,8 @@ function showTuneModal() {
   overlay.querySelector('.modal').classList.add('tune-modal');
   const box = overlay.querySelector('.modal'); box.style.overflowY = 'auto';
   const val = k => k === 'sleepNeed' ? sleepNeedFor() : tuneSettings[k];
-  const label = (k, v) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
+  const label = (k, v) => k === 'bigKcal' ? (() => { const now = today ? bigFor(isoAdd(today, -1)) : v; return `${v.toLocaleString()} kcal${now !== v ? ` · ${now.toLocaleString()} now` : ''}`; })()
+    : k === 'catchUp' ? CATCHUP_NAMES[v] : k === 'fitW' ? FIT_NAMES[v]
     : k === 'sleepNeed' ? fmtHM(v) + (tuneSettings.sleepNeed ? '' : ' · auto')
     : k === 'caution' ? (v === 0 ? 'Balanced' : v < 0 ? `Relaxed ${Math.round(-v * 4)}` : `Protective ${Math.round(v * 4)}`)
     : `${Number(v).toFixed(1)}×${Number(v) === 1 ? ' · default' : Number(v) === 0 ? ' · off' : ''}`;
@@ -5295,7 +5366,7 @@ function showTuneModal() {
     $('tuneShare').innerHTML = `HRV drives <b>${sh.HRV}%</b> · RHR <b>${sh.RHR}%</b> · Sleep <b>${sh.Sleep}%</b> · other <b>${sh.other}%</b> of the score`;
     $('tuneMatch').innerHTML = m.n ? `Agrees with how you felt on <b>${m.agree} of ${m.n}</b> rated days` : 'Rate how you feel each morning to see how well the grade matches';
     $('tuneWhy').innerHTML = g ? [
-      ...g.parts.map(p => `<div class="tw-row${p.muted ? ' muted' : ''}"><span class="tw-l">${p.label}</span><span class="tw-d">${p.detail}</span><span class="tw-p" style="color:${p.pts > 0.5 ? COLORS.green : p.pts < -0.5 ? COLORS.red : 'var(--muted)'}">${p.pts > 0.5 ? '+' : ''}${Math.round(p.pts)}</span></div>`),
+      ...g.parts.map(p => `<div class="tw-row${p.muted ? ' muted' : ''}"><span class="tw-l">${p.label}</span><span class="tw-d">${p.detail}</span><span class="tw-p" style="color:${p.pts > 0.5 ? COLORS.green : p.pts < -0.5 ? COLORS.red : 'var(--muted)'}">${p.info ? '' : (p.pts > 0.5 ? '+' : '') + Math.round(p.pts)}</span></div>`),
       ...g.caps.map(c => `<div class="tw-cap">${c}</div>`),
       `<div class="tw-foot">Score ${g.score} → ${g.raw}${g.raw !== g.grade ? ` → ${g.grade}` : ''}</div>`].join('') : '';
   };
@@ -5340,12 +5411,17 @@ function showTuneModal() {
 }
 // What each setting does, with examples, shown when its name is tapped.
 const TUNE_INFO = {
-  bigKcal: `<p>The kcal level at which a day counts as <b>big</b>. A big day caps the <b>next morning</b> at B− (C+ if it was 500+ kcal over the line), and sets off the <b>catch-up</b> two mornings later. A 200–300TSS, 300TSS+ or Race tag always counts as big, whatever the kcal.</p>
+  bigKcal: `<p>The kcal level at which a day counts as <b>big</b>, at your usual fitness. A big day caps the <b>next morning</b> at B− (C+ if it was 500+ kcal over the line), and sets off the <b>catch-up</b> two mornings later. A 200–300TSS, 300TSS+ or Race tag always counts as big, whatever the kcal.</p>
+    <p>With <b>Fitness</b> on, the line moves with how fit you are right now; the value after “now” is the line behind this morning's grade.</p>
     <p class="ex"><b>At 2,500:</b> a 2,600 kcal ride caps tomorrow at B− and the day after at C+.<br><b>At 3,000:</b> that same ride is treated as normal — no caps.</p>
     <p class="tip">Lower it if mid-size days still leave you flat; raise it if 2,500 kcal days don't trouble you.</p>`,
   catchUp: `<p>How hard the grade is held back <b>two mornings after</b> a big day — when the fatigue tends to land even if you feel fine — and after back-to-back big days.</p>
     <p class="ex"><b>Off:</b> no load caps at all (the next-morning cap too).<br><b>Light:</b> two days after → B− · after back-to-back → C+ · after three → C<br><b>Medium:</b> C+ · C · C−<br><b>Strong:</b> C · C− · C−</p>
     <p class="ex">After a 2,775 + 2,644 kcal weekend, Tuesday gets <b>C+</b> on Light, <b>C</b> on Medium, <b>C−</b> on Strong.</p>`,
+  fitW: `<p>How much your <b>fitness</b> changes the load rules. Fitness is your average kcal per day over the last 42 days (like CTL), compared with your usual over the past 6 months.</p>
+    <p><b>Fitter than usual:</b> the Big day line moves up and, once you're clearly above usual, the catch-up two mornings after is one step lighter.<br><b>Less fit than usual:</b> the line moves down, so smaller days count as big.<br><b>Load ramping:</b> if your last 7 days run more than 30% above your 42-day average, the score drops a little (up to −8 on Normal).</p>
+    <p class="ex">Usual 1,900 kcal/day, now 2,100 (+11%) with Big day at 2,500:<br><b>Light:</b> big day 2,650 · catch-up eased<br><b>Normal:</b> 2,750 · eased<br><b>Strong:</b> 2,900 · eased<br><b>Off:</b> 2,500, no easing, no ramp check — the rules as before.</p>
+    <p class="tip">Light eases catch-up from +10% above usual, Normal from +5%, Strong from +3%. The line moves at most ±15% on Normal (±22% on Strong).</p>`,
   sleepNeed: `<p>The sleep you need. It sets three things in the grade: <b>last night</b> (−10 per hour short, up to −30; +6 for meeting it), <b>sleep debt</b> (the average shortfall over your last 3 nights, up to −12) and, separately, <b>quality</b> (deep + REM share against your usual, ±6; −4 for 30+ min awake). <b>Auto</b> uses your average once 5 nights are stored (7h 30m until then); moving the slider sets your own.</p>
     <p class="ex"><b>Need 7h 30m:</b> a 6h 30m night costs −10, plus about −3 debt if the two nights before were fine; three 6h 30m nights in a row cost −10 and −8 debt.<br><b>Need 6h 30m:</b> the same 6h 30m night earns +6.</p>`,
   caution: `<p>How readily the grade drops. <b>Protective</b> raises every grade's cut-off, so the same score lands a grade lower; <b>Relaxed</b> lowers them. It doesn't change the load caps or illness rules.</p>
@@ -5497,6 +5573,9 @@ async function init() {
   if (getGHToken()) {
     const loaded = await loadFromGitHub();
     if (!loaded) {
+      // GitHub unreachable (offline) or no file yet: use this device's copy, so the app
+      // never runs on an empty list that a save would then write over the stored one.
+      load();
       const saved = await saveToGitHub();
       if (!saved) showToast('Could not reach GitHub — check your token');
     } else {
