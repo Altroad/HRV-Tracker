@@ -1547,7 +1547,7 @@
     "rhrW": 1.3,
     "favourite": {
       "settings": {
-        "bigKcal": 2800,
+        "bigKcal": 2600,
         "catchUp": 1,
         "fitness": 3,
         "sleepNeed": 390,
@@ -1555,9 +1555,9 @@
         "hrvW": 1,
         "rhrW": 1.3
       },
-      "savedAt": 1794983535695
+      "savedAt": 1794983602327
     },
-    "updatedAt": 1794983584565
+    "updatedAt": 1794983603610
   },
   "rhr": {
     "2026-05-15": 39,
