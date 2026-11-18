@@ -1538,7 +1538,6 @@
     }
   },
   "tune": {
-    "bigKcal": 2500,
     "catchUp": 1,
     "fitness": 3,
     "sleepNeed": 390,
@@ -1547,7 +1546,6 @@
     "rhrW": 1.3,
     "favourite": {
       "settings": {
-        "bigKcal": 2600,
         "catchUp": 1,
         "fitness": 3,
         "sleepNeed": 390,
@@ -1557,7 +1555,7 @@
       },
       "savedAt": 1794983602327
     },
-    "updatedAt": 1794984546783
+    "updatedAt": 1794985651519
   },
   "rhr": {
     "2026-05-15": 39,
