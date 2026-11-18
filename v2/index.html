@@ -193,7 +193,7 @@
   .tf-star { color:var(--muted); font-size:14px; }
   .tf-star.on { color:#f5b301; }
   .tf-confirm { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px; animation:tfIn .18s ease-out; }
-  .tune-fav [hidden] { display:none !important; }
+  .tf-confirm[hidden], .tune-modal .modal-actions[hidden] { display:none !important; }
   .tf-q { font-size:13.5px; font-weight:600; color:var(--text); text-align:center; }
   .tf-confirm .modal-actions { margin-top:2px; }
   @keyframes tfIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
@@ -646,7 +646,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.10';
+const APP_VERSION = '2.1.11';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5252,9 +5252,16 @@ function showTuneModal() {
         </div>
       </div>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" id="tuneEndActions">
       <button class="modal-btn cancel" data-reset>Reset to defaults</button>
       <button class="modal-btn" data-close>Done</button>
+    </div>
+    <div class="tf-confirm" id="tuneResetConfirm" hidden>
+      <div class="tf-q">Are you sure? This resets all settings to the defaults.</div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" data-reset-no>Cancel</button>
+        <button class="modal-btn" data-reset-yes>Yes, reset</button>
+      </div>
     </div>
   `);
   overlay.querySelector('.modal').classList.add('tune-modal');
@@ -5282,6 +5289,8 @@ function showTuneModal() {
       : (onDefault ? 'On the defaults · no favourite saved yet' : 'No favourite saved yet — save these settings to get back to them later');
     const restoreBtn = overlay.querySelector('[data-fav-restore]');
     restoreBtn.disabled = !fav || onFav; restoreBtn.style.opacity = restoreBtn.disabled ? '0.45' : '';
+    const resetBtn = overlay.querySelector('[data-reset]');
+    resetBtn.disabled = onDefault; resetBtn.style.opacity = onDefault ? '0.45' : '';
     const saveBtn = overlay.querySelector('[data-fav-save]');
     saveBtn.disabled = !!onFav; saveBtn.style.opacity = saveBtn.disabled ? '0.45' : '';
     const sh = gradeShares();
@@ -5300,8 +5309,10 @@ function showTuneModal() {
     overlay.querySelectorAll('[data-info]').forEach(b => { b.setAttribute('aria-expanded', 'false'); $('tuneInfo-' + b.dataset.info).hidden = true; });
     if (open) { btn.setAttribute('aria-expanded', 'true'); $('tuneInfo-' + btn.dataset.info).hidden = false; }
   }));
-  // Saving over an existing favourite asks first.
-  const favConfirm = on => { $('tuneFavConfirm').hidden = !on; $('tuneFavActions').hidden = on; };
+  // Saving over an existing favourite, and resetting, ask first. Only one question shows at a time.
+  const ask = (box, row, on) => { $(box).hidden = !on; $(row).hidden = on; };
+  const favConfirm = on => { ask('tuneFavConfirm', 'tuneFavActions', on); if (on) ask('tuneResetConfirm', 'tuneEndActions', false); else resetConfirm(false); };
+  const resetConfirm = on => { ask('tuneResetConfirm', 'tuneEndActions', on); if (on) ask('tuneFavConfirm', 'tuneFavActions', false); };
   const saveFav = () => {
     tuneSettings.favourite = { settings: tunePick(tuneSettings), savedAt: Date.now() };
     favConfirm(false); saveTune(false); paint(); showToast('★ Favourite saved');
@@ -5316,7 +5327,9 @@ function showTuneModal() {
     const fav = tuneSettings.favourite; if (!fav) return;
     Object.assign(tuneSettings, fav.settings); favConfirm(false); saveTune(false); paint(); render(); showToast('Favourite restored');
   });
-  overlay.querySelector('[data-reset]').addEventListener('click', () => {
+  overlay.querySelector('[data-reset]').addEventListener('click', () => resetConfirm(true));
+  overlay.querySelector('[data-reset-no]').addEventListener('click', () => resetConfirm(false));
+  overlay.querySelector('[data-reset-yes]').addEventListener('click', () => {
     const favourite = tuneSettings.favourite;
     tuneSettings = { ...TUNE_DEFAULTS, ...(favourite ? { favourite } : {}) };
     favConfirm(false); saveTune(false); paint(); render();
