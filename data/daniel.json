@@ -1538,7 +1538,7 @@
     }
   },
   "tune": {
-    "bigKcal": 2800,
+    "bigKcal": 2600,
     "catchUp": 1,
     "fitness": 3,
     "sleepNeed": 390,
@@ -1557,7 +1557,7 @@
       },
       "savedAt": 1794983535695
     },
-    "updatedAt": 1794983537585
+    "updatedAt": 1794983584565
   },
   "rhr": {
     "2026-05-15": 39,
