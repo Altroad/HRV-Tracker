@@ -188,6 +188,10 @@
   .tune-row input[type=range] { width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:var(--surface3); outline:none; }
   .tune-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:24px; height:24px; border-radius:50%; background:var(--surface); border:3px solid var(--accent); box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:pointer; }
   .tune-row input[type=range]::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:var(--surface); border:3px solid var(--accent); cursor:pointer; }
+  .tune-fav { display:flex; flex-direction:column; gap:8px; }
+  .tf-status { font-size:12.5px; color:var(--text-2); text-align:center; }
+  .tf-star { color:var(--muted); font-size:14px; }
+  .tf-star.on { color:#f5b301; }
   .tune-share { font-size:12px; color:var(--text-2); text-align:center; margin-top:-2px; }
   .tune-share b { color:var(--text); }
   .tune-why { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
@@ -636,7 +640,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.7';
+const APP_VERSION = '2.1.8';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5033,6 +5037,11 @@ const GRADE_CUTS = [92, 86, 80, 75, 70, 65, 58, 50];           // score ≥ cut 
 const BIG_TAGS = new Set(['200-300TSS', '300TSS+', 'Race']);
 const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
+// The slider values a favourite saves and restores (it lives inside tuneSettings so it
+// syncs with them, and Reset keeps it).
+const TUNE_KEYS = ['bigKcal', 'catchUp', 'sleepNeed', 'caution', 'hrvW', 'rhrW'];
+const tunePick = t => Object.fromEntries(TUNE_KEYS.map(k => [k, t[k] ?? TUNE_DEFAULTS[k]]));
+const tuneMatches = (a, b) => TUNE_KEYS.every(k => (a[k] ?? TUNE_DEFAULTS[k]) === (b[k] ?? TUNE_DEFAULTS[k]));
 const TUNE_KEY = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_tune_${u}_v1` : 'hrv_tune_v1'; };
 let tuneSettings = { ...TUNE_DEFAULTS, updatedAt: 0 };
 // Older settings had one HRV↔RHR balance ('tone', −1…+1); turn it into the two weights.
@@ -5223,8 +5232,15 @@ function showTuneModal() {
       <div class="tune-share" id="tuneShare"></div>
     </div>
     <div class="tune-why"><div class="tune-why-h">Why this grade</div><div id="tuneWhy"></div></div>
+    <div class="tune-fav">
+      <div class="tf-status" id="tuneFavStatus"></div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" data-fav-save>★ Save favourite</button>
+        <button class="modal-btn cancel" data-fav-restore>Restore favourite</button>
+      </div>
+    </div>
     <div class="modal-actions">
-      <button class="modal-btn cancel" data-reset>Reset</button>
+      <button class="modal-btn cancel" data-reset>Reset to defaults</button>
       <button class="modal-btn" data-close>Done</button>
     </div>
   `);
@@ -5244,6 +5260,15 @@ function showTuneModal() {
     $('tuneStrip').innerHTML = days.map(d => { const x = computeGrade(d); const dt = new Date(d + 'T12:00:00');
       return `<div class="ts-cell" title="${d}"><div class="ts-g" style="background:${x.color}">${x.grade}</div><div class="ts-d">${'SMTWTFS'[dt.getDay()]}</div></div>`; }).join('');
     const m = feelAgreement();
+    const fav = tuneSettings.favourite;
+    const onFav = fav && tuneMatches(tuneSettings, fav.settings);
+    const onDefault = tuneMatches(tuneSettings, TUNE_DEFAULTS);
+    $('tuneFavStatus').innerHTML = fav
+      ? (onFav ? `<span class="tf-star on">★</span> On your favourite · saved ${new Date(fav.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+               : `<span class="tf-star">☆</span> Not on your favourite (saved ${new Date(fav.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})`)
+      : (onDefault ? 'On the defaults · no favourite saved yet' : 'No favourite saved yet — save these settings to get back to them later');
+    const restoreBtn = overlay.querySelector('[data-fav-restore]');
+    restoreBtn.disabled = !fav || onFav; restoreBtn.style.opacity = restoreBtn.disabled ? '0.45' : '';
     const sh = gradeShares();
     $('tuneShare').innerHTML = `HRV drives <b>${sh.HRV}%</b> · RHR <b>${sh.RHR}%</b> · Sleep <b>${sh.Sleep}%</b> · other <b>${sh.other}%</b> of the score`;
     $('tuneMatch').innerHTML = m.n ? `Agrees with how you felt on <b>${m.agree} of ${m.n}</b> rated days` : 'Rate how you feel each morning to see how well the grade matches';
@@ -5260,7 +5285,20 @@ function showTuneModal() {
     overlay.querySelectorAll('[data-info]').forEach(b => { b.setAttribute('aria-expanded', 'false'); $('tuneInfo-' + b.dataset.info).hidden = true; });
     if (open) { btn.setAttribute('aria-expanded', 'true'); $('tuneInfo-' + btn.dataset.info).hidden = false; }
   }));
-  overlay.querySelector('[data-reset]').addEventListener('click', () => { tuneSettings = { ...TUNE_DEFAULTS }; saveTune(false); paint(); render(); showToast('Tune reset to defaults'); });
+  overlay.querySelector('[data-fav-save]').addEventListener('click', () => {
+    tuneSettings.favourite = { settings: tunePick(tuneSettings), savedAt: Date.now() };
+    saveTune(false); paint(); showToast('★ Favourite saved');
+  });
+  overlay.querySelector('[data-fav-restore]').addEventListener('click', () => {
+    const fav = tuneSettings.favourite; if (!fav) return;
+    Object.assign(tuneSettings, fav.settings); saveTune(false); paint(); render(); showToast('Favourite restored');
+  });
+  overlay.querySelector('[data-reset]').addEventListener('click', () => {
+    const favourite = tuneSettings.favourite;
+    tuneSettings = { ...TUNE_DEFAULTS, ...(favourite ? { favourite } : {}) };
+    saveTune(false); paint(); render();
+    showToast(favourite ? 'Reset to defaults — Restore favourite brings yours back' : 'Tune reset to defaults');
+  });
   const done = () => { saveTune(true); overlay.remove(); };
   overlay.querySelector('[data-close]').addEventListener('click', done);
   overlay.addEventListener('click', e => { if (e.target === overlay) saveTune(true); });
