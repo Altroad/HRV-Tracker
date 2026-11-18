@@ -1538,13 +1538,24 @@
     }
   },
   "tune": {
-    "bigKcal": 2500,
-    "catchUp": 2,
-    "sleepNeed": null,
+    "bigKcal": 2800,
+    "catchUp": 1,
+    "sleepNeed": 360,
     "caution": 0,
-    "hrvW": 1,
-    "rhrW": 1,
-    "updatedAt": 1794963520313
+    "hrvW": 0.8,
+    "rhrW": 1.1,
+    "favourite": {
+      "settings": {
+        "bigKcal": 2800,
+        "catchUp": 1,
+        "sleepNeed": 360,
+        "caution": 0,
+        "hrvW": 0.8,
+        "rhrW": 1.1
+      },
+      "savedAt": 1794963900140
+    },
+    "updatedAt": 1794964060565
   },
   "rhr": {
     "2026-05-15": 39,
