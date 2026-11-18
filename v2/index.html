@@ -192,6 +192,16 @@
   .tf-status { font-size:12.5px; color:var(--text-2); text-align:center; }
   .tf-star { color:var(--muted); font-size:14px; }
   .tf-star.on { color:#f5b301; }
+  .tf-confirm { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px; animation:tfIn .18s ease-out; }
+  .tune-fav [hidden] { display:none !important; }
+  .tf-q { font-size:13.5px; font-weight:600; color:var(--text); text-align:center; }
+  .tf-diff { font-size:12.5px; color:var(--text-2); display:grid; grid-template-columns:auto 1fr; gap:3px 10px; padding:0 4px; }
+  .tf-diff .k { color:var(--text-2); }
+  .tf-diff .v { color:var(--text); text-align:right; font-variant-numeric:tabular-nums; }
+  .tf-note { font-size:12px; color:var(--text-2); text-align:center; }
+  .tf-confirm .modal-actions { margin-top:2px; }
+  @keyframes tfIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { .tf-confirm { animation:none; } }
   .tune-share { font-size:12px; color:var(--text-2); text-align:center; margin-top:-2px; }
   .tune-share b { color:var(--text); }
   .tune-why { background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; }
@@ -640,7 +650,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.8';
+const APP_VERSION = '2.1.9';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5234,9 +5244,18 @@ function showTuneModal() {
     <div class="tune-why"><div class="tune-why-h">Why this grade</div><div id="tuneWhy"></div></div>
     <div class="tune-fav">
       <div class="tf-status" id="tuneFavStatus"></div>
-      <div class="modal-actions">
+      <div class="modal-actions" id="tuneFavActions">
         <button class="modal-btn cancel" data-fav-save>★ Save favourite</button>
         <button class="modal-btn cancel" data-fav-restore>Restore favourite</button>
+      </div>
+      <div class="tf-confirm" id="tuneFavConfirm" hidden>
+        <div class="tf-q" id="tuneFavQ"></div>
+        <div class="tf-diff" id="tuneFavDiff"></div>
+        <div class="tf-note" id="tuneFavNote"></div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" data-fav-no>Keep old favourite</button>
+          <button class="modal-btn" data-fav-yes>Replace it</button>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -5247,8 +5266,8 @@ function showTuneModal() {
   overlay.querySelector('.modal').classList.add('tune-modal');
   const box = overlay.querySelector('.modal'); box.style.overflowY = 'auto';
   const val = k => k === 'sleepNeed' ? sleepNeedFor() : tuneSettings[k];
-  const label = (k, v) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
-    : k === 'sleepNeed' ? fmtHM(v) + (tuneSettings.sleepNeed ? '' : ' · auto')
+  const label = (k, v, t = tuneSettings) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
+    : k === 'sleepNeed' ? fmtHM(v) + (t.sleepNeed ? '' : ' · auto')
     : k === 'caution' ? (v === 0 ? 'Balanced' : v < 0 ? `Relaxed ${Math.round(-v * 4)}` : `Protective ${Math.round(v * 4)}`)
     : `${Number(v).toFixed(1)}×${Number(v) === 1 ? ' · default' : Number(v) === 0 ? ' · off' : ''}`;
   const paint = () => {
@@ -5269,6 +5288,8 @@ function showTuneModal() {
       : (onDefault ? 'On the defaults · no favourite saved yet' : 'No favourite saved yet — save these settings to get back to them later');
     const restoreBtn = overlay.querySelector('[data-fav-restore]');
     restoreBtn.disabled = !fav || onFav; restoreBtn.style.opacity = restoreBtn.disabled ? '0.45' : '';
+    const saveBtn = overlay.querySelector('[data-fav-save]');
+    saveBtn.disabled = !!onFav; saveBtn.style.opacity = saveBtn.disabled ? '0.45' : '';
     const sh = gradeShares();
     $('tuneShare').innerHTML = `HRV drives <b>${sh.HRV}%</b> · RHR <b>${sh.RHR}%</b> · Sleep <b>${sh.Sleep}%</b> · other <b>${sh.other}%</b> of the score`;
     $('tuneMatch').innerHTML = m.n ? `Agrees with how you felt on <b>${m.agree} of ${m.n}</b> rated days` : 'Rate how you feel each morning to see how well the grade matches';
@@ -5278,25 +5299,42 @@ function showTuneModal() {
       `<div class="tw-foot">Score ${g.score} → ${g.raw}${g.raw !== g.grade ? ` → ${g.grade}` : ''}</div>`].join('') : '';
   };
   overlay.querySelectorAll('input[data-k]').forEach(inp => inp.addEventListener('input', () => {
-    const k = inp.dataset.k; tuneSettings[k] = Number(inp.value); saveTune(false); paint(); render();
+    const k = inp.dataset.k; tuneSettings[k] = Number(inp.value); favConfirm(false); saveTune(false); paint(); render();
   }));
   overlay.querySelectorAll('[data-info]').forEach(btn => btn.addEventListener('click', () => {
     const open = btn.getAttribute('aria-expanded') !== 'true';
     overlay.querySelectorAll('[data-info]').forEach(b => { b.setAttribute('aria-expanded', 'false'); $('tuneInfo-' + b.dataset.info).hidden = true; });
     if (open) { btn.setAttribute('aria-expanded', 'true'); $('tuneInfo-' + btn.dataset.info).hidden = false; }
   }));
-  overlay.querySelector('[data-fav-save]').addEventListener('click', () => {
+  // Saving over an existing favourite asks first, listing exactly what would change.
+  const TUNE_NAMES = { bigKcal: 'Big day', catchUp: 'Catch-up', sleepNeed: 'Sleep need', caution: 'Caution', hrvW: 'HRV weight', rhrW: 'RHR weight' };
+  const favConfirm = on => { $('tuneFavConfirm').hidden = !on; $('tuneFavActions').hidden = on; };
+  const saveFav = () => {
     tuneSettings.favourite = { settings: tunePick(tuneSettings), savedAt: Date.now() };
-    saveTune(false); paint(); showToast('★ Favourite saved');
+    favConfirm(false); saveTune(false); paint(); showToast('★ Favourite saved');
+  };
+  overlay.querySelector('[data-fav-save]').addEventListener('click', () => {
+    const fav = tuneSettings.favourite;
+    if (!fav) return saveFav();
+    const old = { ...TUNE_DEFAULTS, ...fav.settings };
+    const v = (k, t) => k === 'sleepNeed' ? sleepNeedFor(t) : t[k];
+    const diff = TUNE_KEYS.filter(k => (old[k] ?? null) !== (tuneSettings[k] ?? null));
+    $('tuneFavQ').textContent = `Replace your favourite from ${new Date(fav.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}?`;
+    $('tuneFavDiff').innerHTML = diff.map(k => `<span class="k">${TUNE_NAMES[k]}</span><span class="v">${label(k, v(k, old), old)} → <b>${label(k, v(k, tuneSettings))}</b></span>`).join('');
+    $('tuneFavNote').textContent = tuneMatches(tuneSettings, TUNE_DEFAULTS) ? 'These are the default settings — did you mean Restore favourite?' : '';
+    $('tuneFavNote').hidden = !$('tuneFavNote').textContent;
+    favConfirm(true);
   });
+  overlay.querySelector('[data-fav-yes]').addEventListener('click', saveFav);
+  overlay.querySelector('[data-fav-no]').addEventListener('click', () => favConfirm(false));
   overlay.querySelector('[data-fav-restore]').addEventListener('click', () => {
     const fav = tuneSettings.favourite; if (!fav) return;
-    Object.assign(tuneSettings, fav.settings); saveTune(false); paint(); render(); showToast('Favourite restored');
+    Object.assign(tuneSettings, fav.settings); favConfirm(false); saveTune(false); paint(); render(); showToast('Favourite restored');
   });
   overlay.querySelector('[data-reset]').addEventListener('click', () => {
     const favourite = tuneSettings.favourite;
     tuneSettings = { ...TUNE_DEFAULTS, ...(favourite ? { favourite } : {}) };
-    saveTune(false); paint(); render();
+    favConfirm(false); saveTune(false); paint(); render();
     showToast(favourite ? 'Reset to defaults — Restore favourite brings yours back' : 'Tune reset to defaults');
   });
   const done = () => { saveTune(true); overlay.remove(); };
