@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.4.2';
+const APP_VERSION = '2.4.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5635,6 +5635,7 @@ async function init() {
   let _lastSyncTs = Date.now();
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState !== 'visible') return;
+    setHeaderDate();                       // the app may have sat in the background since yesterday
     checkForUpdate();
     if (!getGHToken()) return;
     // Unthrottled, so a Shortcut run while the app sits in the background is
