@@ -195,10 +195,6 @@
   .tf-confirm { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px; animation:tfIn .18s ease-out; }
   .tune-fav [hidden] { display:none !important; }
   .tf-q { font-size:13.5px; font-weight:600; color:var(--text); text-align:center; }
-  .tf-diff { font-size:12.5px; color:var(--text-2); display:grid; grid-template-columns:auto 1fr; gap:3px 10px; padding:0 4px; }
-  .tf-diff .k { color:var(--text-2); }
-  .tf-diff .v { color:var(--text); text-align:right; font-variant-numeric:tabular-nums; }
-  .tf-note { font-size:12px; color:var(--text-2); text-align:center; }
   .tf-confirm .modal-actions { margin-top:2px; }
   @keyframes tfIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
   @media (prefers-reduced-motion: reduce) { .tf-confirm { animation:none; } }
@@ -650,7 +646,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.9';
+const APP_VERSION = '2.1.10';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5249,12 +5245,10 @@ function showTuneModal() {
         <button class="modal-btn cancel" data-fav-restore>Restore favourite</button>
       </div>
       <div class="tf-confirm" id="tuneFavConfirm" hidden>
-        <div class="tf-q" id="tuneFavQ"></div>
-        <div class="tf-diff" id="tuneFavDiff"></div>
-        <div class="tf-note" id="tuneFavNote"></div>
+        <div class="tf-q">Are you sure? This replaces your saved favourite.</div>
         <div class="modal-actions">
-          <button class="modal-btn cancel" data-fav-no>Keep old favourite</button>
-          <button class="modal-btn" data-fav-yes>Replace it</button>
+          <button class="modal-btn cancel" data-fav-no>Cancel</button>
+          <button class="modal-btn" data-fav-yes>Yes, save</button>
         </div>
       </div>
     </div>
@@ -5266,8 +5260,8 @@ function showTuneModal() {
   overlay.querySelector('.modal').classList.add('tune-modal');
   const box = overlay.querySelector('.modal'); box.style.overflowY = 'auto';
   const val = k => k === 'sleepNeed' ? sleepNeedFor() : tuneSettings[k];
-  const label = (k, v, t = tuneSettings) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
-    : k === 'sleepNeed' ? fmtHM(v) + (t.sleepNeed ? '' : ' · auto')
+  const label = (k, v) => k === 'bigKcal' ? `${v.toLocaleString()} kcal` : k === 'catchUp' ? CATCHUP_NAMES[v]
+    : k === 'sleepNeed' ? fmtHM(v) + (tuneSettings.sleepNeed ? '' : ' · auto')
     : k === 'caution' ? (v === 0 ? 'Balanced' : v < 0 ? `Relaxed ${Math.round(-v * 4)}` : `Protective ${Math.round(v * 4)}`)
     : `${Number(v).toFixed(1)}×${Number(v) === 1 ? ' · default' : Number(v) === 0 ? ' · off' : ''}`;
   const paint = () => {
@@ -5306,23 +5300,14 @@ function showTuneModal() {
     overlay.querySelectorAll('[data-info]').forEach(b => { b.setAttribute('aria-expanded', 'false'); $('tuneInfo-' + b.dataset.info).hidden = true; });
     if (open) { btn.setAttribute('aria-expanded', 'true'); $('tuneInfo-' + btn.dataset.info).hidden = false; }
   }));
-  // Saving over an existing favourite asks first, listing exactly what would change.
-  const TUNE_NAMES = { bigKcal: 'Big day', catchUp: 'Catch-up', sleepNeed: 'Sleep need', caution: 'Caution', hrvW: 'HRV weight', rhrW: 'RHR weight' };
+  // Saving over an existing favourite asks first.
   const favConfirm = on => { $('tuneFavConfirm').hidden = !on; $('tuneFavActions').hidden = on; };
   const saveFav = () => {
     tuneSettings.favourite = { settings: tunePick(tuneSettings), savedAt: Date.now() };
     favConfirm(false); saveTune(false); paint(); showToast('★ Favourite saved');
   };
   overlay.querySelector('[data-fav-save]').addEventListener('click', () => {
-    const fav = tuneSettings.favourite;
-    if (!fav) return saveFav();
-    const old = { ...TUNE_DEFAULTS, ...fav.settings };
-    const v = (k, t) => k === 'sleepNeed' ? sleepNeedFor(t) : t[k];
-    const diff = TUNE_KEYS.filter(k => (old[k] ?? null) !== (tuneSettings[k] ?? null));
-    $('tuneFavQ').textContent = `Replace your favourite from ${new Date(fav.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}?`;
-    $('tuneFavDiff').innerHTML = diff.map(k => `<span class="k">${TUNE_NAMES[k]}</span><span class="v">${label(k, v(k, old), old)} → <b>${label(k, v(k, tuneSettings))}</b></span>`).join('');
-    $('tuneFavNote').textContent = tuneMatches(tuneSettings, TUNE_DEFAULTS) ? 'These are the default settings — did you mean Restore favourite?' : '';
-    $('tuneFavNote').hidden = !$('tuneFavNote').textContent;
+    if (!tuneSettings.favourite) return saveFav();
     favConfirm(true);
   });
   overlay.querySelector('[data-fav-yes]').addEventListener('click', saveFav);
