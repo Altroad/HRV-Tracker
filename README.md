@@ -144,7 +144,7 @@ A morning rating at the top of the Today panel, so subjective feel can be compar
 ## Tags & ectopy
 
 Tap a tag pill (or **TAG**) to open the picker. Lit options are active; tap to toggle. Days without an HRV reading (e.g. travel days logged with only RHR or kcal) can be tagged too; the tags move onto the HRV reading if one is logged for that day later.
-- **Training load** (one at a time): Rest, Active Recovery, <100TSS, 100-200TSS, 200-300TSS, 300TSS+, Race
+- **Training load** (one at a time): Rest, Active Recovery, <100TSS, 100-150TSS, 150-200TSS, 200-250TSS, 250TSS+, Race. *(v2; the classic app and days tagged before v2.4 use the wider 100-200 / 200-300 / 300+ brackets, which still show and filter.)*
 - **Sick · Sauna · Cold**: independent toggles
 - **Ectopy (PACs)**, one grade, logged on the morning entry for the previous day's ride:
   - **ECT X:** untested — the ride stayed below ~120 bpm, so nothing could provoke it

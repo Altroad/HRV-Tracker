@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.3.1';
+const APP_VERSION = '2.4.0';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -737,12 +737,20 @@ const TAGS = [
   { label:'Rest',              color:'#4caf50' },
   { label:'Active Recovery',   color:'#00bcd4' },
   { label:'<100TSS',           color:'#ff9800' },
+  { label:'100-150TSS',        color:'#ffd600' },
+  { label:'150-200TSS',        color:'#b388ff' },
+  { label:'200-250TSS',        color:'#536dfe' },
+  { label:'250TSS+',           color:'#e040fb' },
+  { label:'Race',              color:'#ff80ab' },
+];
+// The earlier, wider brackets. Days already tagged with them keep their tag (it can't
+// be split after the fact); they still show, filter and count, but aren't offered.
+const LEGACY_TAGS = [
   { label:'100-200TSS',        color:'#ffd600' },
   { label:'200-300TSS',        color:'#536dfe' },
   { label:'300TSS+',           color:'#e040fb' },
-  { label:'Race',              color:'#ff80ab' },
 ];
-const TAG_MAP = Object.fromEntries(TAGS.map(t => [t.label, t.color]));
+const TAG_MAP = Object.fromEntries([...TAGS, ...LEGACY_TAGS].map(t => [t.label, t.color]));
 // Add-on activity tags. A reading has one training-load tag (above) plus any of
 // these alongside it, so a ride day can also be marked Sauna and/or Cold.
 const EXTRA_TAGS = [
@@ -1648,7 +1656,7 @@ function buildJournalCards(filter, search, sort, sortDir) {
   const tagSet = new Set([...readings, ...Object.values(dayTags)].flatMap(r => [r.tag, ...(r.extras || []), ectopyOf(r)?.label]).filter(Boolean));
   Object.keys(feelData).forEach(d => { const f = feelOf(d); if (f) tagSet.add(feelFilterLabel(f)); });
   const gradeByDate = {}; readings.forEach(r => { const g = computeGrade(r.date); if (g) { gradeByDate[r.date] = g; tagSet.add('Grade · ' + g.word); } });
-  const tags = [...[...TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label), ...FEEL_LEVELS.slice(1).map(feelFilterLabel), ...['Prime', 'Ready', 'Steady', 'Recover'].map(w => 'Grade · ' + w)].filter(l => tagSet.has(l));
+  const tags = [...[...TAGS, ...LEGACY_TAGS, ...EXTRA_TAGS, ...ECTOPY_GRADES].map(t => t.label), ...FEEL_LEVELS.slice(1).map(feelFilterLabel), ...['Prime', 'Ready', 'Steady', 'Recover'].map(w => 'Grade · ' + w)].filter(l => tagSet.has(l));
 
   let dates = [...dateSet].sort((a, b) => b.localeCompare(a));
   if (filter) dates = dates.filter(date => { const r = readingByDate[date] || dayTags[date]; const f = feelOf(date); if (f && feelFilterLabel(f) === filter) return true; if (gradeByDate[date] && 'Grade · ' + gradeByDate[date].word === filter) return true; return r?.tag === filter || !!r?.extras?.includes(filter) || ectopyOf(r)?.label === filter; });
@@ -4764,7 +4772,7 @@ function showInfoModal() {
 
       <strong style="color:var(--accent);letter-spacing:1px;">TAGS</strong><br>
       Tap a tag pill (or <em>TAG</em>) on the Today panel or an Analysis entry to open the picker at the bottom of the screen. Lit options are active; tap to switch on or off, and the picker stays open until you tap outside it.<br>
-      <strong>Training load</strong> — Rest, Active Recovery, &lt;100TSS … 300TSS+, Race. One at a time.<br>
+      <strong>Training load</strong> — Rest, Active Recovery, &lt;100 · 100–150 · 150–200 · 200–250 · 250+ TSS, Race. One at a time.<br>
       <strong>Sick · Sauna · Cold</strong> — independent toggles that can sit alongside a training tag.<br>
       <strong>Ectopy</strong> — one grade at a time (below).<br><br>
 
@@ -5038,7 +5046,7 @@ function syncResultTempWithData() {
 // and illness forces Recover. Every step is recorded so the breakdown can explain it.
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
 const GRADE_CUTS = [92, 86, 80, 75, 70, 65, 58, 50];           // score ≥ cut → that grade; below the last → C−
-const BIG_TAGS = new Set(['200-300TSS', '300TSS+', 'Race']);
+const BIG_TAGS = new Set(['200-250TSS', '250TSS+', 'Race', '200-300TSS', '300TSS+']);
 const TUNE_DEFAULTS = { catchUp: 2, fitness: 2, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
 // Your current fitness, as you judge it (watts, results, how training is going): a bracket
@@ -5435,7 +5443,7 @@ const TUNE_INFO = {
     <p class="ex">After a 2,775 + 2,644 kcal weekend, Tuesday gets <b>C+</b> on Light, <b>C</b> on Medium, <b>C−</b> on Strong.</p>`,
   fitness: () => { const b = bigBase(), at = f => bigFor('', { fitness: f }).toLocaleString();
     return `<p>Where your <b>fitness</b> is right now, as you judge it from your watts, results and how training is going. It's a bracket: too little and you can't back up day after day, too much and you're carrying fatigue. The sweet spot is where you absorb load best.</p>
-    <p>It sets the <b>big day</b> line. A big day caps the <b>next morning</b> at B− (C+ if it was 500+ kcal over the line) and sets off the <b>catch-up</b> two mornings later. A 200–300TSS, 300TSS+ or Race tag always counts as big. Your usual big day is <b>${b.toLocaleString()} kcal</b>: 8% above your typical training day over the last year, so it follows your own numbers.</p>
+    <p>It sets the <b>big day</b> line. A big day caps the <b>next morning</b> at B− (C+ if it was 500+ kcal over the line) and sets off the <b>catch-up</b> two mornings later. A 200–250TSS, 250TSS+ or Race tag always counts as big. Your usual big day is <b>${b.toLocaleString()} kcal</b>: 8% above your typical training day over the last year, so it follows your own numbers.</p>
     <p class="ex"><b>Light:</b> big day ${at(0)} · catch-up a step firmer<br><b>Base:</b> ${at(1)}<br><b>Good:</b> ${at(2)} · no change<br><b>Sweet spot:</b> ${at(3)} · catch-up a step lighter<br><b>High:</b> ${at(4)}<br><b>Over:</b> ${at(5)} · catch-up a step firmer</p>
     <p class="tip">Move it as your form changes. "Why this grade" also shows your 42-day load (average kcal per day, like CTL) as a reference, and a load <b>ramp</b> — the last 7 days more than 30% above that — always costs a few points.</p>`; },
 
