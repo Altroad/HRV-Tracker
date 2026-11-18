@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.2.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5039,14 +5039,14 @@ function syncResultTempWithData() {
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
 const GRADE_CUTS = [92, 86, 80, 75, 70, 65, 58, 50];           // score ≥ cut → that grade; below the last → C−
 const BIG_TAGS = new Set(['200-300TSS', '300TSS+', 'Race']);
-const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, fitW: 2, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
+const TUNE_DEFAULTS = { bigKcal: 2500, catchUp: 2, fitW: 2, sweetSpot: null, sleepNeed: null, caution: 0, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
 const FIT_NAMES = ['Off', 'Light', 'Normal', 'Strong'];
 const FIT_MULT = [0, 0.5, 1, 1.5];            // how far fitness moves the Big day line
-const FIT_EASE = [Infinity, 1.10, 1.05, 1.03]; // fitness vs usual at which catch-up eases a step
+const SWEET_BAND = 0.10;                        // the sweet spot is ±10% around its centre
 // The slider values a favourite saves and restores (it lives inside tuneSettings so it
 // syncs with them, and Reset keeps it).
-const TUNE_KEYS = ['bigKcal', 'catchUp', 'fitW', 'sleepNeed', 'caution', 'hrvW', 'rhrW'];
+const TUNE_KEYS = ['bigKcal', 'catchUp', 'fitW', 'sweetSpot', 'sleepNeed', 'caution', 'hrvW', 'rhrW'];
 const tunePick = t => Object.fromEntries(TUNE_KEYS.map(k => [k, t[k] ?? TUNE_DEFAULTS[k]]));
 const tuneMatches = (a, b) => TUNE_KEYS.every(k => (a[k] ?? TUNE_DEFAULTS[k]) === (b[k] ?? TUNE_DEFAULTS[k]));
 const TUNE_KEY = () => { const u = localStorage.getItem(GH_USER_KEY); return u ? `hrv_tune_${u}_v1` : 'hrv_tune_v1'; };
@@ -5110,11 +5110,21 @@ function fitnessFor(date) {
   }
   L.cache.set(date, out); return out;
 }
+// Fitness is a sweet spot, not "more is better": within ±10% of it you back up best
+// (Big day line +10%, catch-up a step lighter); outside it, too little fitness to back
+// up or too much accumulated fatigue, the line falls with the distance (to −15%).
+// The centre is your Sweet spot setting, or your 6-month usual on Auto.
+const sweetCentre = (fit, t = tuneSettings) => t.sweetSpot || fit.usual;
+function sweetPos(fit, t = tuneSettings) {
+  const c = sweetCentre(fit, t), d = (fit.ctl - c) / c;
+  const excess = Math.max(0, Math.abs(d) - SWEET_BAND);
+  return { centre: c, d, inSpot: excess === 0, shift: Math.max(-0.15, 0.10 - 1.5 * excess) };
+}
 // The Big day line for the activity of day x, moved by fitness going into that day.
 function bigFor(x, t = tuneSettings) {
   const m = FIT_MULT[t.fitW ?? TUNE_DEFAULTS.fitW] || 0, fit = m ? fitnessFor(x) : null;
   if (!fit) return t.bigKcal;
-  return Math.round(t.bigKcal * (1 + Math.max(-0.15, Math.min(0.15, fit.f - 1)) * m) / 50) * 50;
+  return Math.round(t.bigKcal * (1 + sweetPos(fit, t).shift * m) / 50) * 50;
 }
 
 // The activity of day X shows on the morning entry of X+1 (its kcal and TSS tag).
@@ -5221,10 +5231,12 @@ function computeGrade(date, t = tuneSettings) {
   // Fitness: shown for context; a fast ramp in load (7-day well above 42-day) costs a little.
   const fitW = t.fitW ?? TUNE_DEFAULTS.fitW, fm = FIT_MULT[fitW] || 0;
   const fit = fm ? fitnessFor(date) : null;
-  const eased = !!fit && fit.f >= FIT_EASE[fitW];
+  const sp = fit ? sweetPos(fit, t) : null;
+  const eased = !!sp && sp.inSpot;
   if (fit) {
-    const pct = Math.round((fit.f - 1) * 100);
-    parts.push({ label: 'Fitness', info: true, detail: `${Math.round(fit.ctl).toLocaleString()} kcal/day over 42 days, ${pct === 0 ? 'as usual' : `${Math.abs(pct)}% ${pct > 0 ? 'above' : 'below'} your usual`} · big day ${bigFor(isoAdd(date, -1), t).toLocaleString()} kcal${eased && t.catchUp > 0 ? ' · catch-up eased' : ''}`, pts: 0 });
+    const pct = Math.round(sp.d * 100), where = sp.inSpot ? 'in your sweet spot'
+      : `${Math.abs(pct)}% ${pct > 0 ? 'above' : 'below'} your sweet spot${pct > 0 ? ' (fatigue)' : ''}`;
+    parts.push({ label: 'Fitness', info: true, detail: `${Math.round(fit.ctl).toLocaleString()} kcal/day over 42 days, ${where} (${Math.round(sp.centre).toLocaleString()}) · big day ${bigFor(isoAdd(date, -1), t).toLocaleString()} kcal${eased && t.catchUp > 0 ? ' · catch-up eased' : ''}`, pts: 0 });
     if (fit.acwr !== null && fit.acwr > 1.3) {
       const pts = -Math.min(8, (fit.acwr - 1.3) * 20) * fm;
       parts.push({ label: 'Ramp', detail: `last 7 days ${Math.round((fit.acwr - 1) * 100)}% above your 42-day load`, pts });
@@ -5249,7 +5261,7 @@ function computeGrade(date, t = tuneSettings) {
       if (n > 0 && cu > 0) {
         const steps = { 1: ['B−', 'C+', 'C'], 2: ['C+', 'C', 'C−'], 3: ['C', 'C−', 'C−'] }[cu];
         const cap = steps[Math.min(n, 3) - 1];
-        if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: catch-up two days after ${n > 1 ? n + ' big days in a row' : 'a big day'}${eased ? ' (eased: fitness high)' : ''}`);
+        if (worseGrade(grade, cap) !== grade) caps.push(`Capped at ${cap}: catch-up two days after ${n > 1 ? n + ' big days in a row' : 'a big day'}${eased ? ' (eased: in your sweet spot)' : ''}`);
         grade = worseGrade(grade, cap);
       }
     }
@@ -5299,6 +5311,7 @@ function showTuneModal() {
       ${tuneRow('bigKcal', 'Big day', 1800, 3500, 100)}
       ${tuneRow('catchUp', 'Catch-up', 0, 3, 1)}
       ${tuneRow('fitW', 'Fitness', 0, 3, 1)}
+      ${tuneRow('sweetSpot', 'Sweet spot', 1000, 3000, 50)}
       ${tuneRow('sleepNeed', 'Sleep need', 330, 510, 15)}
       ${tuneRow('caution', 'Caution', -1, 1, 0.25)}
       ${tuneRow('hrvW', 'HRV weight', 0, 2, 0.1)}
@@ -5334,9 +5347,13 @@ function showTuneModal() {
   `);
   overlay.querySelector('.modal').classList.add('tune-modal');
   const box = overlay.querySelector('.modal'); box.style.overflowY = 'auto';
-  const val = k => k === 'sleepNeed' ? sleepNeedFor() : tuneSettings[k];
+  const fitNow = today ? fitnessFor(today) : null;
+  const val = k => k === 'sleepNeed' ? sleepNeedFor()
+    : k === 'sweetSpot' ? (tuneSettings.sweetSpot || (fitNow ? Math.round(fitNow.usual / 50) * 50 : 1900))
+    : tuneSettings[k];
   const label = (k, v) => k === 'bigKcal' ? (() => { const now = today ? bigFor(isoAdd(today, -1)) : v; return `${v.toLocaleString()} kcal${now !== v ? ` · ${now.toLocaleString()} now` : ''}`; })()
     : k === 'catchUp' ? CATCHUP_NAMES[v] : k === 'fitW' ? FIT_NAMES[v]
+    : k === 'sweetSpot' ? `${v.toLocaleString()}/day${tuneSettings.sweetSpot ? '' : ' · auto'}${fitNow ? ` · now ${Math.round(fitNow.ctl).toLocaleString()}${sweetPos(fitNow).inSpot ? ' ✓' : ''}` : ''}`
     : k === 'sleepNeed' ? fmtHM(v) + (tuneSettings.sleepNeed ? '' : ' · auto')
     : k === 'caution' ? (v === 0 ? 'Balanced' : v < 0 ? `Relaxed ${Math.round(-v * 4)}` : `Protective ${Math.round(v * 4)}`)
     : `${Number(v).toFixed(1)}×${Number(v) === 1 ? ' · default' : Number(v) === 0 ? ' · off' : ''}`;
@@ -5418,10 +5435,13 @@ const TUNE_INFO = {
   catchUp: `<p>How hard the grade is held back <b>two mornings after</b> a big day — when the fatigue tends to land even if you feel fine — and after back-to-back big days.</p>
     <p class="ex"><b>Off:</b> no load caps at all (the next-morning cap too).<br><b>Light:</b> two days after → B− · after back-to-back → C+ · after three → C<br><b>Medium:</b> C+ · C · C−<br><b>Strong:</b> C · C− · C−</p>
     <p class="ex">After a 2,775 + 2,644 kcal weekend, Tuesday gets <b>C+</b> on Light, <b>C</b> on Medium, <b>C−</b> on Strong.</p>`,
-  fitW: `<p>How much your <b>fitness</b> changes the load rules. Fitness is your average kcal per day over the last 42 days (like CTL), compared with your usual over the past 6 months.</p>
-    <p><b>Fitter than usual:</b> the Big day line moves up and, once you're clearly above usual, the catch-up two mornings after is one step lighter.<br><b>Less fit than usual:</b> the line moves down, so smaller days count as big.<br><b>Load ramping:</b> if your last 7 days run more than 30% above your 42-day average, the score drops a little (up to −8 on Normal).</p>
-    <p class="ex">Usual 1,900 kcal/day, now 2,100 (+11%) with Big day at 2,500:<br><b>Light:</b> big day 2,650 · catch-up eased<br><b>Normal:</b> 2,750 · eased<br><b>Strong:</b> 2,900 · eased<br><b>Off:</b> 2,500, no easing, no ramp check — the rules as before.</p>
-    <p class="tip">Light eases catch-up from +10% above usual, Normal from +5%, Strong from +3%. The line moves at most ±15% on Normal (±22% on Strong).</p>`,
+  fitW: `<p>How much your <b>fitness</b> changes the load rules. Fitness is your average kcal per day over the last 42 days (like CTL). It works as a <b>sweet spot</b>: too little and you can't back up day after day; too much is accumulated fatigue.</p>
+    <p><b>In your sweet spot</b> (within ±10% of it): the Big day line moves up and the catch-up two mornings after is one step lighter.<br><b>Outside it</b>, either way: the line moves down with the distance, so smaller days count as big.<br><b>Load ramping:</b> if your last 7 days run more than 30% above your 42-day average, the score drops a little (up to −8 on Normal).</p>
+    <p class="ex">Sweet spot 1,700/day, Big day 2,500, on Normal:<br><b>1,530–1,870/day:</b> big day 2,750 · catch-up eased<br><b>1,360 or 2,040 (20% out):</b> 2,400<br><b>27% or more out:</b> 2,150</p>
+    <p class="tip"><b>Light</b> halves these shifts, <b>Strong</b> makes them 1.5×. <b>Off</b> keeps the rules as before: no sweet spot, no ramp check.</p>`,
+  sweetSpot: `<p>The 42-day fitness (average kcal per day) where you back up best — set it to where your training is going well. <b>Auto</b> uses your average over the past 6 months; moving the slider sets your own.</p>
+    <p class="ex">“now” is your current 42-day figure; ✓ means you're inside the ±10% sweet spot.</p>
+    <p class="tip">If you're racing and training well right now, set it to the “now” value.</p>`,
   sleepNeed: `<p>The sleep you need. It sets three things in the grade: <b>last night</b> (−10 per hour short, up to −30; +6 for meeting it), <b>sleep debt</b> (the average shortfall over your last 3 nights, up to −12) and, separately, <b>quality</b> (deep + REM share against your usual, ±6; −4 for 30+ min awake). <b>Auto</b> uses your average once 5 nights are stored (7h 30m until then); moving the slider sets your own.</p>
     <p class="ex"><b>Need 7h 30m:</b> a 6h 30m night costs −10, plus about −3 debt if the two nights before were fine; three 6h 30m nights in a row cost −10 and −8 debt.<br><b>Need 6h 30m:</b> the same 6h 30m night earns +6.</p>`,
   caution: `<p>How readily the grade drops. <b>Protective</b> raises every grade's cut-off, so the same score lands a grade lower; <b>Relaxed</b> lowers them. It doesn't change the load caps or illness rules.</p>
