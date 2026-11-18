@@ -415,7 +415,6 @@
   /* ---------- Footer ---------- */
   .app-footer { display:flex; flex-direction:column; align-items:center; gap:6px; padding:6px 0 18px; }
   #versionFooter { text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--muted); cursor:pointer; letter-spacing:0.04em; }
-  .classic-link { font-size:12px; color:var(--text-2); text-decoration:none; border-bottom:1px dashed var(--border-strong); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration:0.01ms !important; animation-delay:0ms !important; transition-duration:0.01ms !important; }
@@ -636,7 +635,6 @@
 
 <div class="app-footer">
   <div id="versionFooter" onclick="checkForUpdate(true)"></div>
-  <a class="classic-link" href="../">Open the classic version</a>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -646,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.1.11';
+const APP_VERSION = '2.1.12';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -4787,7 +4785,7 @@ function showInfoModal() {
       <strong>Tap the ring to tune it</strong>: Big day, Catch-up, Sleep need, Caution and HRV ↔ RHR. Changes apply as you slide, with a 14-day strip, how often the grade agrees with your feel ratings, and a breakdown of why today got its grade. Settings sync like your data.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">BASELINE 2.0</strong><br>
-      This is the redesigned version. The theme button (top right) cycles <strong>Auto</strong> (follows your phone's light/dark setting) → <strong>Light</strong> → <strong>Dark</strong>. The rings on the status card show your 3-day HRV against baseline (outer) and your RHR zone (inner). It shares all its data with the classic version (link at the bottom of the screen), so you can switch between them freely.<br><br>
+      This is the redesigned version. The theme button (top right) cycles <strong>Auto</strong> (follows your phone's light/dark setting) → <strong>Light</strong> → <strong>Dark</strong>. The rings on the status card show your 3-day HRV against baseline (outer) and your RHR zone (inner). It shares all its data with the classic version.<br><br>
 
       <strong style="color:var(--accent);letter-spacing:1px;">SYNC, BACKUP &amp; UPDATES</strong><br>
       Each user's data syncs to their own file on GitHub (set via ⟳). If the same entry was changed in two places, the version on this device wins rather than creating a duplicate. ≡ → Export CSV saves <em>Baseline_Backup.csv</em> with HRV, RHR, temp, notes, tags, activities, ectopy, RR, kcal items and feel; Import CSV restores it. The footer shows the app version — tap it to check for updates; a newer version also offers an <em>UPDATE READY</em> button when you return to the app.
