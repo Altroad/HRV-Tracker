@@ -1540,22 +1540,22 @@
   "tune": {
     "bigKcal": 2800,
     "catchUp": 1,
-    "sleepNeed": 360,
-    "caution": 0,
-    "hrvW": 0.8,
-    "rhrW": 1.1,
+    "sleepNeed": 390,
+    "caution": -0.75,
+    "hrvW": 1,
+    "rhrW": 1.3,
     "favourite": {
       "settings": {
         "bigKcal": 2800,
         "catchUp": 1,
-        "sleepNeed": 360,
-        "caution": 0,
-        "hrvW": 0.8,
-        "rhrW": 1.1
+        "sleepNeed": 390,
+        "caution": -0.75,
+        "hrvW": 1,
+        "rhrW": 1.3
       },
-      "savedAt": 1794963900140
+      "savedAt": 1794980640152
     },
-    "updatedAt": 1794980489005
+    "updatedAt": 1794980645409
   },
   "rhr": {
     "2026-05-15": 39,
