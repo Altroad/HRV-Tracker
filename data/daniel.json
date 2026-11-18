@@ -1540,6 +1540,7 @@
   "tune": {
     "bigKcal": 2800,
     "catchUp": 1,
+    "fitW": 2,
     "sleepNeed": 390,
     "caution": -0.75,
     "hrvW": 1,
@@ -1555,7 +1556,7 @@
       },
       "savedAt": 1794980640152
     },
-    "updatedAt": 1794980703414
+    "updatedAt": 1794983162895
   },
   "rhr": {
     "2026-05-15": 39,
