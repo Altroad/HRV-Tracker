@@ -1584,7 +1584,7 @@
     "fitness": 3,
     "sleepNeed": 360,
     "hrvW": 1,
-    "rhrW": 1.2,
+    "rhrW": 1.3,
     "favourite": {
       "settings": {
         "fitness": 3,
@@ -1595,7 +1595,7 @@
       },
       "savedAt": 1795114597720
     },
-    "updatedAt": 1795114599238
+    "updatedAt": 1795120251948
   },
   "rhr": {
     "2026-05-15": 39,
