@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.5.3';
+const APP_VERSION = '2.6.0';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5295,8 +5295,30 @@ function computeGrade(date, t = tuneSettings) {
       }
     }
   }
-  // Illness
+  // Primed: your HRV dips with rest, so after two easy days a low HRV reads as freshness,
+  // not fatigue — as long as everything else says fresh: RHR at or near baseline, sleep
+  // fine, temperature and breathing normal, no Sick tag, not Over. Then the grade is at
+  // least A−. Unrecorded sleep, temp or RR don't block it; missing RHR does.
   const sick = !!tagsForDate(date)?.extras?.includes('Sick');
+  const two = [1, 2].map(i => activityLoad(isoAdd(date, -i), t));
+  const fitP = fitnessFor(date), avg2 = (two[0].kcal + two[1].kcal) / 2;
+  const easy = two.every(a => !a.big) && (fitP ? avg2 <= 0.7 * fitP.ctl : avg2 < 1500);
+  const nights = [0, 1, 2].map(i => sleepData[isoAdd(date, -i)]?.total).filter(Boolean);
+  const avgShort = nights.length ? nights.reduce((a, m) => a + Math.max(0, need - m), 0) / nights.length : 0;
+  const checks = {
+    'easy 2 days': easy,
+    'RHR': rhr !== undefined && rhr - rhrBaseline <= 1,
+    'sleep': !sl?.total || (sl.total >= need - 30 && avgShort <= 45),
+    'temp': tDev === null || tDev <= 0.5,
+    'RR': rrDev === null || rrDev < 1,
+  };
+  const primed = Object.values(checks).every(Boolean) && !sick && fitState(t).name !== 'Over';
+  if (primed && worseGrade(grade, 'A−') === grade && grade !== 'A−') {
+    caps.push(`Primed: easy last 2 days (${two.map(a => a.kcal ? a.kcal.toLocaleString() : 'rest').join(' · ')} kcal), RHR, sleep, temp and breathing all fine${ratio < 0 ? ' — low HRV read as rest, not fatigue' : ''}`);
+    grade = 'A−';
+  }
+  // Illness
+
   const signals = [r.hrv < ZONE_OK, rhr !== undefined && rhr > rhrBaseline + 7, tDev !== null && tDev > 0.5, rrDev !== null && rrDev >= RR_ANOMALY].filter(Boolean).length;
   if (sick || signals >= 3) { if (grade !== 'C−') caps.push(sick ? 'Recover: Sick tagged' : `Recover: ${signals}-system alarm`); grade = 'C−'; }
   else if (tDev !== null && tDev > 0.5 && rrDev !== null && rrDev >= RR_ANOMALY) { if (worseGrade(grade, 'C') !== grade) caps.push('Capped at C: early illness signal (temp + breathing up)'); grade = worseGrade(grade, 'C'); }
