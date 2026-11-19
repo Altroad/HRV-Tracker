@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.6.2';
+const APP_VERSION = '2.7.0';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5045,11 +5045,27 @@ function syncResultTempWithData() {
 // Then rules cap it: a big day caps the next morning, the catch-up caps morning +2,
 // and illness forces Recover. Every step is recorded so the breakdown can explain it.
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
-// Score ≥ cut → that grade; below the last → C−. Set from the spread of real scores
-// (unrecorded nights counted as your average night) so each word means something:
-// Prime (A) ≈ the best 20% of mornings, Ready (B) ≈ 45%, Steady (C+/C) ≈ 25%,
-// Recover (C−) ≈ 10%, before the load caps, the Primed rule and the illness rules.
+// Score ≥ cut → that grade; below the last → C−. Cut-offs come from each person's own
+// spread of scores so each word means something: Prime (A) ≈ their best 20% of mornings,
+// Ready (B) ≈ 45%, Steady (C+/C) ≈ 25%, Recover (C−) ≈ 10% — before the load caps, the
+// Primed rule and the illness rules. Until there are 60 scored mornings these defaults
+// apply (calibrated the same way on the first long history).
 const GRADE_CUTS = [95, 92, 88, 80, 72, 64, 52, 40];
+const CALIBRATE_MIN = 60;
+let _cuts = null, _cutsKey = '';
+function gradeCuts(t = tuneSettings) {
+  loadSeries();
+  const key = [JSON.stringify(tunePick(t)), readings.length, readings.reduce((a, r) => a + r.hrv, 0), _loadKey,
+    Object.keys(sleepData).length, Object.keys(rhrData).length, Object.keys(tempData).length, Object.keys(rrData).length].join('|');
+  if (_cuts && _cutsKey === key) return _cuts;
+  _cutsKey = key;
+  const sc = readings.map(r => computeGrade(r.date, t, true)).filter(x => x !== null).sort((a, b) => a - b);
+  if (sc.length < CALIBRATE_MIN) return (_cuts = { cuts: GRADE_CUTS, personal: false, n: sc.length });
+  const q = f => sc[Math.floor(f * (sc.length - 1))];
+  const q10 = q(0.10), q35 = Math.max(q(0.35), q10 + 4), q80 = Math.min(Math.max(q(0.80), q35 + 6), 97);
+  const cuts = [q80 + 2 * (100 - q80) / 3, q80 + (100 - q80) / 3, q80, q35 + 2 * (q80 - q35) / 3, q35 + (q80 - q35) / 3, q35, q10 + (q35 - q10) / 2, q10].map(Math.round);
+  return (_cuts = { cuts, personal: true, n: sc.length });
+}
 const BIG_TAGS = new Set(['200-250TSS', '250TSS+', 'Race', '200-300TSS', '300TSS+']);
 const TUNE_DEFAULTS = { catchUp: 2, fitness: 2, sleepNeed: null, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
@@ -5208,7 +5224,7 @@ function expectedHRV(date) {
   return meanH + m.b * (load - meanK);
 }
 
-function computeGrade(date, t = tuneSettings) {
+function computeGrade(date, t = tuneSettings, scoreOnly = false) {
   const r = readings.find(x => x.date === date);
   if (!r) return null;
   const parts = [], caps = [];
@@ -5284,8 +5300,9 @@ function computeGrade(date, t = tuneSettings) {
     }
   }
   score = Math.max(0, Math.min(100, score));
+  if (scoreOnly) return score;
   // Score → grade
-  let i = GRADE_CUTS.findIndex(c => score >= c);
+  let i = gradeCuts(t).cuts.findIndex(c => score >= c);
   let grade = i === -1 ? 'C−' : GRADES[i];
   const raw = grade;
   // Load caps
@@ -5439,7 +5456,9 @@ function showTuneModal() {
     $('tuneWhy').innerHTML = g ? [
       ...g.parts.map(p => `<div class="tw-row${p.muted ? ' muted' : ''}"><span class="tw-l">${p.label}</span><span class="tw-d">${p.detail}</span><span class="tw-p" style="color:${p.pts > 0.5 ? COLORS.green : p.pts < -0.5 ? COLORS.red : 'var(--muted)'}">${p.info ? '' : (p.pts > 0.5 ? '+' : '') + Math.round(p.pts)}</span></div>`),
       ...g.caps.map(c => `<div class="tw-cap">${c}</div>`),
-      `<div class="tw-foot">Score ${g.score} → ${g.raw}${g.raw !== g.grade ? ` → ${g.grade}` : ''}</div>`].join('') : '';
+      `<div class="tw-foot">Score ${g.score} → ${g.raw}${g.raw !== g.grade ? ` → ${g.grade}` : ''} · ${(() => { const gc = gradeCuts(), c = gc.cuts, i = GRADES.indexOf(g.raw);
+        const lo = i < c.length ? c[i] : 0, hi = i === 0 ? 100 : c[i - 1] - 1;
+        return gc.personal ? `${g.raw} is ${lo}–${hi} on your scale (from ${gc.n} mornings)` : `${g.raw} is ${lo}–${hi} (standard scale until ${CALIBRATE_MIN} mornings)`; })()}</div>`].join('') : '';
   };
   overlay.querySelectorAll('input[data-k]').forEach(inp => inp.addEventListener('input', () => {
     const k = inp.dataset.k; tuneSettings[k] = Number(inp.value); favConfirm(false); saveTune(false); paint(); render();
