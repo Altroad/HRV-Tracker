@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.4.3';
+const APP_VERSION = '2.5.0';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5160,12 +5160,19 @@ function sleepNeedFor(t = tuneSettings) {
   const v = Object.values(sleepData).map(z => z.total).filter(Boolean);
   return v.length >= 5 ? Math.round(v.reduce((a, b) => a + b, 0) / v.length / 5) * 5 : 450;
 }
-// HRV expected after a given previous-day kcal: least-squares line over your history.
+// Recent load behind a morning: the last 3 days' kcal weighted towards yesterday
+// (60 / 30 / 10%). HRV keeps drifting down through a run of easy days and up through
+// a run of hard ones, so this explains about twice as much of it as yesterday alone.
+const LOAD_WEIGHTS = [0.6, 0.3, 0.1];
+const dayKcal = d => Math.min(workoutData[d] !== undefined ? getKcalTotal(d) : 0, 4500);
+const recentLoad = date => LOAD_WEIGHTS.reduce((s, w, i) => s + w * dayKcal(isoAdd(date, -1 - i)), 0);
+// HRV expected after a given recent load: least-squares line over your history.
 let _hrvModel = null, _hrvModelKey = '';
 function hrvModel() {
-  const key = readings.length + ':' + Object.keys(workoutData).length;
+  loadSeries();
+  const key = readings.length + ':' + _loadKey;
   if (_hrvModel && _hrvModelKey === key) return _hrvModel;
-  const pts = readings.map(r => [Math.min(workoutData[isoAdd(r.date, -1)] !== undefined ? getKcalTotal(isoAdd(r.date, -1)) : 0, 4500), r.hrv]);
+  const pts = readings.map(r => [recentLoad(r.date), r.hrv]);
   let a = BASELINE, b = 0;
   if (pts.length >= 20) {
     const n = pts.length, mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
@@ -5178,14 +5185,14 @@ function hrvModel() {
 // Expected HRV for a morning: the load effect (slope) learned from all your history,
 // centred on your previous 30 days, so it follows your current level the way a
 // rolling baseline does rather than an all-time average.
-function expectedHRV(date, kcal) {
-  const m = hrvModel();
+function expectedHRV(date) {
+  const m = hrvModel(), load = recentLoad(date);
   const from = isoAdd(date, -30);
   const prior = readings.filter(r => r.date < date && r.date >= from);
-  if (prior.length < 10) return m.expected(kcal);
-  const ks = prior.map(r => Math.min(workoutData[isoAdd(r.date, -1)] !== undefined ? getKcalTotal(isoAdd(r.date, -1)) : 0, 4500));
+  if (prior.length < 10) return m.expected(load);
+  const ks = prior.map(r => recentLoad(r.date));
   const meanH = prior.reduce((s, r) => s + r.hrv, 0) / prior.length, meanK = ks.reduce((a, b) => a + b, 0) / ks.length;
-  return meanH + m.b * (Math.min(kcal, 4500) - meanK);
+  return meanH + m.b * (load - meanK);
 }
 
 function computeGrade(date, t = tuneSettings) {
@@ -5196,11 +5203,12 @@ function computeGrade(date, t = tuneSettings) {
   let score = 70;
   // HRV vs load-expected
   const y = activityLoad(isoAdd(date, -1), t);
-  const exp = expectedHRV(date, y.kcal);
+  const exp = expectedHRV(date);
+  const last3 = [1, 2, 3].map(i => dayKcal(isoAdd(date, -i))).map(k => k ? k.toLocaleString() : 'rest').join(' · ');
   const ratio = (r.hrv - exp) / exp;
   const hrvPts = Math.max(-35, Math.min(25, ratio * 120)) * hrvW;
   score += hrvPts;
-  parts.push({ label: 'HRV', detail: `${Math.round(r.hrv)} vs ~${Math.round(exp)} usual for you after ${y.kcal ? y.kcal.toLocaleString() + ' kcal' : 'a rest day'} (last 30 days)`, pts: hrvPts });
+  parts.push({ label: 'HRV', detail: `${Math.round(r.hrv)} vs ~${Math.round(exp)} usual for you after your last 3 days (${last3} kcal, newest first)`, pts: hrvPts });
   // RHR zone
   const rhr = rhrData[date];
   if (rhr !== undefined) {
@@ -5453,7 +5461,7 @@ const TUNE_INFO = {
   caution: `<p>How readily the grade drops. <b>Protective</b> raises every grade's cut-off, so the same score lands a grade lower; <b>Relaxed</b> lowers them. It doesn't change the load caps or illness rules.</p>
     <p class="ex">A score of <b>74</b> is <b>B</b> on Balanced, <b>B−</b> fully Protective and <b>A−</b> fully Relaxed.</p>
     <p class="tip">Lean Protective in a race build when a missed warning costs more; Relaxed if the grade feels too gloomy.</p>`,
-  hrvW: `<p>How much <b>HRV</b> counts. At 1× it moves the score by up to −35 / +25 against what's usual for you after the previous day's load; 2× doubles that, 0× ignores HRV entirely.</p>
+  hrvW: `<p>How much <b>HRV</b> counts. At 1× it moves the score by up to −35 / +25 against what's usual for you after your last 3 days' load (weighted 60 / 30 / 10% towards yesterday); 2× doubles that, 0× ignores HRV entirely.</p>
     <p class="ex">A morning 10% above your usual HRV adds <b>+12</b> at 1×, <b>+18</b> at 1.5×, <b>+6</b> at 0.5×.</p>
     <p class="tip">The line underneath shows how much of the score HRV drives across your history. Raising both weights makes grades swing more; lowering both clusters them around B and leaves more to the load and illness rules.</p>`,
   rhrW: `<p>How much <b>RHR</b> counts, independently of HRV. At 1×: excellent (at or below baseline) <b>+8</b>, normal +5, +2–4 bpm 0, +5–7 bpm <b>−12</b>, +8 or more <b>−25</b>.</p>
