@@ -1583,7 +1583,7 @@
     "catchUp": 1,
     "fitness": 3,
     "sleepNeed": 390,
-    "caution": -0.75,
+    "caution": -0.5,
     "hrvW": 0.9,
     "rhrW": 1.1,
     "favourite": {
@@ -1597,7 +1597,7 @@
       },
       "savedAt": 1795111121037
     },
-    "updatedAt": 1795111122863
+    "updatedAt": 1795114556401
   },
   "rhr": {
     "2026-05-15": 39,
