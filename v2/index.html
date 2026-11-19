@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.6.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5045,12 +5045,11 @@ function syncResultTempWithData() {
 // Then rules cap it: a big day caps the next morning, the catch-up caps morning +2,
 // and illness forces Recover. Every step is recorded so the breakdown can explain it.
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
-// Score ≥ cut → that grade; below the last → C−. Set from the spread of real scores,
-// counting every past night as a typical 6 hours (about −9 against a 6h 30m need), so
-// each word means something: Prime (A) ≈ the best 20% of mornings, Ready (B) ≈ 45%,
-// Steady (C+/C) ≈ 25%, Recover (C−) ≈ 10%, before the load caps and illness rules.
-// A morning with nothing unusual and a 6h night scores about 66: B− / B.
-const GRADE_CUTS = [90, 87, 84, 75, 67, 59, 47, 35];
+// Score ≥ cut → that grade; below the last → C−. Set from the spread of real scores
+// (unrecorded nights counted as your average night) so each word means something:
+// Prime (A) ≈ the best 20% of mornings, Ready (B) ≈ 45%, Steady (C+/C) ≈ 25%,
+// Recover (C−) ≈ 10%, before the load caps, the Primed rule and the illness rules.
+const GRADE_CUTS = [95, 92, 88, 80, 72, 64, 52, 40];
 const BIG_TAGS = new Set(['200-250TSS', '250TSS+', 'Race', '200-300TSS', '300TSS+']);
 const TUNE_DEFAULTS = { catchUp: 2, fitness: 2, sleepNeed: null, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
@@ -5159,6 +5158,15 @@ function activityLoad(x, t = tuneSettings) {
   const line = bigFor(x, t);
   return { kcal, tag, line, big: kcal >= line || BIG_TAGS.has(tag) };
 }
+// Your average recorded night; an unrecorded night is assumed to be this.
+let _avgSleep = null, _avgSleepKey = '';
+function avgSleep() {
+  const v = Object.values(sleepData).map(z => z.total).filter(Boolean);
+  const key = v.length + ':' + v.reduce((a, b) => a + b, 0);
+  if (key !== _avgSleepKey) { _avgSleepKey = key; _avgSleep = v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
+  return _avgSleep;
+}
+const nightTotal = d => sleepData[d]?.total || avgSleep();
 // Your usual sleep: average of stored nights (needs 5), else 7h 30m.
 function sleepNeedFor(t = tuneSettings) {
   if (t.sleepNeed) return t.sleepNeed;
@@ -5223,30 +5231,32 @@ function computeGrade(date, t = tuneSettings) {
     score += base * rhrW;
   }
   // Sleep: last night vs need, the 3-night debt, and how restful it was
-  const sl = sleepData[date], need = sleepNeedFor(t);
-  if (sl?.total) {
-    const pts = sl.total >= need ? 6 : -Math.min(30, (need - sl.total) / 60 * 10);
-    parts.push({ label: 'Sleep', detail: `${fmtHM(sl.total)} vs ${fmtHM(need)} need`, pts });
+  // An unrecorded night is assumed to be your average recorded night.
+  const sl = sleepData[date], need = sleepNeedFor(t), lastNight = nightTotal(date), assumedNight = !sl?.total;
+  if (lastNight) {
+    const pts = lastNight >= need ? 6 : -Math.min(30, (need - lastNight) / 60 * 10);
+    parts.push({ label: 'Sleep', detail: assumedNight ? `not recorded — assumed ${fmtHM(lastNight)} (your average) vs ${fmtHM(need)} need` : `${fmtHM(lastNight)} vs ${fmtHM(need)} need`, pts });
     score += pts;
-    // Debt: average shortfall over the last 3 stored nights (needs 2)
-    const recent = [0, 1, 2].map(i => sleepData[isoAdd(date, -i)]?.total).filter(Boolean);
-    if (recent.length >= 2) {
+    // Debt: average shortfall over the last 3 nights (unrecorded ones assumed average)
+    const recent = [0, 1, 2].map(i => nightTotal(isoAdd(date, -i)));
+    const nAssumed = [0, 1, 2].filter(i => !sleepData[isoAdd(date, -i)]?.total).length;
+    {
       const short = recent.reduce((a, m) => a + Math.max(0, need - m), 0) / recent.length;
       const dpts = -Math.min(12, short / 60 * 8);
-      parts.push({ label: 'Debt', detail: short >= 5 ? `averaging ${fmtHM(short)} short over ${recent.length} nights` : `on track over ${recent.length} nights`, pts: dpts });
+      parts.push({ label: 'Debt', detail: (short >= 5 ? `averaging ${fmtHM(short)} short over 3 nights` : 'on track over 3 nights') + (nAssumed ? ` (${nAssumed} assumed)` : ''), pts: dpts });
       score += dpts;
     }
     // Quality: deep + REM share against your usual (needs 5 other nights), and time awake
     const others = Object.entries(sleepData).filter(([d, z]) => d !== date && z.total).map(([, z]) => (z.deep + z.rem) / z.total);
     let qpts = 0; const notes = [];
-    if (others.length >= 5 && sl.total) {
+    if (others.length >= 5 && !assumedNight) {
       const usual = others.reduce((a, b) => a + b, 0) / others.length, share = (sl.deep + sl.rem) / sl.total;
       qpts += Math.max(-6, Math.min(6, (share - usual) * 100 * 0.6));
       notes.push(`deep + REM ${Math.round(share * 100)}% vs ${Math.round(usual * 100)}% usual`);
     }
-    if ((sl.awake || 0) >= 30) { qpts -= 4; notes.push(`${sl.awake} min awake`); }
+    if (!assumedNight && (sl.awake || 0) >= 30) { qpts -= 4; notes.push(`${sl.awake} min awake`); }
     if (notes.length) { parts.push({ label: 'Quality', detail: notes.join(' · '), pts: qpts }); score += qpts; }
-  } else parts.push({ label: 'Sleep', detail: 'not recorded — left out', pts: 0, muted: true });
+  } else parts.push({ label: 'Sleep', detail: 'no nights recorded yet — left out', pts: 0, muted: true });
   // RR and temperature only count when raised
   const rrDev = rrDevFor(date);
   if (rrDev !== null) {
@@ -5298,17 +5308,18 @@ function computeGrade(date, t = tuneSettings) {
   // Primed: your HRV dips with rest, so after two easy days a low HRV reads as freshness,
   // not fatigue — as long as everything else says fresh: RHR at or near baseline, sleep
   // fine, temperature and breathing normal, no Sick tag, not Over. Then the grade is at
-  // least A−. Unrecorded sleep, temp or RR don't block it; missing RHR does.
+  // least A−. Unrecorded sleep counts as your average night; unrecorded temp or RR don't
+  // block it; missing RHR does.
   const sick = !!tagsForDate(date)?.extras?.includes('Sick');
   const two = [1, 2].map(i => activityLoad(isoAdd(date, -i), t));
   const fitP = fitnessFor(date), avg2 = (two[0].kcal + two[1].kcal) / 2;
   const easy = two.every(a => !a.big) && (fitP ? avg2 <= 0.7 * fitP.ctl : avg2 < 1500);
-  const nights = [0, 1, 2].map(i => sleepData[isoAdd(date, -i)]?.total).filter(Boolean);
+  const nights = [0, 1, 2].map(i => nightTotal(isoAdd(date, -i))).filter(Boolean);
   const avgShort = nights.length ? nights.reduce((a, m) => a + Math.max(0, need - m), 0) / nights.length : 0;
   const checks = {
     'easy 2 days': easy,
     'RHR': rhr !== undefined && rhr - rhrBaseline <= 1,
-    'sleep': !sl?.total || (sl.total >= need - 30 && avgShort <= 45),
+    'sleep': !lastNight || (lastNight >= need - 30 && avgShort <= 45),
     'temp': tDev === null || tDev <= 0.5,
     'RR': rrDev === null || rrDev < 1,
   };
