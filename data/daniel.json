@@ -1582,22 +1582,20 @@
   "tune": {
     "catchUp": 1,
     "fitness": 3,
-    "sleepNeed": 390,
-    "caution": -0.5,
-    "hrvW": 0.9,
-    "rhrW": 1.1,
+    "sleepNeed": 360,
+    "hrvW": 1,
+    "rhrW": 1.2,
     "favourite": {
       "settings": {
         "fitness": 3,
         "catchUp": 1,
-        "sleepNeed": 390,
-        "caution": -0.75,
-        "hrvW": 0.9,
-        "rhrW": 1.1
+        "sleepNeed": 360,
+        "hrvW": 1,
+        "rhrW": 1.2
       },
-      "savedAt": 1795111121037
+      "savedAt": 1795114597720
     },
-    "updatedAt": 1795114556401
+    "updatedAt": 1795114599238
   },
   "rhr": {
     "2026-05-15": 39,
