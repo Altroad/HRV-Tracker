@@ -644,7 +644,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.5.2';
+const APP_VERSION = '2.5.3';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5045,11 +5045,12 @@ function syncResultTempWithData() {
 // Then rules cap it: a big day caps the next morning, the catch-up caps morning +2,
 // and illness forces Recover. Every step is recorded so the breakdown can explain it.
 const GRADES = ['A+', 'A', 'A−', 'B+', 'B', 'B−', 'C+', 'C', 'C−'];
-// Score ≥ cut → that grade; below the last → C−. Set from the spread of real scores so
-// each word means something: Prime (A) ≈ the best 20% of mornings, Ready (B) ≈ 45% —
-// a morning with nothing unusual (HRV as expected, RHR normal, sleep met ≈ 81) is a B —
-// Steady (C+/C) ≈ 25% and Recover (C−) ≈ 10%, before the load caps and illness rules.
-const GRADE_CUTS = [99, 96, 93, 84, 76, 68, 56, 44];
+// Score ≥ cut → that grade; below the last → C−. Set from the spread of real scores,
+// counting every past night as a typical 6 hours (about −9 against a 6h 30m need), so
+// each word means something: Prime (A) ≈ the best 20% of mornings, Ready (B) ≈ 45%,
+// Steady (C+/C) ≈ 25%, Recover (C−) ≈ 10%, before the load caps and illness rules.
+// A morning with nothing unusual and a 6h night scores about 66: B− / B.
+const GRADE_CUTS = [90, 87, 84, 75, 67, 59, 47, 35];
 const BIG_TAGS = new Set(['200-250TSS', '250TSS+', 'Race', '200-300TSS', '300TSS+']);
 const TUNE_DEFAULTS = { catchUp: 2, fitness: 2, sleepNeed: null, hrvW: 1, rhrW: 1 };
 const CATCHUP_NAMES = ['Off', 'Light', 'Medium', 'Strong'];
