@@ -1583,21 +1583,21 @@
     "catchUp": 1,
     "fitness": 3,
     "sleepNeed": 390,
-    "caution": -0.25,
-    "hrvW": 1,
+    "caution": -0.75,
+    "hrvW": 0.9,
     "rhrW": 1.1,
     "favourite": {
       "settings": {
         "fitness": 3,
         "catchUp": 1,
         "sleepNeed": 390,
-        "caution": -0.25,
-        "hrvW": 1,
-        "rhrW": 1.4
+        "caution": -0.75,
+        "hrvW": 0.9,
+        "rhrW": 1.1
       },
-      "savedAt": 1794985713407
+      "savedAt": 1795111121037
     },
-    "updatedAt": 1794992507814
+    "updatedAt": 1795111122863
   },
   "rhr": {
     "2026-05-15": 39,
