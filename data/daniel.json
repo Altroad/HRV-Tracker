@@ -1495,7 +1495,8 @@
     {
       "id": 373,
       "date": "2026-11-21",
-      "hrv": 68
+      "hrv": 68,
+      "tag": "Active Recovery"
     }
   ],
   "dayTags": {
