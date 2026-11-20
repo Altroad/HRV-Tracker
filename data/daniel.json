@@ -1602,10 +1602,10 @@
   },
   "tune": {
     "catchUp": 1,
-    "fitness": 3,
-    "sleepNeed": 360,
+    "fitness": 0,
+    "sleepNeed": 375,
     "hrvW": 1,
-    "rhrW": 1.2,
+    "rhrW": 1.4,
     "favourite": {
       "settings": {
         "fitness": 3,
@@ -1616,7 +1616,7 @@
       },
       "savedAt": 1795114597720
     },
-    "updatedAt": 1795217677261
+    "updatedAt": 1795217724728
   },
   "rhr": {
     "2026-05-15": 39,
