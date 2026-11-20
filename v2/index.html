@@ -142,7 +142,6 @@
   .menu-btn.pressed, .sync-btn.pressed, .info-btn.pressed, .theme-btn.pressed, .range-btn.pressed, .modal-btn.pressed, .quick-add-btn.pressed { transform:scale(0.92); }
   #versionFooter { transition:transform .12s ease; }
   #versionFooter:active, #versionFooter.pressed { transform:scale(0.94); }
-  .import-fab:active { transform:translateX(-50%) scale(0.94); }
   .update-bar.show:active { transform:translateX(-50%) scale(0.95); }
 
   /* ---------- Panel 3: status with recovery rings ---------- */
@@ -389,7 +388,6 @@
   .toast.show { opacity:1; transform:translate(-50%, 0); }
   .update-bar { position:fixed; bottom:calc(env(safe-area-inset-bottom, 0px) + 70px); left:50%; transform:translateX(-50%) translateY(10px); background:var(--accent); color:var(--accent-ink); padding:12px 22px; border-radius:999px; font-family:var(--font-body); font-size:13px; font-weight:700; cursor:pointer; z-index:998; box-shadow:var(--shadow-pop); opacity:0; pointer-events:none; transition:opacity .3s, transform .35s var(--ease-spring); white-space:nowrap; }
   .update-bar.show { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
-  .import-fab { position:fixed; bottom:calc(env(safe-area-inset-bottom, 0px) + 24px); left:50%; transform:translateX(-50%); background:var(--accent); color:var(--accent-ink); border:none; border-radius:999px; font-family:var(--font-body); font-weight:700; font-size:13px; letter-spacing:0.04em; padding:13px 22px; cursor:pointer; z-index:100; box-shadow:var(--shadow-pop); transition:opacity 0.6s; }
 
   /* ---------- Modals: bottom sheets on phones, centred on wider screens ---------- */
   .modal-overlay { position:fixed; inset:0; background:var(--overlay); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:flex-end; justify-content:center; padding:0; animation:fadeIn .25s ease; }
@@ -639,12 +637,11 @@
 
 <div class="toast" id="toast"></div>
 <div class="update-bar" id="updateBar" onclick="location.reload()">↻ Update ready — tap to refresh</div>
-<button class="import-fab" id="importFab" style="display:none;">IMPORT</button>
 
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.7.0';
+const APP_VERSION = '2.7.1';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -5678,17 +5675,12 @@ async function init() {
   syncResultTempWithData();
   render();
   scheduleAutoFlip();
-  // A Shortcut upload wins over the clipboard: if it imported, skip both the
-  // ?autoimport= clipboard read and the manual import FAB.
+  // A Shortcut upload wins over the clipboard: if it imported, skip the
+  // ?autoimport= clipboard read.
   const inboxImported = await checkInbox();
   if (new URLSearchParams(window.location.search).get('autoimport') === '1') {
     history.replaceState(null, '', window.location.pathname);
     if (!inboxImported) autoImport();
-  } else if (!inboxImported && navigator.standalone) {
-    const fab = $('importFab');
-    fab.style.display = '';
-    const fabTimer = setTimeout(() => { fab.style.opacity = '0'; setTimeout(() => { fab.style.display = 'none'; }, 600); }, 3000);
-    fab.addEventListener('click', () => { clearTimeout(fabTimer); autoImport(); });
   }
 
   let _lastSyncTs = Date.now();
@@ -5752,8 +5744,6 @@ async function runAutoImportText(text) {
   updateCalcTagBtn();
   clearTimeout(saveTimer);
   saveToGitHub();
-  const fab = $('importFab');
-  if (fab) { fab.style.opacity = '0'; setTimeout(() => { fab.style.display = 'none'; }, 600); }
   // Bring the morning's result into view: the status card at the top (just under
   // the phone's status bar) with the Today panel below it, so both read together.
   setTimeout(() => {

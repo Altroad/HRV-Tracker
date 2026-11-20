@@ -51,7 +51,7 @@ An iOS Shortcut uploads the morning's Health Auto Export JSON to the inbox, eith
 Each reading is dated from the data itself, not from when the app was opened.
 
 ### Manual
-Copy the export and tap **IMPORT**, or paste it via **≡ → Overnight Capture**. If that date already has a reading, you're asked to **REPLACE** or **KEEP** it.
+Copy the export and paste it via **≡ → Overnight Capture** (the classic app also has an **IMPORT** button). If that date already has a reading, you're asked to **REPLACE** or **KEEP** it.
 
 ### Exports used
 | Export | Required | Used for |
