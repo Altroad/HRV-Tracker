@@ -1507,7 +1507,11 @@
       "id": 374,
       "date": "2026-11-22",
       "hrv": 71,
-      "tag": "200-250TSS"
+      "tag": "200-250TSS",
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
