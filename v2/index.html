@@ -94,6 +94,14 @@
   .icon-btn svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .icon-btn:hover { color:var(--accent); }
   .sync-btn.active { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 45%, transparent); }
+  /* Routine sync shows on the ⟳ button instead of a toast: spins while saving, a green
+     flash when saved, a red dot after a failed save until the next one succeeds. */
+  .sync-btn { position:relative; }
+  .sync-btn.syncing svg { animation:syncSpin 1s linear infinite; }
+  .sync-btn.synced { color:var(--green); border-color:color-mix(in srgb, var(--green) 50%, transparent); }
+  .sync-btn.sync-failed::after { content:''; position:absolute; top:3px; right:3px; width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--surface); }
+  @keyframes syncSpin { to { transform:rotate(-360deg); } }
+  @media (prefers-reduced-motion: reduce) { .sync-btn.syncing svg { animation:none; opacity:.5; } }
 
   /* ---------- Panel 1: baselines strip ---------- */
   .baseline-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-bottom:12px; }
@@ -384,7 +392,7 @@
   .jnl-search:focus { border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
 
   /* ---------- Toast & floating buttons ---------- */
-  .toast { position:fixed; bottom:calc(env(safe-area-inset-bottom, 0px) + 22px); left:50%; transform:translate(-50%, 16px); background:var(--text); color:var(--bg); padding:11px 18px; border-radius:999px; font-family:var(--font-body); font-weight:600; font-size:13px; opacity:0; transition:opacity .3s, transform .35s var(--ease-spring); pointer-events:none; z-index:10001; box-shadow:var(--shadow-pop); max-width:calc(100vw - 32px); text-align:center; }
+  .toast { position:fixed; top:calc(env(safe-area-inset-top, 0px) + 10px); left:50%; transform:translate(-50%, -16px); max-width:calc(100vw - 32px); text-align:center; background:var(--text); color:var(--bg); padding:11px 18px; border-radius:999px; font-family:var(--font-body); font-weight:600; font-size:13px; opacity:0; transition:opacity .3s, transform .35s var(--ease-spring); pointer-events:none; z-index:10001; box-shadow:var(--shadow-pop); max-width:calc(100vw - 32px); text-align:center; }
   .toast.show { opacity:1; transform:translate(-50%, 0); }
   .update-bar { position:fixed; bottom:calc(env(safe-area-inset-bottom, 0px) + 70px); left:50%; transform:translateX(-50%) translateY(10px); background:var(--accent); color:var(--accent-ink); padding:12px 22px; border-radius:999px; font-family:var(--font-body); font-size:13px; font-weight:700; cursor:pointer; z-index:998; box-shadow:var(--shadow-pop); opacity:0; pointer-events:none; transition:opacity .3s, transform .35s var(--ease-spring); white-space:nowrap; }
   .update-bar.show { opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0); }
@@ -641,7 +649,7 @@
 <script>
 // ---------- Config ----------
 // Bump on every deploy — the update banner compares this against the deployed file.
-const APP_VERSION = '2.7.1';
+const APP_VERSION = '2.7.2';
 const STORAGE_KEY = 'hrv_readings_v2';
 const BACKUP_KEY  = 'hrv_readings_backup';
 const LEGACY_KEYS = ['hrv_readings'];
@@ -1085,11 +1093,25 @@ async function checkForUpdate(force) {
   } finally { _checkInFlight = false; }
 }
 
-function showToast(msg) {
+// Short confirmations, shown at the top of the screen so they never sit over the
+// buttons at the bottom of a sheet. Taps pass straight through.
+let _toastTimer = null;
+function showToast(msg, ms = 2200) {
   const t = $('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+// Sync state on the ⟳ button: 'syncing' | 'synced' | 'failed'
+let _syncFlashTimer = null;
+function setSyncState(state) {
+  const b = $('syncBtn'); if (!b) return;
+  clearTimeout(_syncFlashTimer);
+  b.classList.toggle('syncing', state === 'syncing');
+  b.classList.toggle('synced', state === 'synced');
+  if (state === 'failed') b.classList.add('sync-failed');
+  if (state === 'synced') { b.classList.remove('sync-failed'); _syncFlashTimer = setTimeout(() => b.classList.remove('synced'), 1500); }
 }
 
 // ---------- Storage ----------
@@ -4257,9 +4279,11 @@ let _saveInFlight = null, _saveAgain = false;
 async function saveToGitHub() {
   if (!getGHToken()) return false;
   if (_saveInFlight) { _saveAgain = true; return _saveInFlight; }
+  setSyncState('syncing');
   _saveInFlight = (async () => {
     let ok;
     do { _saveAgain = false; ok = await putToGitHub(); } while (_saveAgain);
+    setSyncState(ok ? 'synced' : 'failed');
     return ok;
   })();
   try { return await _saveInFlight; } finally { _saveInFlight = null; }
@@ -4278,7 +4302,6 @@ async function putToGitHub(attempt = 0) {
   if (res && res.ok) {
     const data = await res.json();
     ghFileSha = data.content.sha;
-    showToast('Saved to GitHub ✓');
     return true;
   }
   if (res && (res.status === 409 || res.status === 422) && attempt === 0) {
@@ -4291,7 +4314,7 @@ async function putToGitHub(attempt = 0) {
     return putToGitHub(1);
   }
   const status = res ? `HTTP ${res.status}` : 'network error';
-  showToast(`GitHub save failed (${status}) — tap ⟳ to check token`);
+  showToast(`GitHub save failed (${status}) — tap ⟳ to check token`, 4000);
   return false;
 }
 
@@ -5659,7 +5682,7 @@ async function init() {
       // never runs on an empty list that a save would then write over the stored one.
       load();
       const saved = await saveToGitHub();
-      if (!saved) showToast('Could not reach GitHub — check your token');
+      if (!saved) showToast('Could not reach GitHub — check your token', 4000);
     } else {
       restoreCalcResult();
     }
