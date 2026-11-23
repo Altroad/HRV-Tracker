@@ -1515,15 +1515,9 @@
       "ectopy": 1
     },
     {
-      "id": 375,
+      "id": 376,
       "date": "2026-11-23",
-      "hrv": 74,
-      "tag": "150-200TSS",
-      "extras": [
-        "Sauna",
-        "Cold"
-      ],
-      "ectopy": 1
+      "hrv": 74
     }
   ],
   "dayTags": {
