@@ -1529,7 +1529,11 @@
       "id": 377,
       "date": "2026-11-24",
       "hrv": 54,
-      "tag": "Rest"
+      "tag": "Rest",
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
