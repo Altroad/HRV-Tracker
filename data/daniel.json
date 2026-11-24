@@ -1688,19 +1688,19 @@
     "catchUp": 1,
     "fitness": 3,
     "sleepNeed": 360,
-    "hrvW": 1.3,
-    "rhrW": 1.3,
+    "hrvW": 1,
+    "rhrW": 1,
     "favourite": {
       "settings": {
         "fitness": 3,
         "catchUp": 1,
         "sleepNeed": 360,
         "hrvW": 1,
-        "rhrW": 1.4
+        "rhrW": 1
       },
-      "savedAt": 1795283015786
+      "savedAt": 1795542368912
     },
-    "updatedAt": 1795464552928
+    "updatedAt": 1795542369880
   },
   "rhr": {
     "2026-05-15": 39,
