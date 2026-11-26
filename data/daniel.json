@@ -1724,19 +1724,19 @@
     "catchUp": 1,
     "fitness": 3,
     "sleepNeed": 360,
-    "hrvW": 1,
-    "rhrW": 1,
+    "hrvW": 0.9,
+    "rhrW": 1.4,
     "favourite": {
       "settings": {
         "fitness": 3,
         "catchUp": 1,
         "sleepNeed": 360,
-        "hrvW": 1,
-        "rhrW": 1
+        "hrvW": 0.9,
+        "rhrW": 1.4
       },
-      "savedAt": 1795542368912
+      "savedAt": 1795718037891
     },
-    "updatedAt": 1795627656272
+    "updatedAt": 1795718040978
   },
   "rhr": {
     "2026-05-15": 39,
