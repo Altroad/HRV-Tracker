@@ -1573,7 +1573,11 @@
       "id": 382,
       "date": "2026-11-28",
       "hrv": 81,
-      "tag": "Active Recovery"
+      "tag": "Active Recovery",
+      "extras": [
+        "Sauna",
+        "Cold"
+      ]
     }
   ],
   "dayTags": {
